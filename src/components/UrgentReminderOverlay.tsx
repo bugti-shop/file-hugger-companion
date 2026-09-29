@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronsUp, Square } from 'lucide-react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { playRingtone, stopRingtone, RingtoneType } from '@/utils/urgentRingtones';
+import { getSetting } from '@/utils/settingsStorage';
 import { loadTodoItems, saveTodoItems } from '@/utils/todoItemsStorage';
 import { Button } from '@/components/ui/button';
 import appLogo from '@/assets/app-logo.webp';
@@ -17,10 +19,14 @@ interface UrgentReminder {
 
 export const UrgentReminderOverlay = () => {
   const [reminder, setReminder] = useState<UrgentReminder | null>(null);
+  const [toneDuration, setToneDuration] = useState(2);
   const startY = useRef<number | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
+  const ringRequest = useRef(0);
 
   const silence = useCallback(() => {
+    ringRequest.current += 1;
+    stopRingtone();
     if (audio.current) {
       audio.current.pause();
       audio.current.currentTime = 0;
@@ -33,10 +39,20 @@ export const UrgentReminderOverlay = () => {
       setReminder(e.detail);
       triggerUrgentHaptics();
       silence();
-      const ring = new Audio(alarmSound);
-      ring.loop = true;
-      audio.current = ring;
-      void ring.play().catch(() => { /* Browsers may require a user gesture before audio can play. */ });
+      const request = ringRequest.current;
+      void getSetting<RingtoneType>('urgentRingtone', 'alarm').then(tone => {
+        if (request !== ringRequest.current) return;
+        if (tone !== 'alarm') {
+          setToneDuration(tone === 'beacon' ? 6 : tone === 'pulse' ? 6 : 6);
+          playRingtone(tone);
+          return;
+        }
+        setToneDuration(2);
+        const ring = new Audio(alarmSound);
+        ring.loop = true;
+        audio.current = ring;
+        void ring.play().catch(() => { /* Browsers may require a user gesture before audio can play. */ });
+      });
     };
 
     window.addEventListener('urgentReminderTriggered', handleUrgentReminder as EventListener);
@@ -112,7 +128,7 @@ export const UrgentReminderOverlay = () => {
               <h2 className="alarm-title mt-10 w-full break-words font-bold leading-tight">{reminder.taskName}</h2>
               <p className="alarm-muted mt-6 max-w-full text-base leading-snug">{scheduledLabel}</p>
               <div className="alarm-audio-track mt-7 w-full overflow-hidden rounded-full" role="progressbar" aria-label="Alarm sound cycle" aria-valuetext="Alarm ringing">
-                <div className="alarm-audio-progress h-full rounded-full" />
+                <div className="alarm-audio-progress h-full rounded-full" style={{ animationDuration: `${toneDuration}s` }} />
               </div>
               <Button onClick={dismiss} className="mt-9 h-[60px] w-full rounded-full border-0 text-lg font-semibold shadow-none active:translate-y-0">
                 <Square className="fill-current" /> Stop
