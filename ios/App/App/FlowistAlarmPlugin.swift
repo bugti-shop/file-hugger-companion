@@ -113,7 +113,8 @@ public class FlowistAlarmPlugin: CAPPlugin {
     }
 
     @objc func requestNotificationPermissions(_ call: CAPPluginCall) {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge, .timeSensitive]) { granted, error in
+        // Time Sensitive is granted via the entitlement, not an authorization option.
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
             if let error = error { call.reject("Notification permission failed", nil, error) }
             else { call.resolve(["granted": granted]) }
         }
