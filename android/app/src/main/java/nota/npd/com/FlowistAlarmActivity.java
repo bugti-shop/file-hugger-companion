@@ -70,77 +70,107 @@ public class FlowistAlarmActivity extends Activity {
     }
 
     private void buildUi(String title, String priority) {
+        final int bg = Color.rgb(244, 244, 245);
+        final int ink = Color.rgb(24, 24, 27);
+        final int muted = Color.rgb(140, 140, 148);
+        final int red = Color.rgb(219, 37, 45);
+        getWindow().setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(bg));
+
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setGravity(Gravity.CENTER);
-        root.setPadding(dp(30), dp(36), dp(30), dp(36));
-        root.setBackgroundColor(Color.BLACK);
+        root.setPadding(dp(28), dp(24), dp(28), dp(32));
+        root.setBackgroundColor(bg);
 
-        TextView label = text(title, 20, Color.WHITE, false);
-        root.addView(label);
+        // Card deck: two ghost cards behind the main card
+        android.widget.FrameLayout deck = new android.widget.FrameLayout(this);
+        deck.setClipChildren(false);
+        int[][] ghosts = { {dp(36), 0}, {dp(18), dp(20)} };
+        for (int[] g : ghosts) {
+            View ghost = new View(this);
+            ghost.setBackground(card(Color.rgb(250, 250, 250)));
+            ghost.setElevation(dp(2));
+            android.widget.FrameLayout.LayoutParams gp = new android.widget.FrameLayout.LayoutParams(-1, dp(120));
+            gp.leftMargin = g[0]; gp.rightMargin = g[0]; gp.topMargin = g[1];
+            deck.addView(ghost, gp);
+        }
+
+        LinearLayout main = new LinearLayout(this);
+        main.setOrientation(LinearLayout.VERTICAL);
+        main.setGravity(Gravity.CENTER_HORIZONTAL);
+        main.setPadding(dp(28), dp(36), dp(28), dp(32));
+        main.setBackground(card(Color.WHITE));
+        main.setElevation(dp(10));
+
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(R.drawable.flowist_alarm_logo);
+        logo.setContentDescription("Flowist");
+        main.addView(logo, new LinearLayout.LayoutParams(dp(84), dp(84)));
+
+        TextView brand = text("Flowist", 22, ink, true);
+        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, -2);
+        bp.topMargin = dp(8);
+        main.addView(brand, bp);
 
         Date now = new Date();
-        String time = new SimpleDateFormat("hh:mm", Locale.getDefault()).format(now);
-        String ampm = new SimpleDateFormat("a", Locale.getDefault()).format(now);
         LinearLayout timeRow = new LinearLayout(this);
         timeRow.setOrientation(LinearLayout.HORIZONTAL);
-        timeRow.setGravity(Gravity.CENTER);
-        TextView timeView = text(time, 72, Color.WHITE, false);
-        timeView.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
-        TextView ampmView = text(" " + ampm, 22, Color.WHITE, false);
-        ampmView.setGravity(Gravity.BOTTOM);
-        ampmView.setPadding(0, 0, 0, dp(14));
+        timeRow.setGravity(Gravity.CENTER | Gravity.BOTTOM);
+        TextView timeView = text(new SimpleDateFormat("h:mm", Locale.getDefault()).format(now), 64, ink, true);
+        TextView ampmView = text(" " + new SimpleDateFormat("a", Locale.getDefault()).format(now), 22, ink, true);
+        ampmView.setPadding(0, 0, 0, dp(12));
         timeRow.addView(timeView);
         timeRow.addView(ampmView);
-        LinearLayout.LayoutParams timeParams = new LinearLayout.LayoutParams(-1, -2);
-        timeParams.topMargin = dp(8);
-        root.addView(timeRow, timeParams);
+        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, -2);
+        tp.topMargin = dp(20);
+        main.addView(timeRow, tp);
 
-        String date = new SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(now);
-        TextView dateView = text(date, 16, Color.rgb(160, 160, 165), false);
-        LinearLayout.LayoutParams dateParams = new LinearLayout.LayoutParams(-1, -2);
-        dateParams.topMargin = dp(6);
-        root.addView(dateView, dateParams);
+        TextView task = text(title, 20, ink, false);
+        task.setMaxLines(2);
+        task.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        LinearLayout.LayoutParams taskP = new LinearLayout.LayoutParams(-1, -2);
+        taskP.topMargin = dp(8);
+        main.addView(task, taskP);
 
-        View space1 = new View(this);
-        root.addView(space1, new LinearLayout.LayoutParams(1, dp(48)));
-
-        ImageView bell = new ImageView(this);
-        bell.setImageResource(R.mipmap.ic_launcher);
-        bell.setContentDescription("Flowist");
-        LinearLayout.LayoutParams bellParams = new LinearLayout.LayoutParams(dp(120), dp(120));
-        root.addView(bell, bellParams);
-
-        View space2 = new View(this);
-        root.addView(space2, new LinearLayout.LayoutParams(1, dp(56)));
-
-        Button snooze = new Button(this);
-        snooze.setText("Snooze for 10 Min");
-        snooze.setAllCaps(false);
-        snooze.setTextColor(Color.rgb(120, 140, 255));
-        snooze.setTextSize(16);
+        Button stopBtn = new Button(this);
+        stopBtn.setText("\u25A0  Stop");
+        stopBtn.setAllCaps(false);
+        stopBtn.setTextColor(Color.WHITE);
+        stopBtn.setTextSize(19);
+        stopBtn.setStateListAnimator(null);
         GradientDrawable pill = new GradientDrawable();
-        pill.setCornerRadius(dp(28));
-        pill.setColor(Color.TRANSPARENT);
-        pill.setStroke(dp(1), Color.rgb(90, 110, 230));
-        snooze.setBackground(pill);
+        pill.setCornerRadius(dp(32));
+        pill.setColor(red);
+        stopBtn.setBackground(pill);
+        stopBtn.setOnClickListener(v -> stop(false));
+        LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, dp(60));
+        sp.topMargin = dp(32);
+        main.addView(stopBtn, sp);
+
+        TextView snooze = text("Snooze 10 min", 15, muted, false);
+        snooze.setPadding(dp(12), dp(14), dp(12), dp(2));
         snooze.setOnClickListener(v -> stop(true));
-        LinearLayout.LayoutParams snoozeParams = new LinearLayout.LayoutParams(-1, dp(56));
-        snoozeParams.leftMargin = dp(40);
-        snoozeParams.rightMargin = dp(40);
-        root.addView(snooze, snoozeParams);
+        main.addView(snooze, new LinearLayout.LayoutParams(-1, -2));
 
-        View space3 = new View(this);
-        root.addView(space3, new LinearLayout.LayoutParams(1, dp(72)));
+        android.widget.FrameLayout.LayoutParams mp = new android.widget.FrameLayout.LayoutParams(-1, -2);
+        mp.topMargin = dp(40);
+        deck.addView(main, mp);
+        root.addView(deck, new LinearLayout.LayoutParams(-1, -2));
 
-        TextView chevron = text("^", 22, Color.rgb(160, 160, 165), true);
-        root.addView(chevron);
-        TextView swipeHint = text("Swipe up to stop alarm", 15, Color.rgb(200, 200, 205), false);
-        LinearLayout.LayoutParams hintParams = new LinearLayout.LayoutParams(-1, -2);
-        hintParams.topMargin = dp(4);
-        root.addView(swipeHint, hintParams);
+        TextView chevron = text("\u2303", 24, muted, false);
+        LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2);
+        cp.topMargin = dp(36);
+        root.addView(chevron, cp);
+        root.addView(text("Swipe up to dismiss", 15, muted, false));
 
         setContentView(root);
+    }
+
+    private GradientDrawable card(int color) {
+        GradientDrawable d = new GradientDrawable();
+        d.setCornerRadius(dp(24));
+        d.setColor(color);
+        return d;
     }
 
     private TextView text(String value, int size, int color, boolean bold) {
