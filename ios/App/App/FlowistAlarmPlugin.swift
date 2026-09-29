@@ -3,6 +3,7 @@ import Capacitor
 import UserNotifications
 import AVFoundation
 import UIKit
+import AudioToolbox
 
 /// iOS delivers scheduled notifications after termination, but never grants third-party
 /// apps a Clock-style lock-screen takeover or indefinitely looping notification audio.
@@ -53,13 +54,34 @@ enum FlowistAlarmNotifications {
 @objc(FlowistAlarmPlugin)
 public class FlowistAlarmPlugin: CAPPlugin {
     private var alarmPlayer: AVAudioPlayer?
+    private var vibrationTimer: Timer?
+
+    private func stopVibration() {
+        vibrationTimer?.invalidate()
+        vibrationTimer = nil
+    }
+
+    private func startVibration() {
+        stopVibration()
+        // System vibration is permitted only while our alarm card is foregrounded.
+        guard UIApplication.shared.applicationState == .active else { return }
+        AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+        vibrationTimer = Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { _ in
+            if UIApplication.shared.applicationState == .active {
+                AudioServicesPlaySystemSound(kSystemSoundID_Vibrate)
+            }
+        }
+    }
 
     override public func load() {
         FlowistAlarmNotifications.configure()
         NotificationCenter.default.addObserver(self, selector: #selector(alarmOpened(_:)), name: Notification.Name("FlowistAlarmOpened"), object: nil)
     }
 
-    deinit { NotificationCenter.default.removeObserver(self) }
+    deinit {
+        stopVibration()
+        NotificationCenter.default.removeObserver(self)
+    }
 
     @objc private func alarmOpened(_ notification: Notification) {
         guard let info = notification.userInfo else { return }
@@ -121,6 +143,7 @@ public class FlowistAlarmPlugin: CAPPlugin {
     }
 
     @objc func startSound(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { self.startVibration() }
         guard let url = Bundle.main.url(forResource: "flowist_alarm", withExtension: "caf") else {
             call.reject("Alarm sound missing from app")
             return
@@ -139,6 +162,7 @@ public class FlowistAlarmPlugin: CAPPlugin {
     }
 
     @objc func stopSound(_ call: CAPPluginCall) {
+        DispatchQueue.main.async { self.stopVibration() }
         alarmPlayer?.stop()
         alarmPlayer = nil
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
