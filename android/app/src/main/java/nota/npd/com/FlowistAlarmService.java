@@ -28,9 +28,11 @@ public class FlowistAlarmService extends Service {
         String key = intent == null ? null : intent.getStringExtra("key");
         if (key == null) { stopSelf(); return START_NOT_STICKY; }
         String title = intent.getStringExtra("title");
+        if (title == null) title = "Reminder";
         String priority = intent.getStringExtra("priority");
+        if (priority == null) priority = "None";
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        if (Build.VERSION.SDK_INT >= 26) {
+        if (Build.VERSION.SDK_INT >= 26 && manager != null) {
             NotificationChannel channel = new NotificationChannel(FlowistAlarm.CHANNEL, "Ringing alarms", NotificationManager.IMPORTANCE_HIGH);
             channel.setDescription("Full-screen alarms for time-specific reminders");
             channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
@@ -49,7 +51,8 @@ public class FlowistAlarmService extends Service {
             .setCategory(NotificationCompat.CATEGORY_ALARM).setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setOngoing(true).setContentIntent(full)
             .setFullScreenIntent(full, true).addAction(R.drawable.npd_notification_icon, "Dismiss", dismiss).build();
-        startForeground(NOTIFICATION_ID, notification);
+        if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
+        else startForeground(NOTIFICATION_ID, notification);
         // When full-screen access is denied, Android shows this notification
         // instead; background activity launches cannot bypass that system choice.
         try {
