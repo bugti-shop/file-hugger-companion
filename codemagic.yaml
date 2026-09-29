@@ -30,7 +30,8 @@ workflows:
       - name: Build APK
         script: |
           cd android
-          ./gradlew assembleDebug --no-daemon
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
