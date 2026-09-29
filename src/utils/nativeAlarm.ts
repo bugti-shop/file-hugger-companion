@@ -25,9 +25,20 @@ export const openFullScreenAlarmSettings = async (): Promise<void> => {
   try { await alarm.openFullScreenIntentSettings(); } catch (error) { console.warn('[Alarm] Could not open settings', error); }
 };
 
+let fullScreenPromptShown = false;
+
 export const scheduleNativeAlarm = async (key: string, title: string, when: Date, priority = 'None', repeatDays = 0, replacementId?: number) => {
   if (!['android', 'ios'].includes(Capacitor.getPlatform()) || when.getTime() <= Date.now()) return;
   try {
+    // Android 14+ revokes full-screen intent for many apps — without it the alarm
+    // only vibrates in the shade. Send the user to the grant page once per session.
+    if (Capacitor.getPlatform() === 'android' && !fullScreenPromptShown) {
+      const allowed = await canUseFullScreenAlarm();
+      if (!allowed) {
+        fullScreenPromptShown = true;
+        await openFullScreenAlarmSettings();
+      }
+    }
     await alarm.schedule({ key, title, priority, when: when.getTime(), repeatDays, replacementId });
   } catch (error) {
     // Leave the existing local notification scheduled if alarm access is unavailable.
