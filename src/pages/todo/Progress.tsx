@@ -21,6 +21,21 @@ import { StreakSocietyBadge } from '@/components/StreakSocietyBadge';
 import { StreakConsistencyCertificate } from '@/components/StreakConsistencyCertificate';
 import { useFirstVisitTour } from '@/features/tours/useFeatureTour';
 
+const summarizeProgressTasks = (tasks: NonNullable<typeof tasksCache>) => {
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 }).getTime();
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 0 }).getTime();
+  let completed = 0;
+  let weekCompleted = 0;
+  for (const task of tasks) {
+    if (!task.completed) continue;
+    completed += 1;
+    if (!task.completedAt) continue;
+    const timestamp = task.completedAt instanceof Date ? task.completedAt.getTime() : new Date(task.completedAt).getTime();
+    if (timestamp >= weekStart && timestamp <= weekEnd) weekCompleted += 1;
+  }
+  return { completed, weekCompleted };
+};
+
 const Progress = () => {
   const { t } = useTranslation();
   const { openPaywall } = useSubscription();
@@ -34,8 +49,9 @@ const Progress = () => {
     });
   }, []);
 
-  const [weekStats, setWeekStats] = useState({ completed: 0, total: 0 });
-  const [lifetimeCompleted, setLifetimeCompleted] = useState(0);
+  const initialSummary = useMemo(() => summarizeProgressTasks(tasksCache || []), []);
+  const [weekStats, setWeekStats] = useState({ completed: initialSummary.weekCompleted, total: initialSummary.completed });
+  const [lifetimeCompleted, setLifetimeCompleted] = useState(initialSummary.completed);
   const [allTasks, setAllTasks] = useState<any[]>(tasksCache || []);
   type ChartRange = 'today' | '24h' | '7d' | '30d' | 'month' | 'year';
   const [chartRange, setChartRange] = useState<ChartRange>('7d');
@@ -53,43 +69,34 @@ const Progress = () => {
   const [isPersonalBest, setIsPersonalBest] = useState(false);
 
   useEffect(() => {
-    const loadStats = async () => {
+    let alive = true;
+    const loadTaskStats = async () => {
       try {
         const tasks = await loadTodoItems();
-        const now = new Date();
-        const weekStart = startOfWeek(now, { weekStartsOn: 0 }).getTime();
-        const weekEnd = endOfWeek(now, { weekStartsOn: 0 }).getTime();
-
-        let weekCount = 0;
-        let totalCount = 0;
-        for (const task of tasks) {
-          if (task.completed) {
-            totalCount++;
-            if (task.completedAt) {
-              const ct = task.completedAt instanceof Date ? task.completedAt.getTime() : new Date(task.completedAt).getTime();
-              if (ct >= weekStart && ct <= weekEnd) weekCount++;
-            }
-          }
-        }
-
+        if (!alive) return;
+        const summary = summarizeProgressTasks(tasks);
+        startTransition(() => {
+          setWeekStats({ completed: summary.weekCompleted, total: summary.completed });
+          setAllTasks(tasks);
+          setLifetimeCompleted(summary.completed);
+        });
+      } catch (error) {
+        console.error('Failed to load progress tasks:', error);
+      }
+    };
+    const loadSecondaryStats = async () => {
+      try {
         const newCerts = await hasNewCertificates(data?.longestStreak || 0);
         const rewardResult = await checkDailyReward();
         const rewardData = await loadDailyRewardData();
-        
         const { getSetting } = await import('@/utils/settingsStorage');
         const lastSharedBest = await getSetting<number>('flowist_last_shared_best_streak', 0);
-        
+        if (!alive) return;
         const currentStreak = data?.currentStreak || 0;
         const longestStreak = data?.longestStreak || 0;
         const isPB = currentStreak > 0 && currentStreak >= longestStreak && currentStreak > lastSharedBest;
 
         startTransition(() => {
-          setWeekStats({
-            completed: weekCount,
-            total: totalCount,
-          });
-          setAllTasks([...tasks]);
-          setLifetimeCompleted(totalCount);
           setRewardDay(rewardResult.currentDay);
           setRewardClaimed(!rewardResult.canClaim);
           setCompletedCycles(rewardData.completedCycles || 0);
@@ -97,20 +104,27 @@ const Progress = () => {
           setIsPersonalBest(isPB);
         });
       } catch (error) {
-        console.error('Failed to load stats:', error);
+        console.error('Failed to load secondary progress stats:', error);
       }
     };
-    // Defer heavy loading until after the tab switch has painted and the
-    // nav pill animation has finished, so navigation feels instant.
-    const initTimer = window.setTimeout(() => { void loadStats(); }, (tasksCache && tasksCache.length > 0) ? 50 : 220);
+    if (!tasksCache) void loadTaskStats();
+    const secondaryTimer = window.setTimeout(() => { void loadSecondaryStats(); }, 500);
 
-    const handler = () => loadStats();
+    const handler = () => { void loadTaskStats(); };
+    const visibilityHandler = () => {
+      if (document.visibilityState === 'visible') void loadTaskStats();
+    };
     window.addEventListener('tasksUpdated', handler);
+    window.addEventListener('tasksRestored', handler);
     window.addEventListener('dailyRewardClaimed', handler);
+    document.addEventListener('visibilitychange', visibilityHandler);
     return () => {
-      window.clearTimeout(initTimer);
+      alive = false;
+      window.clearTimeout(secondaryTimer);
       window.removeEventListener('tasksUpdated', handler);
+      window.removeEventListener('tasksRestored', handler);
       window.removeEventListener('dailyRewardClaimed', handler);
+      document.removeEventListener('visibilitychange', visibilityHandler);
     };
   }, []);
 
@@ -386,7 +400,7 @@ const Progress = () => {
 
         {/* Completed Tasks Last 30 Days - Line Chart (reference-matched) */}
         <SafeComponent fallback={null}>
-          <div className="bg-white dark:bg-card rounded-3xl p-5 sm:p-6 border border-[#E5E7EB] dark:border-border shadow-sm">
+          <div className="bg-white dark:bg-card rounded-3xl p-5 sm:p-6 border border-[#E5E7EB] dark:border-border shadow-sm [content-visibility:auto] [contain-intrinsic-size:360px]">
             <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
               <h3 className="text-[17px] sm:text-[19px] font-semibold text-[#111827] dark:text-foreground leading-tight">
                 {t('streak.completedTasks', 'Completed Tasks')}
