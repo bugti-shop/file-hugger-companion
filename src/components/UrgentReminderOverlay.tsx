@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import appLogo from '@/assets/app-logo.webp';
 import alarmSound from '@/assets/flowist_alarm.wav';
 import { Capacitor } from '@capacitor/core';
-import { getOpenedAlarm, listenForOpenedAlarms } from '@/utils/nativeAlarm';
+import { getOpenedAlarm, listenForOpenedAlarms, startIOSAlarmSound, stopIOSAlarmSound } from '@/utils/nativeAlarm';
 
 interface UrgentReminder {
   id: string;
@@ -25,10 +25,12 @@ export const UrgentReminderOverlay = () => {
   const startY = useRef<number | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
   const ringRequest = useRef(0);
+  const lastOpened = useRef('');
 
   const silence = useCallback(() => {
     ringRequest.current += 1;
     stopRingtone();
+    if (Capacitor.getPlatform() === 'ios') void stopIOSAlarmSound().catch(() => {});
     if (audio.current) {
       audio.current.pause();
       audio.current.currentTime = 0;
@@ -42,6 +44,11 @@ export const UrgentReminderOverlay = () => {
       triggerUrgentHaptics();
       silence();
       const request = ringRequest.current;
+      if (Capacitor.getPlatform() === 'ios') {
+        setToneDuration(2);
+        void startIOSAlarmSound().catch(error => console.warn('[Alarm] iPhone sound could not play', error));
+        return;
+      }
       void getSetting<RingtoneType>('urgentRingtone', 'alarm').then(tone => {
         if (request !== ringRequest.current) return;
         if (tone !== 'alarm') {
@@ -70,6 +77,9 @@ export const UrgentReminderOverlay = () => {
     let remove: (() => Promise<void>) | undefined;
     const showOpened = ({ key, title, scheduledAt }: { key: string; title: string; scheduledAt: number }) => {
       if (!alive) return;
+      const occurrence = `${key}:${scheduledAt}`;
+      if (lastOpened.current === occurrence) return;
+      lastOpened.current = occurrence;
       window.dispatchEvent(new CustomEvent('urgentReminderTriggered', {
         detail: { id: key, taskName: title, triggeredAt: new Date(), scheduledAt: new Date(scheduledAt).toISOString() },
       }));

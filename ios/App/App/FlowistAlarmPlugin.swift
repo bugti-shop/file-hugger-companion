@@ -1,6 +1,7 @@
 import Foundation
 import Capacitor
 import UserNotifications
+import AVFoundation
 
 /// iOS delivers scheduled notifications after termination, but never grants third-party
 /// apps a Clock-style lock-screen takeover or indefinitely looping notification audio.
@@ -50,6 +51,8 @@ enum FlowistAlarmNotifications {
 
 @objc(FlowistAlarmPlugin)
 public class FlowistAlarmPlugin: CAPPlugin {
+    private var alarmPlayer: AVAudioPlayer?
+
     override public func load() {
         FlowistAlarmNotifications.configure()
         NotificationCenter.default.addObserver(self, selector: #selector(alarmOpened(_:)), name: Notification.Name("FlowistAlarmOpened"), object: nil)
@@ -87,6 +90,31 @@ public class FlowistAlarmPlugin: CAPPlugin {
             "scheduledAt": info["scheduledAt"] as? Double ?? Date().timeIntervalSince1970 * 1000
         ]
         notifyListeners("alarmOpened", data: data, retainUntilConsumed: true)
+    }
+
+    @objc func startSound(_ call: CAPPluginCall) {
+        guard let url = Bundle.main.url(forResource: "flowist_alarm", withExtension: "caf") else {
+            call.reject("Alarm sound missing from app")
+            return
+        }
+        do {
+            alarmPlayer?.stop()
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.numberOfLoops = -1
+            player.prepareToPlay()
+            guard player.play() else { call.reject("Alarm sound could not play"); return }
+            alarmPlayer = player
+            call.resolve()
+        } catch { call.reject("Alarm sound could not play", nil, error) }
+    }
+
+    @objc func stopSound(_ call: CAPPluginCall) {
+        alarmPlayer?.stop()
+        alarmPlayer = nil
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        call.resolve()
     }
 
     @objc func schedule(_ call: CAPPluginCall) {
