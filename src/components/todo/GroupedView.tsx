@@ -149,7 +149,7 @@ export const GroupedView = ({
                   <div className="flex items-center gap-2 text-muted-foreground"><span className="text-sm font-medium">{completedItems.length}</span>{isCompletedOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</div>
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent className={cn("space-y-2 mt-2", compactMode && "space-y-1 mt-1")}>{completedItems.map(renderTaskItem)}</CollapsibleContent>
+              <CollapsibleContent className={cn("space-y-2 mt-2", compactMode && "space-y-1 mt-1")}>{completedItems.slice(0, 100).map(renderTaskItem)}</CollapsibleContent>
             </div>
           </Collapsible>
         )}

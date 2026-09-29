@@ -829,9 +829,12 @@ const Today = () => {
         </button>
         {!isCollapsed && (
           <div className="p-2 space-y-2">
-            {completedItems.map((item) => (
+            {completedItems.slice(0, 100).map((item) => (
               <div key={item.id} className="bg-card rounded-lg border border-border/50 opacity-70 cv-auto">{renderTaskItem(item)}</div>
             ))}
+            {completedItems.length > 100 && (
+              <div className="px-2 py-1 text-xs text-muted-foreground text-center">+{completedItems.length - 100}</div>
+            )}
           </div>
         )}
       </div>
