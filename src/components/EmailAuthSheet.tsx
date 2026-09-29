@@ -10,6 +10,7 @@ import {
   sendPasswordReset,
 } from '@/utils/emailAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { useGoogleAuth } from '@/contexts/GoogleAuthContext';
 import type { GoogleUser } from '@/utils/googleAuth';
 
 type Mode = 'signin' | 'signup' | 'verify-link' | 'forgot';
@@ -23,6 +24,7 @@ interface Props {
 export function EmailAuthSheet({ open, onClose, onSignedIn }: Props) {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const { signIn: signInWithGoogle, isSigningIn: googleSigningIn } = useGoogleAuth();
 
   const [mode, setMode] = useState<Mode>('signin');
   const [email, setEmail] = useState('');
