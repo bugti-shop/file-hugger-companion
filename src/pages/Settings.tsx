@@ -28,6 +28,9 @@ import { HeaderOffsetSheet } from '@/components/settings/HeaderOffsetSheet';
 import { AccessibilityZoomSheet } from '@/components/settings/AccessibilityZoomSheet';
 import { NotificationPermissionsDialog } from '@/components/settings/NotificationPermissionsDialog';
 import { triggerTestAlarm } from '@/utils/testAlarm';
+import { Capacitor } from '@capacitor/core';
+
+const IS_IOS_APP = Capacitor.getPlatform() === 'ios';
 import { AlarmClock } from 'lucide-react';
 
 type IconRow = {
@@ -70,8 +73,8 @@ const Settings = () => {
       rows: [
         { label: 'Accessibility', icon: AccessibilityIcon, color: '#FF2D92', onClick: () => setShowAccessibilityZoomSheet(true), keywords: ['zoom', 'font size', 'text size'] },
         { label: 'App Lock', icon: Lock, color: '#FF3B30', dataTour: 'settings-security', onClick: () => { if (requireFeature('app_lock')) state.setShowAppLockSettingsSheet(true); }, keywords: ['security', 'passcode', 'pin', 'biometric', 'face', 'touch'] },
-        { label: 'Notifications & Alarms', icon: Bell, color: '#FFCC00', onClick: () => setShowNotificationPermissions(true), keywords: ['alerts', 'reminders', 'push', 'permissions', 'alarm'] },
-        { label: 'Test Alarm', icon: AlarmClock, color: '#FF3B30', onClick: () => { triggerTestAlarm(); }, keywords: ['alarm', 'preview', 'full screen'] },
+        { label: IS_IOS_APP ? 'Notifications' : 'Notifications & Alarms', icon: Bell, color: '#FFCC00', onClick: () => setShowNotificationPermissions(true), keywords: ['alerts', 'reminders', 'push', 'permissions', 'alarm'] },
+        ...(IS_IOS_APP ? [] : [{ label: 'Test Alarm', icon: AlarmClock, color: '#FF3B30', onClick: () => { triggerTestAlarm(); }, keywords: ['alarm', 'preview', 'full screen'] }]),
       ],
     },
     {
