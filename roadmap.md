@@ -1,5 +1,6 @@
 # Roadmap
 
+- [ ] Make To-Do bottom navigation use Notes-style immediate pointer-down navigation, retaining keyboard activation and Profile origin.
 - [x] Keep Progress statistics warm and live across tab switches while deferring secondary work to prevent scroll stalls.
 - [x] Keep iPhone alarms at Apple's maximum permitted behavior: Time Sensitive lock-screen alerts plus a looping full-screen card after opening.
 - [x] Make To-Do Home → Progress → Profile navigation respond on one tap without blinking.

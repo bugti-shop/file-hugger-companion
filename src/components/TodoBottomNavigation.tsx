@@ -1,5 +1,4 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
-import { flushSync } from 'react-dom';
 import { motion } from 'framer-motion';
 import { Home, Calendar, Settings, BarChart3, User, ListChecks, LayoutGrid, Hourglass } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -125,24 +124,17 @@ export const TodoBottomNavigation = () => {
     return item.customLabel || t(`nav.${item.id}`, item.label);
   };
 
-  const [pendingPath, setPendingPath] = useState<string | null>(null);
-
-  // Highlight the tapped tab in the very next frame, then render the heavier
-  // destination screen — every tap gets the same instant visual response.
+  // Match Notes: navigate on pointer-down rather than waiting for a click or
+  // an animation frame. Keep the origin for Profile's dashboard selection.
   const handleNavigation = useCallback((path: string) => {
     if (path === location.pathname || pendingPathRef.current === path) return;
     pendingPathRef.current = path;
     void prefetchRoute(path);
-    const from = location.pathname;
-    flushSync(() => setPendingPath(path));
-    requestAnimationFrame(() => {
-      setTimeout(() => navigate(path, { state: { from } }), 0);
-    });
+    navigate(path, { state: { from: location.pathname } });
   }, [navigate, location.pathname]);
 
   useEffect(() => {
     pendingPathRef.current = null;
-    setPendingPath(null);
   }, [location.pathname]);
 
 
@@ -162,7 +154,7 @@ export const TodoBottomNavigation = () => {
       <div className={cn("grid h-16 max-w-screen-lg mx-auto", gridCols)}>
         {visibleItems.map((item) => {
           const Icon = ICON_COMPONENTS[item.icon] || Home;
-          const isActive = (pendingPath ?? location.pathname) === item.path;
+          const isActive = location.pathname === item.path;
           const badge = item.id === 'countdown' ? countdownBadge : 0;
 
           return (
