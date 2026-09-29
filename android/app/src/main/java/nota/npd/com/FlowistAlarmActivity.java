@@ -72,8 +72,11 @@ public class FlowistAlarmActivity extends Activity {
         });
     }
 
-    @Override public boolean onTouchEvent(MotionEvent event) {
-        return gestures != null && gestures.onTouchEvent(event) || super.onTouchEvent(event);
+    @Override public boolean dispatchTouchEvent(MotionEvent event) {
+        // Catch swipes begun on the card as well as the empty background.
+        // Button and answer-field taps still go to their normal handlers.
+        if (gestures != null && gestures.onTouchEvent(event)) return true;
+        return super.dispatchTouchEvent(event);
     }
 
     private void buildUi(String title, String priority) {
