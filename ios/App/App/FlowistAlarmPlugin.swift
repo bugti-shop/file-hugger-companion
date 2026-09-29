@@ -14,7 +14,7 @@ enum FlowistAlarmNotifications {
         var info = notification.request.content.userInfo
         // For repeating and snoozed reminders the occurrence is the delivery date.
         info["scheduledAt"] = notification.date.timeIntervalSince1970 * 1000
-        if pendingOpened == nil { pendingOpened = info }
+        pendingOpened = info
         NotificationCenter.default.post(name: Notification.Name("FlowistAlarmOpened"), object: nil, userInfo: info)
     }
 
@@ -56,7 +56,6 @@ public class FlowistAlarmPlugin: CAPPlugin {
     override public func load() {
         FlowistAlarmNotifications.configure()
         NotificationCenter.default.addObserver(self, selector: #selector(alarmOpened(_:)), name: Notification.Name("FlowistAlarmOpened"), object: nil)
-        flushPending()
     }
 
     deinit { NotificationCenter.default.removeObserver(self) }
@@ -64,12 +63,6 @@ public class FlowistAlarmPlugin: CAPPlugin {
     @objc private func alarmOpened(_ notification: Notification) {
         guard let info = notification.userInfo else { return }
         emitOpened(info)
-    }
-
-    private func flushPending() {
-        guard let pending = FlowistAlarmNotifications.pendingOpened else { return }
-        FlowistAlarmNotifications.pendingOpened = nil
-        emitOpened(pending)
     }
 
     @objc func getOpenedAlarm(_ call: CAPPluginCall) {
