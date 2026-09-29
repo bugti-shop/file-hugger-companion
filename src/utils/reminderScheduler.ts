@@ -6,11 +6,7 @@
 
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { App } from '@capacitor/app';
 import { scheduleNativeAlarm, cancelNativeAlarm } from '@/utils/nativeAlarm';
-
-// Track scheduled urgent reminders for resume-check
-const pendingUrgentReminders = new Map<string, { taskText: string; reminderTime: Date }>();
 
 // Generate a stable numeric ID from a string ID
 const hashStringToId = (str: string): number => {
@@ -22,9 +18,6 @@ const hashStringToId = (str: string): number => {
   }
   return Math.abs(hash) % 2147483647;
 };
-
-// In-app urgent reminder timers (fires overlay directly, no notification tap needed)
-const urgentTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 // Web reminder timers (for non-native platforms)
 const webReminderTimers = new Map<string, ReturnType<typeof setTimeout>>();
@@ -86,39 +79,6 @@ const cancelWebReminderTimer = (id: string) => {
   if (existing) {
     clearTimeout(existing);
     webReminderTimers.delete(id);
-  }
-};
-
-const scheduleUrgentInAppTimer = (taskId: string, taskText: string, reminderTime: Date) => {
-  // Clear any existing timer for this task
-  cancelUrgentInAppTimer(taskId);
-  
-  const delay = reminderTime.getTime() - Date.now();
-  if (delay <= 0) return;
-  
-  const timer = setTimeout(() => {
-    urgentTimers.delete(taskId);
-    console.log('[Reminder] Urgent in-app timer fired for:', taskText);
-    window.dispatchEvent(new CustomEvent('urgentReminderTriggered', {
-      detail: {
-        id: taskId,
-        taskName: taskText,
-        triggeredAt: new Date(),
-         scheduledAt: reminderTime.toISOString(),
-        reminderTime: reminderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      }
-    }));
-  }, delay);
-  
-  urgentTimers.set(taskId, timer);
-  console.log('[Reminder] Urgent in-app timer set for', taskText, 'in', Math.round(delay / 1000), 'seconds');
-};
-
-const cancelUrgentInAppTimer = (taskId: string) => {
-  const existing = urgentTimers.get(taskId);
-  if (existing) {
-    clearTimeout(existing);
-    urgentTimers.delete(taskId);
   }
 };
 
@@ -201,10 +161,7 @@ export const scheduleTaskReminder = async (
  * Cancel a task reminder
  */
 export const cancelTaskReminder = async (taskId: string): Promise<void> => {
-  // Always cancel the in-app urgent timer and web timer
-  cancelUrgentInAppTimer(taskId);
   cancelWebReminderTimer(taskId);
-  pendingUrgentReminders.delete(taskId);
 
   if (!Capacitor.isNativePlatform()) return;
 
@@ -695,10 +652,6 @@ export const initializeReminders = async (): Promise<void> => {
 };
 
 /**
- * Restore urgent in-app timers from stored tasks
- * Called on app start and app resume to ensure timers survive app restarts
- */
-/**
  * Restore web reminder timers for all tasks with future reminders
  * Called on app start to ensure timers survive page refreshes
  */
@@ -729,55 +682,3 @@ const restoreWebReminderTimers = async (): Promise<void> => {
   }
 };
 
-const restoreUrgentTimers = async (): Promise<void> => {
-  if (Capacitor.getPlatform() === 'android') return;
-  try {
-    const { loadTodoItems } = await import('@/utils/todoItemsStorage');
-    const items = await loadTodoItems();
-    const now = new Date();
-    let restored = 0;
-
-    for (const item of items) {
-      if (item.isUrgent && item.reminderTime && !item.completed) {
-        const reminderDate = new Date(item.reminderTime);
-        if (reminderDate > now) {
-          scheduleUrgentInAppTimer(item.id, item.text, reminderDate);
-          // Also track for resume-check
-          pendingUrgentReminders.set(item.id, { taskText: item.text, reminderTime: reminderDate });
-          restored++;
-        }
-      }
-    }
-
-    if (restored > 0) {
-      console.log(`[Reminder] Restored ${restored} urgent in-app timer(s)`);
-    }
-  } catch (e) {
-    console.warn('[Reminder] Failed to restore urgent timers:', e);
-  }
-};
-
-/**
- * Check if any urgent reminders fired while app was in background
- * If so, trigger the full-screen overlay immediately on resume
- */
-const checkMissedUrgentReminders = () => {
-  const now = Date.now();
-  for (const [taskId, { taskText, reminderTime }] of pendingUrgentReminders) {
-    if (reminderTime.getTime() <= now) {
-      console.log('[Reminder] Missed urgent reminder detected on resume:', taskText);
-      pendingUrgentReminders.delete(taskId);
-      // Fire the full-screen overlay immediately
-      window.dispatchEvent(new CustomEvent('urgentReminderTriggered', {
-        detail: {
-          id: taskId,
-          taskName: taskText,
-          triggeredAt: new Date(),
-          scheduledAt: reminderTime.toISOString(),
-          reminderTime: reminderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        }
-      }));
-      break; // Show one at a time
-    }
-  }
-};
