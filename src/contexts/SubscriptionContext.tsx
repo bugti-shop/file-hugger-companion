@@ -52,11 +52,6 @@ const PRODUCT_IDS: { weekly: string; monthly: string; yearly: string } = IS_IOS
 
 export type ProductType = 'weekly' | 'monthly' | 'yearly';
 
-// Free trial offer IDs (base plan:offer)
-const TRIAL_OFFER_IDS: Partial<Record<ProductType, string>> = {
-  monthly: 'npd-monthly-offer',
-  yearly: 'npd-yearly-trial',
-};
 
 export type SubscriptionTier = 'free' | 'premium';
 export type SubscriptionPlanType = 'none' | 'weekly' | 'monthly' | 'yearly';
@@ -783,19 +778,12 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
 
       console.log('RevenueCat: Purchasing store product directly:', storeProduct.identifier);
       
-      // Try to apply free trial offer if available
-      const trialOfferId = TRIAL_OFFER_IDS[productType];
+      // No free trial: always purchase the base plan at the full billed price.
+      const baseOption = (storeProduct as any).defaultOption
+        || (storeProduct as any).subscriptionOptions?.find((opt: any) => opt.isBasePlan);
       const purchaseOptions: any = { product: storeProduct };
-      if (trialOfferId && (storeProduct as any).subscriptionOptions) {
-        const trialOption = (storeProduct as any).subscriptionOptions?.find(
-          (opt: any) => opt.id?.includes(trialOfferId)
-        );
-        if (trialOption) {
-          purchaseOptions.subscriptionOption = trialOption;
-          console.log('RevenueCat: Applying trial offer:', trialOfferId);
-        }
-      }
-      
+      if (baseOption) purchaseOptions.subscriptionOption = baseOption;
+
       const result = await Purchases.purchaseStoreProduct(purchaseOptions);
       setCustomerInfo(result.customerInfo);
       const hasEntitlement = hasActiveRevenueCatAccess(result.customerInfo);

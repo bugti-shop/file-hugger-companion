@@ -1856,7 +1856,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
       { icon: <Unlock size={16} strokeWidth={2} />, title: t('onboarding.readyUnlockAll'), desc: t('onboarding.readyUnlockAllDesc') },
       { icon: <Bell size={16} strokeWidth={2} />, title: t('onboarding.readyUnlimited'), desc: t('onboarding.readyUnlimitedDesc') },
       { icon: <Crown size={16} strokeWidth={2} fill="#FFD700" color="#FFD700" />, title: t('onboarding.readyProMember'), desc: t('onboarding.readyProMemberDesc') },
-      { icon: <Gift size={16} strokeWidth={2} />, title: t('onboarding.readyFreeTrial'), desc: t('onboarding.readyFreeTrialDesc') },
     ];
     return (
       <div className="fixed inset-0 z-[300] flex flex-col bg-white" style={{ paddingTop: 'var(--safe-top, 0px)', paddingBottom: 'var(--safe-bottom, 0px)' }}>
