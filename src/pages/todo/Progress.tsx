@@ -68,7 +68,13 @@ const Progress = () => {
   const [completedCycles, setCompletedCycles] = useState(0);
   const [isPersonalBest, setIsPersonalBest] = useState(false);
   // Paint the light top cards first; mount chart/certificate/journey after the tab switch has painted.
-  const [heavyReady, setHeavyReady] = useState(true);
+  const [heavyReady, setHeavyReady] = useState(false);
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      startTransition(() => setHeavyReady(true));
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, []);
 
 
   useEffect(() => {
@@ -235,16 +241,6 @@ const Progress = () => {
     }
     return buckets.map(b => ({ ...b, value: map.get(b.date) || 0 }));
   }, [allTasks, chartRange]);
-
-  if (isLoading) {
-    return (
-      <TodoLayout title={t('nav.progress', 'Progress')}>
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-pulse text-muted-foreground">Loading...</div>
-        </div>
-      </TodoLayout>
-    );
-  }
 
   const TASKS_FOR_FREEZE = 5;
   const dailyTaskCount = data?.dailyTaskCount || 0;

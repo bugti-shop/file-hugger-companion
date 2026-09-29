@@ -2,6 +2,7 @@
 
 - [x] Make To-Do bottom navigation use Notes-style immediate pointer-down navigation, retaining keyboard activation and Profile origin.
 - [x] Keep Progress statistics warm and live across tab switches while deferring secondary work to prevent scroll stalls.
+- [x] Remove Progress's blocking loading screen and delay below-fold heavy cards until after the tab switch paints.
 - [x] Keep iPhone alarms at Apple's maximum permitted behavior: Time Sensitive lock-screen alerts plus a looping full-screen card after opening.
 - [x] Make To-Do Home → Progress → Profile navigation respond on one tap without blinking.
 - [x] Show the Flowist logo instead of Android's generic info icon for all local reminders, push notifications, focus alerts, and alarm notifications.
