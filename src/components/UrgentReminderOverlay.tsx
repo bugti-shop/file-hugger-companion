@@ -13,6 +13,7 @@ interface UrgentReminder {
   taskName: string;
   triggeredAt: Date;
   reminderTime?: string;
+  scheduledAt?: string;
 }
 
 export const UrgentReminderOverlay = () => {
@@ -67,10 +68,10 @@ export const UrgentReminderOverlay = () => {
 
   if (!reminder) return null;
 
-  const displayTime = reminder.reminderTime || new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
-  const timeParts = displayTime.trim().match(/^(.*?)(?:\s*([AaPp][Mm]))?$/);
-  const clock = timeParts?.[1]?.trim() || displayTime;
-  const period = timeParts?.[2]?.toUpperCase() || '';
+  const scheduled = reminder.scheduledAt ? new Date(reminder.scheduledAt) : reminder.triggeredAt;
+  const scheduledLabel = new Intl.DateTimeFormat(undefined, {
+    day: 'numeric', month: 'long', year: 'numeric', hour: 'numeric', minute: '2-digit',
+  }).format(scheduled instanceof Date && !Number.isNaN(scheduled.getTime()) ? scheduled : new Date());
 
   return (
     <AnimatePresence>
@@ -95,11 +96,8 @@ export const UrgentReminderOverlay = () => {
             <div className="alarm-card relative flex flex-col items-center px-7 pb-9 pt-11">
               <img src={appLogo} alt="" className="h-[76px] w-[76px] object-contain" />
               <p className="mt-1 text-[23px] font-semibold leading-tight">Flowist</p>
-              <div className="mt-10 flex items-baseline justify-center gap-1 whitespace-nowrap">
-                <span className="alarm-time font-bold leading-none">{clock}</span>
-                {period && <span className="text-xl font-bold">{period}</span>}
-              </div>
-              <p className="mt-6 max-w-full break-words text-xl leading-snug">{reminder.taskName}</p>
+              <h2 className="alarm-title mt-10 w-full break-words font-bold leading-tight">{reminder.taskName}</h2>
+              <p className="alarm-muted mt-6 max-w-full text-base leading-snug">{scheduledLabel}</p>
               <Button onClick={dismiss} className="mt-9 h-[60px] w-full rounded-full border-0 text-lg font-semibold shadow-none active:translate-y-0">
                 <Square className="fill-current" /> Stop
               </Button>
@@ -109,7 +107,7 @@ export const UrgentReminderOverlay = () => {
             </div>
           </div>
           <div className="alarm-muted mt-7 flex flex-col items-center gap-1 text-sm">
-            <ChevronsUp className="h-6 w-6" aria-hidden="true" />
+            <ChevronsUp className="alarm-swipe-cue h-6 w-6" aria-hidden="true" />
             <span>Swipe up to dismiss</span>
           </div>
         </div>

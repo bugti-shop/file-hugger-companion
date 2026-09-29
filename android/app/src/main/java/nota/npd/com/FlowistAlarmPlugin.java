@@ -64,6 +64,7 @@ public class FlowistAlarmPlugin extends Plugin {
             android.content.Intent i = new android.content.Intent(getContext(), FlowistAlarmActivity.class)
                 .putExtra("key", "flowist-test-alarm")
                 .putExtra("title", call.getString("title", "Test Alarm"))
+                .putExtra("scheduledAt", System.currentTimeMillis())
                 .putExtra("test", true)
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
             getContext().startActivity(i);

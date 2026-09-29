@@ -134,7 +134,7 @@
 
         </activity>
 
-        <activity android:name=".FlowistAlarmActivity" android:exported="false" android:showWhenLocked="true" android:turnScreenOn="true" android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+        <activity android:name=".FlowistAlarmActivity" android:exported="false" android:launchMode="singleTop" android:showWhenLocked="true" android:turnScreenOn="true" android:theme="@android:style/Theme.Material.Light.NoActionBar" />
         <service android:name=".FlowistAlarmService" android:exported="false" android:foregroundServiceType="mediaPlayback" />
         <receiver android:name=".FlowistAlarmReceiver" android:exported="false">
             <intent-filter>
