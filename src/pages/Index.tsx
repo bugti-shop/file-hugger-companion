@@ -215,15 +215,6 @@ const Index = () => {
     }
   }, [location.search, folders]);
 
-  // Default selectedFolderId to first folder (Inbox) — "All Notes" view removed.
-  useEffect(() => {
-    if (selectedFolderId == null && folders.length > 0) {
-      const sorted = [...folders].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      setSelectedFolderId(sorted[0].id);
-    }
-  }, [folders, selectedFolderId]);
-
-
   // Notes are now loaded from NotesContext - no local loading needed!
 
   const foldersLoadedRef = useRef(false);

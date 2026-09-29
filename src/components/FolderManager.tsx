@@ -544,8 +544,16 @@ export const FolderManager = ({
       </Dialog>
 
       <div className="flex gap-5 overflow-x-auto overflow-y-visible pt-2 pb-0 scrollbar-hide border-b border-border">
-
-
+        <Button
+          variant="ghost"
+          onClick={handleSelectAllNotes}
+          className={cn(
+            "h-auto rounded-none px-1 py-3 text-sm border-b-[3px] shrink-0",
+            selectedFolderId === null ? "border-primary text-foreground font-semibold" : "border-transparent text-muted-foreground"
+          )}
+        >
+          {t('notesMenu.allNotes', 'All')}
+        </Button>
         {folders.map((folder) => (
           <div key={folder.id} className="relative">
             {editingId === folder.id ? (
@@ -574,7 +582,8 @@ export const FolderManager = ({
                 </Button>
               </div>
             ) : (
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => handleFolderClick(folder.id)}
                 onContextMenu={(e) => {
                   e.preventDefault();
@@ -597,12 +606,12 @@ export const FolderManager = ({
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, folder.id)}
                 className={cn(
-                  "relative flex items-center gap-2 px-1 py-3 whitespace-nowrap text-sm transition-colors border-b-[3px]",
+                  "relative h-auto rounded-none flex items-center gap-2 px-1 py-3 whitespace-nowrap text-sm transition-colors border-b-[3px]",
                   selectedFolderId === folder.id ? "border-primary text-foreground font-semibold" : "border-transparent text-muted-foreground hover:text-foreground"
                 )}
               >
                 {folder.name}
-              </button>
+              </Button>
             )}
 
             {!folder.isDefault && editingId !== folder.id && showActionsForFolder === folder.id && (

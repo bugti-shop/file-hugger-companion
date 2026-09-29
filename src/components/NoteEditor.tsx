@@ -735,6 +735,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     content,
     color,
     customColor,
+    markerColor,
     images,
     floatingImages,
     voiceRecordings,
