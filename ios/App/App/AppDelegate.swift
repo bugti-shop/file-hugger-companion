@@ -12,10 +12,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Route all notification taps/banners through the shared router so
-        // reminder notifications show while the app is open and their taps
-        // are handled from cold start.
-        UNUserNotificationCenter.current().delegate = NotificationRouter.shared
+        // Capacitor's LocalNotifications plugin installs its own
+        // UNUserNotificationCenter delegate, so reminders show normally.
         return true
     }
 
