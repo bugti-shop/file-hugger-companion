@@ -17,6 +17,7 @@ interface UrgentReminder {
   triggeredAt: Date;
   reminderTime?: string;
   scheduledAt?: string;
+  canCompleteTask?: boolean;
 }
 
 export const UrgentReminderOverlay = () => {
@@ -26,11 +27,15 @@ export const UrgentReminderOverlay = () => {
   const audio = useRef<HTMLAudioElement | null>(null);
   const ringRequest = useRef(0);
   const lastOpened = useRef('');
+  const nativeSoundStarted = useRef(false);
 
   const silence = useCallback(() => {
     ringRequest.current += 1;
     stopRingtone();
-    if (Capacitor.getPlatform() === 'ios') void stopIOSAlarmSound().catch(() => {});
+    if (nativeSoundStarted.current) {
+      nativeSoundStarted.current = false;
+      void stopIOSAlarmSound().catch(() => {});
+    }
     if (audio.current) {
       audio.current.pause();
       audio.current.currentTime = 0;
@@ -46,6 +51,7 @@ export const UrgentReminderOverlay = () => {
       const request = ringRequest.current;
       if (Capacitor.getPlatform() === 'ios') {
         setToneDuration(2);
+        nativeSoundStarted.current = true;
         void startIOSAlarmSound().catch(error => console.warn('[Alarm] iPhone sound could not play', error));
         return;
       }
@@ -81,7 +87,7 @@ export const UrgentReminderOverlay = () => {
       if (lastOpened.current === occurrence) return;
       lastOpened.current = occurrence;
       window.dispatchEvent(new CustomEvent('urgentReminderTriggered', {
-        detail: { id: key, taskName: title, triggeredAt: new Date(), scheduledAt: new Date(scheduledAt).toISOString() },
+        detail: { id: key.startsWith('task-') ? key.slice(5) : key, taskName: title, triggeredAt: new Date(), scheduledAt: new Date(scheduledAt).toISOString(), canCompleteTask: key.startsWith('task-') },
       }));
     };
     void listenForOpenedAlarms(showOpened).then(async handle => {
@@ -164,7 +170,7 @@ export const UrgentReminderOverlay = () => {
               <Button onClick={dismiss} className="mt-9 h-[60px] w-full rounded-full border-0 text-lg font-semibold shadow-none active:translate-y-0">
                 <Square className="fill-current" /> Stop
               </Button>
-              {reminder.id !== 'test-alarm' && !reminder.id.startsWith('flowist-alarm-') && (
+              {reminder.canCompleteTask && (
                 <Button variant="ghost" onClick={handleComplete} className="alarm-muted mt-3 text-sm">Complete task</Button>
               )}
             </div>

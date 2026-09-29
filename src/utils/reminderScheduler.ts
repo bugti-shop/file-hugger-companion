@@ -54,7 +54,7 @@ const scheduleWebReminderTimer = async (
     }
 
     window.dispatchEvent(new CustomEvent('urgentReminderTriggered', {
-      detail: { id: `${type}-${id}`, taskName: title, triggeredAt: new Date(), scheduledAt: reminderTime.toISOString() },
+      detail: { id: type === 'task' ? id : `note-${id}`, taskName: title, triggeredAt: new Date(), scheduledAt: reminderTime.toISOString(), canCompleteTask: type === 'task' },
     }));
 
     // Send web browser notification
