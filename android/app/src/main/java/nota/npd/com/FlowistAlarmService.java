@@ -48,6 +48,14 @@ public class FlowistAlarmService extends Service {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setOngoing(true).setContentIntent(full)
             .setFullScreenIntent(full, true).addAction(R.drawable.ic_stat_notify, "Dismiss", dismiss).build();
         startForeground(NOTIFICATION_ID, notification);
+        // Android 14+ can revoke full-screen intent permission; launch the alarm
+        // screen directly as a fallback so the user never gets a silent vibration only.
+        if (Build.VERSION.SDK_INT >= 34) {
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (nm != null && !nm.canUseFullScreenIntent()) {
+                try { startActivity(screen); } catch (Exception ignored) { }
+            }
+        }
         try {
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());

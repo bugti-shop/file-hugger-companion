@@ -31,4 +31,30 @@ public class FlowistAlarmPlugin extends Plugin {
         FlowistAlarm.cancel(getContext(), key + "-snooze");
         call.resolve();
     }
+
+    @PluginMethod
+    public void canUseFullScreenIntent(PluginCall call) {
+        boolean allowed = true;
+        if (android.os.Build.VERSION.SDK_INT >= 34) {
+            android.app.NotificationManager nm = (android.app.NotificationManager) getContext().getSystemService(android.content.Context.NOTIFICATION_SERVICE);
+            allowed = nm != null && nm.canUseFullScreenIntent();
+        }
+        JSObject result = new JSObject();
+        result.put("allowed", allowed);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void openFullScreenIntentSettings(PluginCall call) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 34) {
+                android.content.Intent intent = new android.content.Intent(
+                    android.provider.Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT,
+                    android.net.Uri.parse("package:" + getContext().getPackageName()));
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                getContext().startActivity(intent);
+            }
+            call.resolve();
+        } catch (Exception e) { call.reject("Could not open full-screen intent settings", e); }
+    }
 }

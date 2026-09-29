@@ -24,7 +24,7 @@ public class FlowistAlarmReceiver extends BroadcastReceiver {
                 try {
                     JSONObject snoozed = new JSONObject(data.toString());
                     snoozed.put("key", key.endsWith("-snooze") ? key : key + "-snooze");
-                    snoozed.put("when", System.currentTimeMillis() + 5 * 60_000L);
+                    snoozed.put("when", System.currentTimeMillis() + 10 * 60_000L);
                     snoozed.put("repeatDays", 0);
                     FlowistAlarm.schedule(context, snoozed);
                 } catch (Exception ignored) { }
