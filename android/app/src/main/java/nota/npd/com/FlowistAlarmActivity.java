@@ -2,6 +2,7 @@ package nota.npd.com;
 
 import android.app.Activity;
 import android.animation.ObjectAnimator;
+import android.animation.ValueAnimator;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -26,6 +27,7 @@ public class FlowistAlarmActivity extends Activity {
     private String key;
     private GestureDetector gestures;
     private boolean isTest;
+    private ValueAnimator audioProgress;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -87,6 +89,7 @@ public class FlowistAlarmActivity extends Activity {
     }
 
     private void buildUi(String title, long scheduledAt) {
+        if (audioProgress != null) audioProgress.cancel();
         final int bg = Color.rgb(244, 244, 245);
         final int ink = Color.rgb(24, 24, 27);
         final int muted = Color.rgb(140, 140, 148);
@@ -142,6 +145,25 @@ public class FlowistAlarmActivity extends Activity {
         dateP.topMargin = dp(24);
         main.addView(date, dateP);
 
+        // Fill once per two-second sound loop, then restart while the alarm rings.
+        android.widget.FrameLayout audioTrack = new android.widget.FrameLayout(this);
+        audioTrack.setBackground(pill(Color.rgb(228, 228, 230), dp(3)));
+        android.widget.FrameLayout audioFill = new android.widget.FrameLayout(this);
+        audioFill.setBackground(pill(red, dp(3)));
+        audioTrack.addView(audioFill, new android.widget.FrameLayout.LayoutParams(-1, -1));
+        audioFill.setScaleX(0f);
+        audioFill.setPivotX(0f);
+        LinearLayout.LayoutParams trackP = new LinearLayout.LayoutParams(-1, dp(5));
+        trackP.topMargin = dp(28);
+        main.addView(audioTrack, trackP);
+        audioProgress = ValueAnimator.ofFloat(0f, 1f);
+        audioProgress.setDuration(2000);
+        audioProgress.setInterpolator(new android.view.animation.LinearInterpolator());
+        audioProgress.setRepeatCount(ValueAnimator.INFINITE);
+        audioProgress.addUpdateListener(animation -> audioFill.setScaleX((float) animation.getAnimatedValue()));
+        if (!"0".equals(android.provider.Settings.Global.getString(getContentResolver(), android.provider.Settings.Global.ANIMATOR_DURATION_SCALE))) audioProgress.start();
+        else audioFill.setScaleX(1f);
+
         Button stopBtn = new Button(this);
         stopBtn.setText("\u25A0  Stop");
         stopBtn.setAllCaps(false);
@@ -188,6 +210,13 @@ public class FlowistAlarmActivity extends Activity {
         return d;
     }
 
+    private GradientDrawable pill(int color, int radius) {
+        GradientDrawable d = new GradientDrawable();
+        d.setCornerRadius(radius);
+        d.setColor(color);
+        return d;
+    }
+
     private TextView text(String value, int size, int color, boolean bold) {
         TextView t = new TextView(this);
         t.setText(value);
@@ -201,9 +230,20 @@ public class FlowistAlarmActivity extends Activity {
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
 
     private void stop(boolean snooze) {
+        // Silence immediately, including the test alarm; the receiver handles scheduling.
+        stopService(new Intent(this, FlowistAlarmService.class));
         if (isTest) { finish(); return; }
         Intent action = new Intent(this, FlowistAlarmReceiver.class).setAction(snooze ? FlowistAlarm.ACTION_SNOOZE : FlowistAlarm.ACTION_DISMISS).putExtra("key", key);
         sendBroadcast(action);
         finish();
+    }
+
+    @Override public void onBackPressed() {
+        stop(false);
+    }
+
+    @Override protected void onDestroy() {
+        if (audioProgress != null) { audioProgress.cancel(); audioProgress = null; }
+        super.onDestroy();
     }
 }
