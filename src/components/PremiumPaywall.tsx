@@ -91,7 +91,9 @@ function usePaywallLogic() {
     };
 
     const findPrice = (type: ProductType): string | null => {
-      const pkg = allPackages.find(p => p.packageType === typeMap[type]);
+      const expectedId = BILLING_CONFIG[type].productId.split(':')[0];
+      const pkg = allPackages.find(p => p.packageType === typeMap[type] && p.product?.identifier?.startsWith(expectedId))
+        || allPackages.find(p => p.product?.identifier?.startsWith(expectedId));
       const product = pkg?.product;
       if (product?.priceString) {
         return product.priceString;
@@ -752,6 +754,7 @@ function PaywallScreen({ logic }: { logic: ReturnType<typeof usePaywallLogic> })
          <p className="text-[30px] leading-tight font-black text-white" aria-live="polite">
            {currentPlan.price ?? 'Price loading…'}
          </p>
+         <p className="text-[11px] text-white/70 mb-2">Auto-renews at this price until cancelled.</p>
         {(() => {
           const ctaLabel = isPurchasing
             ? t('onboarding.paywall.processing')
