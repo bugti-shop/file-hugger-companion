@@ -8,3 +8,7 @@
 - [x] Add device-local Android exact alarms with lock-screen alarm, ringtone, vibration, snooze, and reboot restoration
 - [x] Add iOS Time Sensitive alarms with native scheduling, priority details, and Snooze/Dismiss actions that survive app termination
 - [ ] Verify alarms on real Android/iOS devices; Apple Critical Alerts entitlement must be approved before Silent/DND bypass can be signed and enabled
+- [ ] Add Apple sign-in button to EmailAuthSheet (next to new Google button)
+- [ ] Verify Google/Apple buttons render in the sign-in sheet (browser check)
+- [ ] Remove email/password sign-in from EmailAuthSheet (Google + Apple only)
+- [ ] User to enter CRON_SECRET via secure secret form
