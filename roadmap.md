@@ -13,6 +13,7 @@
 - [ ] Verify alarms on real Android/iOS devices; Apple Critical Alerts entitlement must be approved before Silent/DND bypass can be signed and enabled
 - [ ] Verify full-screen alarm on a real Android device after `npx cap sync` (grant full-screen permission when prompted)
 - [x] Match the web Test Alarm screen to the light stacked-card Android alarm design
+- [x] Remove Wake-up Challenge from Settings and Android alarm while retaining Test Alarm
 
 ## Alarm UI ideas + web alarm testing (2026-09-29)
 - [x] Generate 10 alarm screen concept images (logo + task, light neutral theme)
