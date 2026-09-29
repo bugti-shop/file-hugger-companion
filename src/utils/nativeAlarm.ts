@@ -48,8 +48,8 @@ let fullScreenPromptShown = false;
 export const scheduleNativeAlarm = async (key: string, title: string, when: Date, priority = 'None', repeatDays = 0, replacementId?: number) => {
   if (!['android', 'ios'].includes(Capacitor.getPlatform()) || when.getTime() <= Date.now()) return;
   try {
-    // Android 14+ revokes full-screen intent for many apps — without it the alarm
-    // only vibrates in the shade. Send the user to the grant page once per session.
+    // Android 14+ can revoke full-screen access: a ringing notification remains,
+    // but the OS will not show the alarm activity automatically until granted.
     if (Capacitor.getPlatform() === 'android' && !fullScreenPromptShown) {
       const allowed = await canUseFullScreenAlarm();
       if (!allowed) {

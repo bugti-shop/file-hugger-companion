@@ -50,14 +50,8 @@ public class FlowistAlarmService extends Service {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setOngoing(true).setContentIntent(full)
             .setFullScreenIntent(full, true).addAction(R.drawable.npd_notification_icon, "Dismiss", dismiss).build();
         startForeground(NOTIFICATION_ID, notification);
-        // Android 14+ can revoke full-screen intent permission; launch the alarm
-        // screen directly as a fallback so the user never gets a silent vibration only.
-        if (Build.VERSION.SDK_INT >= 34) {
-            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            if (nm != null && !nm.canUseFullScreenIntent()) {
-                try { startActivity(screen); } catch (Exception ignored) { }
-            }
-        }
+        // When full-screen access is denied, Android shows this notification
+        // instead; background activity launches cannot bypass that system choice.
         try {
             player = new MediaPlayer();
             player.setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build());
@@ -65,12 +59,19 @@ public class FlowistAlarmService extends Service {
             player.setLooping(true);
             player.prepare();
             player.start();
+        } catch (Exception error) {
+            android.util.Log.w("FlowistAlarm", "Alarm audio unavailable", error);
+        }
+        // Vibration must still run when media playback fails or audio is muted.
+        try {
             vibrator = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
             if (vibrator != null && vibrator.hasVibrator()) {
                 if (Build.VERSION.SDK_INT >= 26) vibrator.vibrate(VibrationEffect.createWaveform(new long[]{0, 550, 350}, 0), new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_ALARM).build());
                 else vibrator.vibrate(new long[]{0, 550, 350}, 0);
             }
-        } catch (Exception ignored) { }
+        } catch (Exception error) {
+            android.util.Log.w("FlowistAlarm", "Alarm vibration unavailable", error);
+        }
         return START_NOT_STICKY;
     }
 
