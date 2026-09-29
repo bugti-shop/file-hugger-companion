@@ -19,7 +19,7 @@ import { useVirtualizationSettings } from '@/utils/virtualizationSettings';
 // scrolling/navigation. 480 rows was already enough to make @hello-pangea/dnd
 // expensive on mobile, so the scalable path starts early while preserving the
 // same flat row + separator appearance.
-const VIRTUALIZE_THRESHOLD = 120;
+const VIRTUALIZE_THRESHOLD = 40;
 
 interface FlatViewProps {
   sortedSections: TaskSection[];
@@ -347,7 +347,7 @@ export const FlatView = ({
                   <div className="flex items-center gap-2 text-muted-foreground"><span className="text-sm font-medium">{completedItems.length}</span>{isCompletedOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</div>
                 </button>
               </CollapsibleTrigger>
-              <CollapsibleContent className={cn("space-y-2 mt-2", compactMode && "space-y-1 mt-1")}>{completedItems.map((item) => <div key={item.id} className="cv-auto">{renderTaskItem(item)}</div>)}</CollapsibleContent>
+              <CollapsibleContent className={cn("space-y-2 mt-2", compactMode && "space-y-1 mt-1")}>{completedItems.slice(0, 100).map((item) => <div key={item.id} className="cv-auto">{renderTaskItem(item)}</div>)}</CollapsibleContent>
             </div>
           </Collapsible>
         )}
