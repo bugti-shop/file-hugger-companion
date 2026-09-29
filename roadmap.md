@@ -17,6 +17,7 @@
 - [x] Show the reminder title prominently and its exact scheduled date/time beneath it in the same light card on web and Android
 - [x] Keep existing notifications while showing Android full-screen alarms for task, note, habit, and countdown reminders; animate the swipe-up cue
 - [x] Use one Android alarm Activity for both locked and unlocked screens, launched by AlarmManager rather than relying on a background broadcast to open it
+- [x] Fix the first-open crash caused by subscription legal links rendering before the app's navigation is available
 
 ## Alarm UI ideas + web alarm testing (2026-09-29)
 - [x] Generate 10 alarm screen concept images (logo + task, light neutral theme)
