@@ -31,17 +31,11 @@ import { format, formatDistanceToNow, isToday, isTomorrow } from 'date-fns';
 
 
 // Fallback prices (USD) used only when RevenueCat offerings aren't available (e.g. web)
-const FALLBACK_PLANS: { id: ProductType; labelKey: string; price: string; badgeKey: string | null; hasTrial: boolean }[] = [
-  { id: 'weekly', labelKey: 'onboarding.paywall.weekly', price: '$1.99/wk', badgeKey: null, hasTrial: false },
-  { id: 'monthly', labelKey: 'onboarding.paywall.monthly', price: '$3.99/mo', badgeKey: 'onboarding.paywall.popular', hasTrial: true },
-  { id: 'yearly', labelKey: 'onboarding.paywall.yearly', price: '$39.99/yearly', badgeKey: 'onboarding.paywall.bestValue', hasTrial: true },
+const FALLBACK_PLANS: { id: ProductType; labelKey: string; price: string }[] = [
+  { id: 'weekly', labelKey: 'onboarding.paywall.weekly', price: '$1.99' },
+  { id: 'monthly', labelKey: 'onboarding.paywall.monthly', price: '$3.99' },
+  { id: 'yearly', labelKey: 'onboarding.paywall.yearly', price: '$39.99' },
 ];
-
-const PERIOD_LABELS: Record<string, string> = {
-  weekly: '/wk',
-  monthly: '/mo',
-  yearly: '/yr',
-};
 
 // Shared hook for plans and purchase logic
 function usePaywallLogic() {
@@ -107,7 +101,7 @@ function usePaywallLogic() {
 
     return FALLBACK_PLANS.map(plan => ({
       ...plan,
-      price: isNative ? findPrice(plan.id) : plan.price.replace(PERIOD_LABELS[plan.id], ''),
+      price: isNative ? findPrice(plan.id) : plan.price,
       period: { weekly: 'week', monthly: 'month', yearly: 'year' }[plan.id],
     }));
   }, [offerings, storePrices, isNative]);
