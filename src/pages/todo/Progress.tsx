@@ -67,6 +67,13 @@ const Progress = () => {
   const [hasNewCerts, setHasNewCerts] = useState(false);
   const [completedCycles, setCompletedCycles] = useState(0);
   const [isPersonalBest, setIsPersonalBest] = useState(false);
+  // Paint the light top cards first; mount chart/certificate/journey after the tab switch has painted.
+  const [heavyReady, setHeavyReady] = useState(false);
+  useEffect(() => {
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => { raf2 = requestAnimationFrame(() => startTransition(() => setHeavyReady(true))); });
+    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -398,6 +405,7 @@ const Progress = () => {
         </SafeComponent>
 
 
+        {heavyReady && (<>
         {/* Completed Tasks Last 30 Days - Line Chart (reference-matched) */}
         <SafeComponent fallback={null}>
           <div className="bg-white dark:bg-card rounded-3xl p-5 sm:p-6 border border-[#E5E7EB] dark:border-border shadow-sm [content-visibility:auto] [contain-intrinsic-size:360px]">
@@ -495,6 +503,7 @@ const Progress = () => {
           <VirtualJourneyCard />
         </SafeComponent>
 
+        </>)}
         {/* Certificates Button — moved below Virtual Journey */}
         <div>
           <button
@@ -526,16 +535,16 @@ const Progress = () => {
       </div>
 
       {/* Certificates Modal */}
-      <SafeComponent fallback={null}>
+      {showCertificates && <SafeComponent fallback={null}>
         <GamificationCertificates
           isOpen={showCertificates}
           onClose={() => { setShowCertificates(false); setHasNewCerts(false); }}
           streakData={data}
         />
-      </SafeComponent>
+      </SafeComponent>}
 
       {/* Streak Detail Sheet */}
-      <SafeComponent fallback={null}>
+      {showStreakDetail && <SafeComponent fallback={null}>
         <StreakDetailSheet
           isOpen={showStreakDetail}
           onClose={() => setShowStreakDetail(false)}
@@ -548,7 +557,7 @@ const Progress = () => {
           isPro={isPro}
           onUpgrade={() => { setShowStreakDetail(false); openPaywall(); }}
         />
-      </SafeComponent>
+      </SafeComponent>}
     </TodoLayout>
   );
 };
