@@ -32,10 +32,10 @@ import { useHardwareBackButton } from '@/hooks/useHardwareBackButton';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { DEFAULT_TODO_NAV_ITEMS, TodoNavItem } from './TodoBottomNavigation';
 import {
-  Home,
+  ListTodo,
+  TrendingUp,
   Calendar,
   Settings,
-  BarChart3,
   User,
   ClipboardList,
   History,
@@ -47,8 +47,10 @@ import {
 } from 'lucide-react';
 
 const ICON_MAP: Record<string, React.ReactNode> = {
-  Home: <Home className="h-5 w-5" />,
-  BarChart3: <BarChart3 className="h-5 w-5" />,
+  ListTodo: <ListTodo className="h-5 w-5" />,
+  TrendingUp: <TrendingUp className="h-5 w-5" />,
+  Home: <ListTodo className="h-5 w-5" />,
+  BarChart3: <TrendingUp className="h-5 w-5" />,
   User: <User className="h-5 w-5" />,
   Calendar: <Calendar className="h-5 w-5" />,
   Settings: <Settings className="h-5 w-5" />,
