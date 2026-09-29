@@ -19,7 +19,6 @@ import {
   HelpCircle,
   Info,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useSettingsPageState } from '@/hooks/useSettingsPageState';
 import { SettingsDialogs } from '@/components/settings/SettingsDialogs';

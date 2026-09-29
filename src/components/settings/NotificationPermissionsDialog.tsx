@@ -3,7 +3,7 @@ import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { getIOSNotificationPermissions, openIOSNotificationSettings } from '@/utils/nativeAlarm';
+import { getIOSNotificationPermissions, openIOSNotificationSettings, requestIOSNotificationPermissions } from '@/utils/nativeAlarm';
 
 type Status = { authorized: boolean; timeSensitive: boolean; sound: boolean; status: string };
 
@@ -35,7 +35,8 @@ export function NotificationPermissionsDialog({ open, onOpenChange }: { open: bo
   const request = async () => {
     setLoading(true);
     try {
-      if (Capacitor.isNativePlatform()) await LocalNotifications.requestPermissions();
+      if (isIOS) await requestIOSNotificationPermissions();
+      else if (Capacitor.isNativePlatform()) await LocalNotifications.requestPermissions();
       else if (typeof Notification !== 'undefined') await Notification.requestPermission();
       await refresh();
     } finally { setLoading(false); }

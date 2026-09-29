@@ -90,6 +90,13 @@ public class FlowistAlarmPlugin: CAPPlugin {
         }
     }
 
+    @objc func requestNotificationPermissions(_ call: CAPPluginCall) {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge, .timeSensitive]) { granted, error in
+            if let error = error { call.reject("Notification permission failed", nil, error) }
+            else { call.resolve(["granted": granted]) }
+        }
+    }
+
     @objc func openNotificationSettings(_ call: CAPPluginCall) {
         DispatchQueue.main.async {
             guard let url = URL(string: UIApplication.openSettingsURLString),
