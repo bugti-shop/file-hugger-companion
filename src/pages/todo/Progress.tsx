@@ -49,7 +49,7 @@ const Progress = () => {
     });
   }, []);
 
-  const initialSummary = useMemo(() => summarizeProgressTasks(tasksCache || []), []);
+  const initialSummary = useMemo(() => ({ weekCompleted: 0, completed: 0 }), []);
   const [weekStats, setWeekStats] = useState({ completed: initialSummary.weekCompleted, total: initialSummary.completed });
   const [lifetimeCompleted, setLifetimeCompleted] = useState(initialSummary.completed);
   const [allTasks, setAllTasks] = useState<any[]>(tasksCache || []);
@@ -69,9 +69,7 @@ const Progress = () => {
   const [isPersonalBest, setIsPersonalBest] = useState(false);
   // Paint the light top cards first; mount chart/certificate/journey after the tab switch has painted.
   const [heavyReady, setHeavyReady] = useState(true);
-  useEffect(() => {
-    let raf2 = 0;
-  }, []);
+
 
   useEffect(() => {
     let alive = true;
@@ -112,7 +110,7 @@ const Progress = () => {
         console.error('Failed to load secondary progress stats:', error);
       }
     };
-    if (!tasksCache) void loadTaskStats();
+    void loadTaskStats();
     const secondaryTimer = window.setTimeout(() => { void loadSecondaryStats(); }, 500);
 
     const handler = () => { void loadTaskStats(); };
