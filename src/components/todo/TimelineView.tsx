@@ -3,10 +3,8 @@ import { TodoItem } from '@/types/note';
 import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '@/lib/utils';
 import { applyTaskOrder, updateSectionOrder } from '@/utils/taskOrderStorage';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { ViewModeSectionHeader } from './ViewModeSectionHeader';
 import { TimelineTaskRows } from './TimelineTaskRows';
 import {
   getUserTimeZone,
