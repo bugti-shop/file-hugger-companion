@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Shorten the All folder label, put folder tabs above the notes with the options menu alongside, and keep marker colors usable on narrow screens.
 - [x] Add 10 note-list marker colors in the rich-text editor and compact note rows with understated folder tabs; preserve header, search, logo and actions.
 
 - [x] Update iOS notification permission handling and add a Permissions screen for reminder/alarm status and device settings.
