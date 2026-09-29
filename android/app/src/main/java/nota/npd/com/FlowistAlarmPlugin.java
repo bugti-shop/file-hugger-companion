@@ -57,4 +57,25 @@ public class FlowistAlarmPlugin extends Plugin {
             call.resolve();
         } catch (Exception e) { call.reject("Could not open full-screen intent settings", e); }
     }
+
+    @PluginMethod
+    public void setWakeChallenge(PluginCall call) {
+        getContext().getSharedPreferences("flowist_wake", android.content.Context.MODE_PRIVATE).edit()
+            .putString("question", call.getString("question", ""))
+            .putString("answer", call.getString("answer", "")).apply();
+        call.resolve();
+    }
+
+    @PluginMethod
+    public void testAlarm(PluginCall call) {
+        try {
+            android.content.Intent i = new android.content.Intent(getContext(), FlowistAlarmActivity.class)
+                .putExtra("key", "flowist-test-alarm")
+                .putExtra("title", call.getString("title", "Test Alarm"))
+                .putExtra("test", true)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+            getContext().startActivity(i);
+            call.resolve();
+        } catch (Exception e) { call.reject("Could not open test alarm", e); }
+    }
 }

@@ -27,6 +27,9 @@ import { SettingsSheets } from '@/components/settings/SettingsSheets';
 import { FeedbackDialog } from '@/components/FeedbackDialog';
 import { HeaderOffsetSheet } from '@/components/settings/HeaderOffsetSheet';
 import { AccessibilityZoomSheet } from '@/components/settings/AccessibilityZoomSheet';
+import { WakeChallengeSheet } from '@/components/settings/WakeChallengeSheet';
+import { triggerTestAlarm } from '@/utils/wakeChallenge';
+import { AlarmClock, Sunrise } from 'lucide-react';
 
 type IconRow = {
   label: string;
@@ -45,6 +48,7 @@ const Settings = () => {
   const [showHeaderOffsetSheet, setShowHeaderOffsetSheet] = useState(false);
   const [showAccessibilityZoomSheet, setShowAccessibilityZoomSheet] = useState(false);
   const [query, setQuery] = useState('');
+  const [showWakeSheet, setShowWakeSheet] = useState(false);
 
   const groups: { rows: IconRow[] }[] = useMemo(() => [
     {
@@ -68,6 +72,8 @@ const Settings = () => {
         { label: 'Accessibility', icon: AccessibilityIcon, color: '#FF2D92', onClick: () => setShowAccessibilityZoomSheet(true), keywords: ['zoom', 'font size', 'text size'] },
         { label: 'App Lock', icon: Lock, color: '#FF3B30', dataTour: 'settings-security', onClick: () => { if (requireFeature('app_lock')) state.setShowAppLockSettingsSheet(true); }, keywords: ['security', 'passcode', 'pin', 'biometric', 'face', 'touch'] },
         { label: 'Notifications', icon: Bell, color: '#FFCC00', onClick: () => toast.info('Manage notifications from your device settings'), keywords: ['alerts', 'reminders', 'push'] },
+        { label: 'Wake-up Challenge', icon: Sunrise, color: '#FF9500', onClick: () => setShowWakeSheet(true), keywords: ['alarm', 'morning', 'goal', 'ai', 'challenge'] },
+        { label: 'Test Alarm', icon: AlarmClock, color: '#FF3B30', onClick: () => { triggerTestAlarm(); }, keywords: ['alarm', 'preview', 'full screen'] },
       ],
     },
     {
@@ -245,6 +251,7 @@ const Settings = () => {
 
       <FeedbackDialog open={showFeedbackDialog} onOpenChange={setShowFeedbackDialog} />
       <HeaderOffsetSheet isOpen={showHeaderOffsetSheet} onClose={() => setShowHeaderOffsetSheet(false)} />
+      <WakeChallengeSheet isOpen={showWakeSheet} onClose={() => setShowWakeSheet(false)} />
       <AccessibilityZoomSheet isOpen={showAccessibilityZoomSheet} onClose={() => setShowAccessibilityZoomSheet(false)} />
     </div>
   );
