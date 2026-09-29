@@ -12,10 +12,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Manually register the Focus timer plugin (auto-discovery only picks up
-        // Objective-C wrapped classes; our Swift plugin is exposed via @objc).
-        FlowistAlarmNotifications.configure()
-        UNUserNotificationCenter.current().delegate = NotificationRouter.shared
         return true
     }
 
