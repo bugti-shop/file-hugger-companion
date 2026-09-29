@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, startTransition } from 'react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useTranslation } from 'react-i18next';
 import { TodoLayout } from './TodoLayout';
@@ -57,44 +57,45 @@ const Progress = () => {
       try {
         const tasks = await loadTodoItems();
         const now = new Date();
-        const weekStart = startOfWeek(now, { weekStartsOn: 0 });
-        const weekEnd = endOfWeek(now, { weekStartsOn: 0 });
+        const weekStart = startOfWeek(now, { weekStartsOn: 0 }).getTime();
+        const weekEnd = endOfWeek(now, { weekStartsOn: 0 }).getTime();
 
-        const thisWeekTasks = tasks.filter(task => {
-          if (!task.completedAt) return false;
-          const completedDate = new Date(task.completedAt);
-          return completedDate >= weekStart && completedDate <= weekEnd;
-        });
-        setWeekStats({
-          completed: thisWeekTasks.length,
-          total: tasks.filter(t => t.completed).length,
-        });
-
-        setAllTasks(tasks);
-
-
-        // Lifetime completed task count — the true source of truth,
-        // synced instantly with today's tasks via the tasksUpdated event.
-        const completedTotal = await countCompletedTasksInDB();
-        setLifetimeCompleted(completedTotal);
-
-
-
-        const rewardResult = await checkDailyReward();
-        setRewardDay(rewardResult.currentDay);
-        setRewardClaimed(!rewardResult.canClaim);
-
-        const rewardData = await loadDailyRewardData();
-        setCompletedCycles(rewardData.completedCycles || 0);
+        let weekCount = 0;
+        let totalCount = 0;
+        for (const task of tasks) {
+          if (task.completed) {
+            totalCount++;
+            if (task.completedAt) {
+              const ct = task.completedAt instanceof Date ? task.completedAt.getTime() : new Date(task.completedAt).getTime();
+              if (ct >= weekStart && ct <= weekEnd) weekCount++;
+            }
+          }
+        }
 
         const newCerts = await hasNewCertificates(data?.longestStreak || 0);
-        setHasNewCerts(newCerts);
-
-        const currentStreak = data?.currentStreak || 0;
-        const longestStreak = data?.longestStreak || 0;
+        const rewardResult = await checkDailyReward();
+        const rewardData = await loadDailyRewardData();
+        
         const { getSetting } = await import('@/utils/settingsStorage');
         const lastSharedBest = await getSetting<number>('flowist_last_shared_best_streak', 0);
-        setIsPersonalBest(currentStreak > 0 && currentStreak >= longestStreak && currentStreak > lastSharedBest);
+        
+        const currentStreak = data?.currentStreak || 0;
+        const longestStreak = data?.longestStreak || 0;
+        const isPB = currentStreak > 0 && currentStreak >= longestStreak && currentStreak > lastSharedBest;
+
+        startTransition(() => {
+          setWeekStats({
+            completed: weekCount,
+            total: totalCount,
+          });
+          setAllTasks([...tasks]);
+          setLifetimeCompleted(totalCount);
+          setRewardDay(rewardResult.currentDay);
+          setRewardClaimed(!rewardResult.canClaim);
+          setCompletedCycles(rewardData.completedCycles || 0);
+          setHasNewCerts(newCerts);
+          setIsPersonalBest(isPB);
+        });
       } catch (error) {
         console.error('Failed to load stats:', error);
       }
