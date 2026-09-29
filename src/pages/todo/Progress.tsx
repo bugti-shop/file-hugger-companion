@@ -6,7 +6,7 @@ import { useStreak } from '@/hooks/useStreak';
 import { cn } from '@/lib/utils';
 import { Flame, Check, Snowflake, Trophy, Zap, TrendingUp, Calendar, Gift, Clock, Award, CheckSquare, FileText, Sprout } from 'lucide-react';
 import { loadTodoItems } from '@/utils/todoItemsStorage';
-import { countCompletedTasksInDB, tasksCache } from '@/utils/taskStorage';
+import { tasksCache } from '@/utils/taskStorage';
 import { AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 import { startOfWeek, endOfWeek, subDays, subHours, subMonths, subYears, format, startOfDay, startOfHour } from 'date-fns';
