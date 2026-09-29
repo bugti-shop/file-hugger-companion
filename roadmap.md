@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Keep Progress statistics warm and live across tab switches while deferring secondary work to prevent scroll stalls.
+- [x] Keep iPhone alarms at Apple's maximum permitted behavior: Time Sensitive lock-screen alerts plus a looping full-screen card after opening.
 - [x] Make To-Do Home → Progress → Profile navigation respond on one tap without blinking.
 - [x] Show the Flowist logo instead of Android's generic info icon for all local reminders, push notifications, focus alerts, and alarm notifications.
 - [x] Update iOS notification permission handling and add a Permissions screen for reminder/alarm status and device settings.

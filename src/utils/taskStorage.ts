@@ -22,7 +22,7 @@ const markLocalStorageMigrationDone = () => {
 };
 
 // In-memory cache with LRU eviction for large datasets
-let tasksCache: TodoItem[] | null = null;
+export let tasksCache: TodoItem[] | null = null;
 let tasksCacheIndex: Map<string, number> | null = null;
 let cacheVersion = 0;
 let lastSaveTime = 0;

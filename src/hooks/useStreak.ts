@@ -1,6 +1,7 @@
 // Custom hook for streak management
 // Provides reactive streak data and actions
 
+let globalStreakCache: any = null;
 import { useState, useEffect, useCallback } from 'react';
 import {
   StreakData,
@@ -48,8 +49,8 @@ export const useStreak = (options: UseStreakOptions = {}): UseStreakReturn => {
   const { storageKey = TASK_STREAK_KEY, autoCheck = true } = options;
   const { isPro } = useSubscription();
   
-  const [data, setData] = useState<StreakData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [data, setData] = useState<StreakData | null>(globalStreakCache);
+  const [isLoading, setIsLoading] = useState(!globalStreakCache);
 
   // Load and check streak on mount
   const loadStreak = useCallback(async () => {
@@ -57,7 +58,7 @@ export const useStreak = (options: UseStreakOptions = {}): UseStreakReturn => {
       const streakData = autoCheck 
         ? await checkAndUpdateStreak(storageKey, isPro)
         : await loadStreakData(storageKey);
-      setData(streakData);
+      setData(streakData); globalStreakCache = streakData;
     } catch (error) {
       console.error('Failed to load streak:', error);
     } finally {
@@ -83,7 +84,7 @@ export const useStreak = (options: UseStreakOptions = {}): UseStreakReturn => {
   // Record a task completion
   const recordTaskCompletion = useCallback(async (): Promise<{ newMilestone: number | null; usedFreeze: boolean; earnedFreeze: boolean; usedGracePeriod: boolean }> => {
     const result = await recordCompletion(storageKey, undefined, isPro);
-    setData(result.data);
+    setData(result.data); globalStreakCache = result.data;
     // Track behavior for smart notifications
     try {
       const { recordCompletionEvent } = await import('@/utils/smartNotifications');
@@ -180,7 +181,7 @@ export const useStreak = (options: UseStreakOptions = {}): UseStreakReturn => {
   // Add streak freeze
   const addFreeze = useCallback(async (count: number = 1) => {
     const updatedData = await addStreakFreeze(storageKey, count);
-    setData(updatedData);
+    setData(updatedData); globalStreakCache = updatedData;
     window.dispatchEvent(new CustomEvent('streakUpdated'));
   }, [storageKey]);
 
