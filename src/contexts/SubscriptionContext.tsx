@@ -779,8 +779,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
       console.log('RevenueCat: Purchasing store product directly:', storeProduct.identifier);
       
       // No free trial: always purchase the base plan at the full billed price.
-      const baseOption = (storeProduct as any).defaultOption
-        || (storeProduct as any).subscriptionOptions?.find((opt: any) => opt.isBasePlan);
+      const baseOption = (storeProduct as any).subscriptionOptions?.find((opt: any) => opt.isBasePlan);
       const purchaseOptions: any = { product: storeProduct };
       if (baseOption) purchaseOptions.subscriptionOption = baseOption;
 
