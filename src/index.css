@@ -339,7 +339,7 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
 }
 .alarm-ghost, .alarm-card {
   background: hsl(var(--alarm-surface));
-  border-radius: 8px;
+  border-radius: 16px;
   box-shadow: 0 10px 28px hsl(var(--alarm-shadow) / 0.09);
 }
 .alarm-ghost-back { opacity: 0.75; }

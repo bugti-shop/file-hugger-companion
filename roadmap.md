@@ -9,7 +9,7 @@
 - [x] Add iOS Time Sensitive alarms with native scheduling, priority details, and Snooze/Dismiss actions that survive app termination
 - [x] Remove email/password sign-in (sheet deleted; Google + Apple buttons remain on profile/onboarding)
 - [x] CRON_SECRET saved by user via secure form
-- [x] Android full-screen alarm: dark full-screen UI, swipe-up to dismiss, 10-min snooze, Android 14+ full-screen permission check + settings prompt, direct-activity fallback
+- [x] Android full-screen alarm: light stacked-card UI, swipe-up to dismiss, 10-min snooze, Android 14+ full-screen permission check + settings prompt, direct-activity fallback
 - [ ] Verify alarms on real Android/iOS devices; Apple Critical Alerts entitlement must be approved before Silent/DND bypass can be signed and enabled
 - [ ] Verify full-screen alarm on a real Android device after `npx cap sync` (grant full-screen permission when prompted)
 - [x] Match the web Test Alarm screen to the light stacked-card Android alarm design
@@ -19,4 +19,4 @@
 
 ## Alarm UI ideas + web alarm testing (2026-09-29)
 - [x] Generate 10 alarm screen concept images (logo + task, light neutral theme)
-- [ ] Answer: can the alarm feature be triggered/tested in web?
+- [x] Web Test Alarm shows the in-app overlay; lock-screen testing requires a rebuilt Android app

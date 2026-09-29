@@ -174,7 +174,7 @@ public class FlowistAlarmActivity extends Activity {
 
     private GradientDrawable card(int color) {
         GradientDrawable d = new GradientDrawable();
-        d.setCornerRadius(dp(24));
+        d.setCornerRadius(dp(16));
         d.setColor(color);
         return d;
     }
