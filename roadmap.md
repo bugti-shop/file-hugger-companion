@@ -14,5 +14,5 @@
 - [ ] Verify full-screen alarm on a real Android device after `npx cap sync` (grant full-screen permission when prompted)
 
 ## Alarm UI ideas + web alarm testing (2026-09-29)
-- [ ] Generate 10 alarm screen concept images (logo + task, light neutral theme)
+- [x] Generate 10 alarm screen concept images (logo + task, light neutral theme)
 - [ ] Answer: can the alarm feature be triggered/tested in web?
