@@ -1,6 +1,7 @@
 // Custom hook for streak management
 // Provides reactive streak data and actions
 
+let globalStreakCache: any = null;
 import { useState, useEffect, useCallback } from 'react';
 import {
   StreakData,
@@ -57,7 +58,7 @@ export const useStreak = (options: UseStreakOptions = {}): UseStreakReturn => {
       const streakData = autoCheck 
         ? await checkAndUpdateStreak(storageKey, isPro)
         : await loadStreakData(storageKey);
-      setData(streakData);
+      setData(streakData); globalStreakCache = streakData;
     } catch (error) {
       console.error('Failed to load streak:', error);
     } finally {
