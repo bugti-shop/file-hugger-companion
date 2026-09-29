@@ -26,7 +26,6 @@ import { saveUserProfile, loadUserProfile } from '@/hooks/useUserProfile';
 
 import { StreakDay1Screen } from '@/components/StreakDay1Screen';
 import { StreakConsistencyCertificate } from '@/components/StreakConsistencyCertificate';
-import { EmailAuthSheet } from '@/components/EmailAuthSheet';
 
 
 const ONBOARDING_COLOR = '#db252d';
@@ -600,7 +599,6 @@ const TodayPage = lazy(() => import('@/pages/todo/Today'));
 export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   const { t } = useTranslation();
   const [step, setStep] = useState(-3); // -3 = language selection
-  const [showEmailAuth, setShowEmailAuth] = useState(false);
   const [selectedGoal, setSelectedGoal] = useState<Set<string>>(new Set());
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
   const [userName, setUserName] = useState('');
@@ -1482,49 +1480,6 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
             {t('onboarding.signInWithApple', 'Sign in with Apple')}
           </motion.button>
 
-          {/* Continue with Email button hidden — will be re-enabled once email auth is fully configured.
-          <motion.button
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5125 }}
-            onClick={async () => {
-              await triggerHaptic();
-              setShowEmailAuth(true);
-            }}
-            className="w-full max-w-[340px] mt-3 py-3.5 rounded-full text-[16px] font-semibold flex items-center justify-center gap-3 cursor-pointer"
-            style={{
-              backgroundColor: '#ffffff',
-              border: '1px solid #d9d9e3',
-              color: '#1a1a1a',
-            }}
-            whileTap={{ scale: 0.97 }}
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="5" width="18" height="14" rx="2" />
-              <path d="m3 7 9 6 9-6" />
-            </svg>
-            {t('onboarding.continueWithEmail', 'Continue with Email')}
-          </motion.button>
-          */}
-
-          <EmailAuthSheet
-            open={showEmailAuth}
-            onClose={() => setShowEmailAuth(false)}
-            onSignedIn={async (u) => {
-              try {
-                if (u?.email) {
-                  const hasSubscription = await checkStripeByEmail(u.email);
-                  if (hasSubscription) {
-                    await setSetting('onboarding_completed', true);
-                    await setSetting('onboarding_progress_state', null);
-                    onComplete();
-                    return;
-                  }
-                }
-              } catch {}
-              setStep(0);
-            }}
-          />
 
           <motion.button
             initial={{ opacity: 0, y: 20 }}
