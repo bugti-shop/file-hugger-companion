@@ -7,9 +7,8 @@
 - [x] Keep bottom navigation above Android gesture and three-button system controls using device-reported insets
 - [x] Add device-local Android exact alarms with lock-screen alarm, ringtone, vibration, snooze, and reboot restoration
 - [x] Add iOS Time Sensitive alarms with native scheduling, priority details, and Snooze/Dismiss actions that survive app termination
+- [x] Remove email/password sign-in (sheet deleted; Google + Apple buttons remain on profile/onboarding)
+- [x] CRON_SECRET saved by user via secure form
+- [x] Android full-screen alarm: dark full-screen UI, swipe-up to dismiss, 10-min snooze, Android 14+ full-screen permission check + settings prompt, direct-activity fallback
 - [ ] Verify alarms on real Android/iOS devices; Apple Critical Alerts entitlement must be approved before Silent/DND bypass can be signed and enabled
-- [ ] Add Apple sign-in button to EmailAuthSheet (next to new Google button)
-- [ ] Verify Google/Apple buttons render in the sign-in sheet (browser check)
-- [ ] Remove email/password sign-in from EmailAuthSheet (Google + Apple only)
-- [ ] User to enter CRON_SECRET via secure secret form
-- [ ] Android full-screen alarm: cover whole screen (even while phone in use), show over lock screen, swipe-to-dismiss + snooze button like screenshot
+- [ ] Verify full-screen alarm on a real Android device after `npx cap sync` (grant full-screen permission when prompted)
