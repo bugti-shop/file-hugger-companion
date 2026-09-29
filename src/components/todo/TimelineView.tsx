@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { TodoItem } from '@/types/note';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import { applyTaskOrder, updateSectionOrder } from '@/utils/taskOrderStorage';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { ViewModeSectionHeader } from './ViewModeSectionHeader';
+import { TimelineTaskRows } from './TimelineTaskRows';
 import {
   getUserTimeZone,
   startOfZonedDay,
@@ -118,38 +119,10 @@ export const TimelineView = ({
                   </button>
                 )}
               </div>
-              {!isCollapsed && hasTasks && (
-                <Droppable droppableId={group.id}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={cn('pb-2 space-y-1', snapshot.isDraggingOver && 'bg-primary/5')}
-                      style={{ borderLeft: `3px solid ${group.color}` }}
-                    >
-                      {orderedTasks.map((item, index) => (
-                        <Draggable key={item.id} draggableId={item.id} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={cn(
-                                'bg-card',
-                                snapshot.isDragging && 'shadow-lg ring-2 ring-primary rounded-lg',
-                              )}
-                            >
-                              {renderTaskItem(item)}
-                              {renderSubtasksInline(item)}
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              )}
+               {!isCollapsed && hasTasks && (
+                 <TimelineTaskRows id={group.id} color={group.color} tasks={orderedTasks}
+                   renderTaskItem={renderTaskItem} renderSubtasksInline={renderSubtasksInline} />
+               )}
             </div>
           );
         })}
