@@ -6,7 +6,7 @@
 
 import { Capacitor } from '@capacitor/core';
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { scheduleNativeAlarm, cancelNativeAlarm, requestIOSNotificationPermissions } from '@/utils/nativeAlarm';
+import { scheduleNativeAlarm, cancelNativeAlarm } from '@/utils/nativeAlarm';
 
 // Generate a stable numeric ID from a string ID
 const hashStringToId = (str: string): number => {
@@ -101,10 +101,6 @@ export const requestReminderPermission = async (): Promise<boolean> => {
     const status = await LocalNotifications.checkPermissions();
     if (status.display === 'granted') return true;
     
-    if (Capacitor.getPlatform() === 'ios') {
-      const result = await requestIOSNotificationPermissions();
-      return result.granted;
-    }
     const result = await LocalNotifications.requestPermissions();
     return result.display === 'granted';
   } catch (e) {

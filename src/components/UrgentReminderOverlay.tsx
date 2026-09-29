@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import appLogo from '@/assets/app-logo.webp';
 import alarmSound from '@/assets/flowist_alarm.wav';
 import { Capacitor } from '@capacitor/core';
-import { getOpenedAlarm, listenForOpenedAlarms, startIOSAlarmSound, stopIOSAlarmSound } from '@/utils/nativeAlarm';
 
 interface UrgentReminder {
   id: string;
@@ -26,16 +25,10 @@ export const UrgentReminderOverlay = () => {
   const startY = useRef<number | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
   const ringRequest = useRef(0);
-  const lastOpened = useRef('');
-  const nativeSoundStarted = useRef(false);
 
   const silence = useCallback(() => {
     ringRequest.current += 1;
     stopRingtone();
-    if (nativeSoundStarted.current) {
-      nativeSoundStarted.current = false;
-      void stopIOSAlarmSound().catch(() => {});
-    }
     if (audio.current) {
       audio.current.pause();
       audio.current.currentTime = 0;
@@ -44,17 +37,13 @@ export const UrgentReminderOverlay = () => {
   }, []);
 
   useEffect(() => {
+    // iPhone has no alarm screen — reminders stay as normal notifications.
+    if (Capacitor.getPlatform() === 'ios') return;
     const handleUrgentReminder = (e: CustomEvent<UrgentReminder>) => {
       setReminder(e.detail);
       triggerUrgentHaptics();
       silence();
       const request = ringRequest.current;
-      if (Capacitor.getPlatform() === 'ios') {
-        setToneDuration(2);
-        nativeSoundStarted.current = true;
-        void startIOSAlarmSound().catch(error => console.warn('[Alarm] iPhone sound could not play', error));
-        return;
-      }
       void getSetting<RingtoneType>('urgentRingtone', 'alarm').then(tone => {
         if (request !== ringRequest.current) return;
         if (tone !== 'alarm') {
@@ -76,28 +65,6 @@ export const UrgentReminderOverlay = () => {
       silence();
     };
   }, [silence]);
-
-  useEffect(() => {
-    if (Capacitor.getPlatform() !== 'ios') return;
-    let alive = true;
-    let remove: (() => Promise<void>) | undefined;
-    const showOpened = ({ key, title, scheduledAt }: { key: string; title: string; scheduledAt: number }) => {
-      if (!alive) return;
-      const occurrence = `${key}:${scheduledAt}`;
-      if (lastOpened.current === occurrence) return;
-      lastOpened.current = occurrence;
-      window.dispatchEvent(new CustomEvent('urgentReminderTriggered', {
-        detail: { id: key.startsWith('task-') ? key.slice(5) : key, taskName: title, triggeredAt: new Date(), scheduledAt: new Date(scheduledAt).toISOString(), canCompleteTask: key.startsWith('task-') },
-      }));
-    };
-    void listenForOpenedAlarms(showOpened).then(async handle => {
-      if (!alive) { await handle.remove(); return; }
-      remove = () => handle.remove();
-      const pending = await getOpenedAlarm();
-      if (pending.key && pending.title && pending.scheduledAt) showOpened({ key: pending.key, title: pending.title, scheduledAt: pending.scheduledAt });
-    }).catch(error => console.warn('[Alarm] Could not listen for opened iPhone alarms', error));
-    return () => { alive = false; void remove?.(); };
-  }, []);
 
   const triggerUrgentHaptics = async () => {
     try {
