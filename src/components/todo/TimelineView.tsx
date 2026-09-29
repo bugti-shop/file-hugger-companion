@@ -50,15 +50,25 @@ export const TimelineView = ({
 
   const dayGroups = useMemo(() => {
     const now = new Date();
+    // Reuse the formatter across the whole list instead of constructing one for every task.
+    const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+    const dayKey = (date: Date) => {
+      const parts = formatter.formatToParts(date);
+      const year = parts.find(part => part.type === 'year')?.value ?? '1970';
+      const month = parts.find(part => part.type === 'month')?.value ?? '01';
+      const day = parts.find(part => part.type === 'day')?.value ?? '01';
+      return `${year}-${month}-${day}`;
+    };
     const days = Array.from({ length: 7 }, (_, i) => {
       const date = startOfZonedDay(i, now, tz);
       return { id: `timeline-day-${zonedDayKey(date, tz)}`, label: zonedDayLabel(date, i, t as (k: string, f?: string) => string, tz), date, tasks: [] as TodoItem[], color: i === 0 ? '#db252d' : i === 1 ? '#f59e0b' : '#10b981' };
     });
-    const byDay = new Map(days.map(day => [zonedDayKey(day.date, tz), day]));
+    const byDay = new Map(days.map(day => [dayKey(day.date), day]));
     for (const item of uncompletedItems) {
       if (!item.dueDate) continue;
       const due = new Date(item.dueDate);
-      const group = byDay.get(zonedDayKey(due, tz));
+      if (Number.isNaN(due.getTime())) continue;
+      const group = byDay.get(dayKey(due));
       if (group) group.tasks.push(item);
     }
     return days;
@@ -88,7 +98,7 @@ export const TimelineView = ({
           const orderedTasks = applyTaskOrder(group.tasks, group.id);
           const hasTasks = group.tasks.length > 0;
           return (
-             <div key={group.id} className="group [content-visibility:auto] [contain-intrinsic-size:auto_80px]">
+             <div key={group.id} className="group">
               <div className="flex items-center gap-2 px-2">
                 <button
                   onClick={() => toggleViewSectionCollapse(group.id)}
