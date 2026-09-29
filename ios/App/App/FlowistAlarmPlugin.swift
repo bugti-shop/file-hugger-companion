@@ -13,7 +13,7 @@ enum FlowistAlarmNotifications {
         var info = notification.request.content.userInfo
         // For repeating and snoozed reminders the occurrence is the delivery date.
         info["scheduledAt"] = notification.date.timeIntervalSince1970 * 1000
-        pendingOpened = info
+        if pendingOpened == nil { pendingOpened = info }
         NotificationCenter.default.post(name: Notification.Name("FlowistAlarmOpened"), object: nil, userInfo: info)
     }
 
@@ -53,18 +53,31 @@ public class FlowistAlarmPlugin: CAPPlugin {
     override public func load() {
         FlowistAlarmNotifications.configure()
         NotificationCenter.default.addObserver(self, selector: #selector(alarmOpened(_:)), name: Notification.Name("FlowistAlarmOpened"), object: nil)
-        if let pending = FlowistAlarmNotifications.pendingOpened {
-            FlowistAlarmNotifications.pendingOpened = nil
-            emitOpened(pending)
-        }
+        flushPending()
     }
 
     deinit { NotificationCenter.default.removeObserver(self) }
 
     @objc private func alarmOpened(_ notification: Notification) {
         guard let info = notification.userInfo else { return }
-        FlowistAlarmNotifications.pendingOpened = nil
         emitOpened(info)
+    }
+
+    private func flushPending() {
+        guard let pending = FlowistAlarmNotifications.pendingOpened else { return }
+        FlowistAlarmNotifications.pendingOpened = nil
+        emitOpened(pending)
+    }
+
+    @objc func getOpenedAlarm(_ call: CAPPluginCall) {
+        guard let pending = FlowistAlarmNotifications.pendingOpened else { call.resolve([:]); return }
+        FlowistAlarmNotifications.pendingOpened = nil
+        let data: [String: Any] = [
+            "key": pending["key"] as? String ?? "",
+            "title": pending["alarmTitle"] as? String ?? "Reminder",
+            "scheduledAt": pending["scheduledAt"] as? Double ?? Date().timeIntervalSince1970 * 1000
+        ]
+        call.resolve(data)
     }
 
     private func emitOpened(_ info: [AnyHashable: Any]) {

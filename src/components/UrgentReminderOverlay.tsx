@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import appLogo from '@/assets/app-logo.webp';
 import alarmSound from '@/assets/flowist_alarm.wav';
 import { Capacitor } from '@capacitor/core';
-import { listenForOpenedAlarms } from '@/utils/nativeAlarm';
+import { getOpenedAlarm, listenForOpenedAlarms } from '@/utils/nativeAlarm';
 
 interface UrgentReminder {
   id: string;
@@ -68,14 +68,17 @@ export const UrgentReminderOverlay = () => {
     if (Capacitor.getPlatform() !== 'ios') return;
     let alive = true;
     let remove: (() => Promise<void>) | undefined;
-    void listenForOpenedAlarms(({ key, title, scheduledAt }) => {
+    const showOpened = ({ key, title, scheduledAt }: { key: string; title: string; scheduledAt: number }) => {
       if (!alive) return;
       window.dispatchEvent(new CustomEvent('urgentReminderTriggered', {
         detail: { id: key, taskName: title, triggeredAt: new Date(), scheduledAt: new Date(scheduledAt).toISOString() },
       }));
-    }).then(handle => {
-      if (alive) remove = () => handle.remove();
-      else void handle.remove();
+    };
+    void listenForOpenedAlarms(showOpened).then(async handle => {
+      if (!alive) { await handle.remove(); return; }
+      remove = () => handle.remove();
+      const pending = await getOpenedAlarm();
+      if (pending.key && pending.title && pending.scheduledAt) showOpened({ key: pending.key, title: pending.title, scheduledAt: pending.scheduledAt });
     }).catch(error => console.warn('[Alarm] Could not listen for opened iPhone alarms', error));
     return () => { alive = false; void remove?.(); };
   }, []);
