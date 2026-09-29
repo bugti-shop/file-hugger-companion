@@ -1,14 +1,13 @@
+import { useMemo } from 'react';
 import { TodoItem } from '@/types/note';
-import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
+import { DragDropContext, DropResult } from '@hello-pangea/dnd';
 import { Plus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { cn } from '@/lib/utils';
 import { applyTaskOrder, updateSectionOrder } from '@/utils/taskOrderStorage';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { ViewModeSectionHeader } from './ViewModeSectionHeader';
+import { TimelineTaskRows } from './TimelineTaskRows';
 import {
   getUserTimeZone,
-  isSameZonedDay,
   startOfZonedDay,
   zonedDayKey,
   zonedDayLabel,
@@ -49,19 +48,31 @@ export const TimelineView = ({
   const { t } = useTranslation();
   const tz = getUserTimeZone();
 
-  const dayGroups = Array.from({ length: 7 }, (_, i) => {
-    const date = startOfZonedDay(i, new Date(), tz);
-    const id = `timeline-day-${zonedDayKey(date, tz)}`;
-    const label = zonedDayLabel(date, i, t as (k: string, f?: string) => string, tz);
-    const tasks = uncompletedItems.filter(item =>
-      item.dueDate && isSameZonedDay(new Date(item.dueDate), date, tz)
-    );
-    const color =
-      i === 0 ? '#db252d'
-      : i === 1 ? '#f59e0b'
-      : '#10b981';
-    return { id, label, date, tasks, color };
-  });
+  const dayGroups = useMemo(() => {
+    const now = new Date();
+    // Reuse the formatter across the whole list instead of constructing one for every task.
+    const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' });
+    const dayKey = (date: Date) => {
+      const parts = formatter.formatToParts(date);
+      const year = parts.find(part => part.type === 'year')?.value ?? '1970';
+      const month = parts.find(part => part.type === 'month')?.value ?? '01';
+      const day = parts.find(part => part.type === 'day')?.value ?? '01';
+      return `${year}-${month}-${day}`;
+    };
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const date = startOfZonedDay(i, now, tz);
+      return { id: `timeline-day-${zonedDayKey(date, tz)}`, label: zonedDayLabel(date, i, t as (k: string, f?: string) => string, tz), date, tasks: [] as TodoItem[], color: i === 0 ? '#db252d' : i === 1 ? '#f59e0b' : '#10b981' };
+    });
+    const byDay = new Map(days.map(day => [dayKey(day.date), day]));
+    for (const item of uncompletedItems) {
+      if (!item.dueDate) continue;
+      const due = new Date(item.dueDate);
+      if (Number.isNaN(due.getTime())) continue;
+      const group = byDay.get(dayKey(due));
+      if (group) group.tasks.push(item);
+    }
+    return days;
+  }, [uncompletedItems, tz, t]);
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -87,7 +98,7 @@ export const TimelineView = ({
           const orderedTasks = applyTaskOrder(group.tasks, group.id);
           const hasTasks = group.tasks.length > 0;
           return (
-            <div key={group.id} className="group">
+             <div key={group.id} className="group">
               <div className="flex items-center gap-2 px-2">
                 <button
                   onClick={() => toggleViewSectionCollapse(group.id)}
@@ -116,38 +127,10 @@ export const TimelineView = ({
                   </button>
                 )}
               </div>
-              {!isCollapsed && hasTasks && (
-                <Droppable droppableId={group.id}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={cn('pb-2 space-y-1', snapshot.isDraggingOver && 'bg-primary/5')}
-                      style={{ borderLeft: `3px solid ${group.color}` }}
-                    >
-                      {orderedTasks.map((item, index) => (
-                        <Draggable key={item.id} draggableId={item.id} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              {...provided.dragHandleProps}
-                              className={cn(
-                                'bg-card',
-                                snapshot.isDragging && 'shadow-lg ring-2 ring-primary rounded-lg',
-                              )}
-                            >
-                              {renderTaskItem(item)}
-                              {renderSubtasksInline(item)}
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              )}
+               {!isCollapsed && hasTasks && (
+                 <TimelineTaskRows id={group.id} color={group.color} tasks={orderedTasks}
+                   renderTaskItem={renderTaskItem} renderSubtasksInline={renderSubtasksInline} />
+               )}
             </div>
           );
         })}

@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, useEffect, useCallback, useMemo, startTransition } from 'react';
+import { lazy, Suspense, useState, useEffect, startTransition } from 'react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useTranslation } from 'react-i18next';
 import { TodoLayout } from './TodoLayout';
@@ -8,7 +8,7 @@ import { Flame, Check, Snowflake, Trophy, Zap, TrendingUp, Calendar, Gift, Clock
 import { loadTodoItems } from '@/utils/todoItemsStorage';
 import { tasksCache } from '@/utils/taskStorage';
 
-import { startOfWeek, endOfWeek, subDays, subHours, subMonths, subYears, format, startOfDay, startOfHour } from 'date-fns';
+import { startOfWeek, endOfWeek } from 'date-fns';
 
 import { checkDailyReward, loadDailyRewardData } from '@/utils/dailyRewardStorage';
 import { SafeComponent } from '@/components/ErrorBoundary';
@@ -48,17 +48,9 @@ const Progress = () => {
     });
   }, []);
 
-  const initialSummary = useMemo(() => ({ weekCompleted: 0, completed: 0 }), []);
-  const [weekStats, setWeekStats] = useState({ completed: initialSummary.weekCompleted, total: initialSummary.completed });
-  const [lifetimeCompleted, setLifetimeCompleted] = useState(initialSummary.completed);
+  const [weekStats, setWeekStats] = useState({ completed: 0, total: 0 });
+  const [lifetimeCompleted, setLifetimeCompleted] = useState(0);
   const [allTasks, setAllTasks] = useState<any[]>(tasksCache || []);
-  type ChartRange = 'today' | '24h' | '7d' | '30d' | 'month' | 'year';
-  const [chartRange, setChartRange] = useState<ChartRange>('7d');
-
-
-
-
-  
   const [showCertificates, setShowCertificates] = useState(false);
   const [showStreakDetail, setShowStreakDetail] = useState(false);
   const [rewardDay, setRewardDay] = useState(1);
@@ -161,85 +153,6 @@ const Progress = () => {
     { value: 14, icon: TrendingUp, label: '2 weeks', color: 'text-success' },
     { value: 30, icon: Flame, label: '1 month', color: 'text-streak' },
   ];
-
-  const rangeOptions: { key: ChartRange; label: string }[] = [
-    { key: 'today', label: t('streak.rangeToday', 'Today') },
-    { key: '24h', label: t('streak.range24h', '24h') },
-    { key: '7d', label: t('streak.range7d', '7 Days') },
-    { key: '30d', label: t('streak.range30d', '30 Days') },
-    { key: 'month', label: t('streak.rangeMonth', 'Last Month') },
-    { key: 'year', label: t('streak.rangeYear', 'Last Year') },
-  ];
-
-  const chartData = useMemo(() => {
-    const now = new Date();
-    type Bucket = { date: string; label: string; value: number };
-    const buckets: Bucket[] = [];
-    const map = new Map<string, number>();
-
-    const pushDay = (d: Date, labelFmt: string) => {
-      const key = format(startOfDay(d), 'yyyy-MM-dd');
-      map.set(key, 0);
-      buckets.push({ date: key, label: format(d, labelFmt), value: 0 });
-    };
-    const pushHour = (d: Date) => {
-      const key = format(startOfHour(d), 'yyyy-MM-dd HH');
-      map.set(key, 0);
-      buckets.push({ date: key, label: format(d, 'ha'), value: 0 });
-    };
-    const pushMonth = (d: Date) => {
-      const key = format(d, 'yyyy-MM');
-      map.set(key, 0);
-      buckets.push({ date: key, label: format(d, 'MMM'), value: 0 });
-    };
-
-    let mode: 'hour' | 'day' | 'month' = 'day';
-    if (chartRange === 'today') {
-      mode = 'hour';
-      const start = startOfDay(now);
-      for (let h = 0; h <= now.getHours(); h++) {
-        const d = new Date(start); d.setHours(h);
-        pushHour(d);
-      }
-    } else if (chartRange === '24h') {
-      mode = 'hour';
-      for (let i = 23; i >= 0; i--) pushHour(subHours(now, i));
-    } else if (chartRange === '7d') {
-      for (let i = 6; i >= 0; i--) pushDay(subDays(now, i), 'EEE');
-    } else if (chartRange === '30d') {
-      for (let i = 29; i >= 0; i--) pushDay(subDays(now, i), 'MMM d');
-    } else if (chartRange === 'month') {
-      for (let i = 29; i >= 0; i--) pushDay(subDays(now, i), 'MMM d');
-    } else if (chartRange === 'year') {
-      mode = 'month';
-      for (let i = 11; i >= 0; i--) pushMonth(subMonths(now, i));
-    }
-
-    // Fast binning: skip tasks outside the range before any date formatting.
-    const pad = (n: number) => (n < 10 ? '0' + n : '' + n);
-    const rangeStart = buckets.length ? (() => {
-      const first = buckets[0].date;
-      if (mode === 'month') return new Date(first + '-01T00:00:00').getTime();
-      if (mode === 'hour') return new Date(first.replace(' ', 'T') + ':00:00').getTime();
-      return new Date(first + 'T00:00:00').getTime();
-    })() : 0;
-    for (const task of allTasks) {
-      if (!task.completedAt) continue;
-      const ts = task.completedAt instanceof Date ? task.completedAt.getTime() : new Date(task.completedAt).getTime();
-      if (ts < rangeStart) continue;
-      
-      const dt = task.completedAt instanceof Date ? task.completedAt : new Date(task.completedAt);
-      const ymd = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}`;
-      let key: string;
-      if (mode === 'month') key = ymd;
-      else if (mode === 'day') key = `${ymd}-${pad(dt.getDate())}`;
-      else key = `${ymd}-${pad(dt.getDate())} ${pad(dt.getHours())}`;
-      
-      const v = map.get(key);
-      if (v !== undefined) map.set(key, v + 1);
-    }
-    return buckets.map(b => ({ ...b, value: map.get(b.date) || 0 }));
-  }, [allTasks, chartRange]);
 
   const TASKS_FOR_FREEZE = 5;
   const dailyTaskCount = data?.dailyTaskCount || 0;
