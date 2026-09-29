@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { motion } from 'framer-motion';
 import { Home, Calendar, Settings, BarChart3, User, ListChecks, LayoutGrid, Hourglass } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -124,15 +125,24 @@ export const TodoBottomNavigation = () => {
     return item.customLabel || t(`nav.${item.id}`, item.label);
   };
 
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+
+  // Highlight the tapped tab in the very next frame, then render the heavier
+  // destination screen — every tap gets the same instant visual response.
   const handleNavigation = useCallback((path: string) => {
     if (path === location.pathname || pendingPathRef.current === path) return;
     pendingPathRef.current = path;
     void prefetchRoute(path);
-    navigate(path, { state: { from: location.pathname } });
+    const from = location.pathname;
+    flushSync(() => setPendingPath(path));
+    requestAnimationFrame(() => {
+      setTimeout(() => navigate(path, { state: { from } }), 0);
+    });
   }, [navigate, location.pathname]);
 
   useEffect(() => {
     pendingPathRef.current = null;
+    setPendingPath(null);
   }, [location.pathname]);
 
 
@@ -152,7 +162,7 @@ export const TodoBottomNavigation = () => {
       <div className={cn("grid h-16 max-w-screen-lg mx-auto", gridCols)}>
         {visibleItems.map((item) => {
           const Icon = ICON_COMPONENTS[item.icon] || Home;
-          const isActive = location.pathname === item.path;
+          const isActive = (pendingPath ?? location.pathname) === item.path;
           const badge = item.id === 'countdown' ? countdownBadge : 0;
 
           return (
@@ -162,9 +172,12 @@ export const TodoBottomNavigation = () => {
               data-tour={`todo-${item.id}-link`}
               onPointerDown={(e) => {
                 if (e.pointerType === 'mouse' && e.button !== 0) return;
-                void prefetchRoute(item.path);
+                handleNavigation(item.path);
               }}
-              onClick={() => handleNavigation(item.path)}
+              onClick={(e) => {
+                // Keyboard activation (detail === 0) still navigates; taps already did on pointer-down.
+                if (e.detail === 0) handleNavigation(item.path);
+              }}
               onPointerEnter={() => void prefetchRoute(item.path)}
               onTouchStart={() => void prefetchRoute(item.path)}
               className={cn(
