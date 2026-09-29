@@ -24,6 +24,9 @@ import java.util.Locale;
 public class FlowistAlarmActivity extends Activity {
     private String key;
     private GestureDetector gestures;
+    private boolean isTest;
+    private String challengeQ = "", challengeA = "";
+    private LinearLayout challengeBox;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -40,6 +43,10 @@ public class FlowistAlarmActivity extends Activity {
             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
 
         key = getIntent().getStringExtra("key");
+        isTest = getIntent().getBooleanExtra("test", false);
+        android.content.SharedPreferences wp = getSharedPreferences("flowist_wake", MODE_PRIVATE);
+        challengeQ = wp.getString("question", "");
+        challengeA = wp.getString("answer", "");
         String title = getIntent().getStringExtra("title");
         String priority = getIntent().getStringExtra("priority");
         if (key == null) { finish(); return; }
@@ -57,7 +64,7 @@ public class FlowistAlarmActivity extends Activity {
         gestures = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onFling(MotionEvent e1, MotionEvent e2, float vx, float vy) {
                 if (e1 != null && e2 != null && e1.getY() - e2.getY() > dp(60) && Math.abs(vy) > Math.abs(vx)) {
-                    stop(false);
+                    requestStop();
                     return true;
                 }
                 return false;
@@ -142,7 +149,7 @@ public class FlowistAlarmActivity extends Activity {
         pill.setCornerRadius(dp(32));
         pill.setColor(red);
         stopBtn.setBackground(pill);
-        stopBtn.setOnClickListener(v -> stop(false));
+        stopBtn.setOnClickListener(v -> requestStop());
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, dp(60));
         sp.topMargin = dp(32);
         main.addView(stopBtn, sp);
@@ -151,6 +158,39 @@ public class FlowistAlarmActivity extends Activity {
         snooze.setPadding(dp(12), dp(14), dp(12), dp(2));
         snooze.setOnClickListener(v -> stop(true));
         main.addView(snooze, new LinearLayout.LayoutParams(-1, -2));
+
+        challengeBox = new LinearLayout(this);
+        challengeBox.setOrientation(LinearLayout.VERTICAL);
+        challengeBox.setVisibility(View.GONE);
+        TextView cLabel = text("Wake-up challenge", 13, muted, true);
+        challengeBox.addView(cLabel);
+        TextView cQ = text(challengeQ, 17, ink, false);
+        cQ.setPadding(0, dp(6), 0, dp(10));
+        challengeBox.addView(cQ);
+        final android.widget.EditText answerIn = new android.widget.EditText(this);
+        answerIn.setHint("Your answer");
+        answerIn.setSingleLine(true);
+        answerIn.setGravity(Gravity.CENTER);
+        answerIn.setTextColor(ink);
+        challengeBox.addView(answerIn, new LinearLayout.LayoutParams(-1, -2));
+        Button check = new Button(this);
+        check.setText("Submit & Stop");
+        check.setAllCaps(false);
+        check.setTextColor(Color.WHITE);
+        GradientDrawable pill2 = new GradientDrawable();
+        pill2.setCornerRadius(dp(26));
+        pill2.setColor(ink);
+        check.setBackground(pill2);
+        check.setOnClickListener(v -> {
+            if (normalize(answerIn.getText().toString()).equals(normalize(challengeA))) stop(false);
+            else { answerIn.setText(""); answerIn.setHint("Not quite — try again"); }
+        });
+        LinearLayout.LayoutParams chp = new LinearLayout.LayoutParams(-1, dp(52));
+        chp.topMargin = dp(10);
+        challengeBox.addView(check, chp);
+        LinearLayout.LayoutParams cbp = new LinearLayout.LayoutParams(-1, -2);
+        cbp.topMargin = dp(20);
+        main.addView(challengeBox, cbp);
 
         android.widget.FrameLayout.LayoutParams mp = new android.widget.FrameLayout.LayoutParams(-1, -2);
         mp.topMargin = dp(40);
@@ -185,7 +225,15 @@ public class FlowistAlarmActivity extends Activity {
 
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
 
+    private String normalize(String v) { return v == null ? "" : v.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", ""); }
+
+    private void requestStop() {
+        if (challengeA.isEmpty()) { stop(false); return; }
+        challengeBox.setVisibility(View.VISIBLE);
+    }
+
     private void stop(boolean snooze) {
+        if (isTest) { finish(); return; }
         Intent action = new Intent(this, FlowistAlarmReceiver.class).setAction(snooze ? FlowistAlarm.ACTION_SNOOZE : FlowistAlarm.ACTION_DISMISS).putExtra("key", key);
         sendBroadcast(action);
         finish();
