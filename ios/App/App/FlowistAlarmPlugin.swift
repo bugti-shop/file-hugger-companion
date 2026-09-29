@@ -2,6 +2,7 @@ import Foundation
 import Capacitor
 import UserNotifications
 import AVFoundation
+import UIKit
 
 /// iOS delivers scheduled notifications after termination, but never grants third-party
 /// apps a Clock-style lock-screen takeover or indefinitely looping notification audio.
@@ -74,6 +75,33 @@ public class FlowistAlarmPlugin: CAPPlugin {
             "scheduledAt": pending["scheduledAt"] as? Double ?? Date().timeIntervalSince1970 * 1000
         ]
         call.resolve(data)
+    }
+
+    @objc func getNotificationPermissions(_ call: CAPPluginCall) {
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            call.resolve([
+                "authorized": settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional,
+                "timeSensitive": settings.timeSensitiveSetting == .enabled,
+                "sound": settings.soundSetting == .enabled,
+                "status": settings.authorizationStatus == .notDetermined ? "notDetermined" :
+                    (settings.authorizationStatus == .denied ? "denied" :
+                    (settings.authorizationStatus == .provisional ? "provisional" : "authorized"))
+            ])
+        }
+    }
+
+    @objc func openNotificationSettings(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            guard let url = URL(string: UIApplication.openSettingsURLString),
+                  UIApplication.shared.canOpenURL(url) else {
+                call.reject("Settings unavailable")
+                return
+            }
+            UIApplication.shared.open(url, options: [:]) { opened in
+                if opened { call.resolve() }
+                else { call.reject("Could not open Settings") }
+            }
+        }
     }
 
     private func emitOpened(_ info: [AnyHashable: Any]) {
