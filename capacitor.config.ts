@@ -8,6 +8,9 @@ const config: CapacitorConfig = {
     cleartext: true
   },
   plugins: {
+    LocalNotifications: {
+      smallIcon: 'npd_notification_icon',
+    },
     // Cold-start branded splash only. iOS/Android natively skip the splash
     // for warm resumes (background → foreground), matching WhatsApp behavior.
     SplashScreen: {

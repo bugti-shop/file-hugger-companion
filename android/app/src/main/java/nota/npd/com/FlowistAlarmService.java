@@ -45,10 +45,10 @@ public class FlowistAlarmService extends Service {
         Intent stop = new Intent(this, FlowistAlarmReceiver.class).setAction(FlowistAlarm.ACTION_DISMISS).putExtra("key", key);
         PendingIntent dismiss = PendingIntent.getBroadcast(this, key.hashCode(), stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification notification = new NotificationCompat.Builder(this, FlowistAlarm.CHANNEL)
-            .setSmallIcon(R.drawable.ic_stat_notify).setContentTitle(title).setContentText("Priority: " + priority)
+            .setSmallIcon(R.drawable.npd_notification_icon).setContentTitle(title).setContentText("Priority: " + priority)
             .setCategory(NotificationCompat.CATEGORY_ALARM).setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setOngoing(true).setContentIntent(full)
-            .setFullScreenIntent(full, true).addAction(R.drawable.ic_stat_notify, "Dismiss", dismiss).build();
+            .setFullScreenIntent(full, true).addAction(R.drawable.npd_notification_icon, "Dismiss", dismiss).build();
         startForeground(NOTIFICATION_ID, notification);
         // Android 14+ can revoke full-screen intent permission; launch the alarm
         // screen directly as a fallback so the user never gets a silent vibration only.

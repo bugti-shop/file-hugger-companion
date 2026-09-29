@@ -117,7 +117,7 @@ export const showFocusOngoing = async (opts: FocusOngoingOpts) => {
         id: ONGOING_ID,
         title,
         body,
-        smallIcon: 'ic_stat_notify',
+        smallIcon: 'npd_notification_icon',
         ongoing: true,
         autoCancel: false,
         // Fire immediately
@@ -136,7 +136,7 @@ export const showFocusOngoing = async (opts: FocusOngoingOpts) => {
             id: COMPLETE_ID,
             title: '✅ Focus complete',
             body: `Great work!${opts.taskTitle ? ` · ${opts.taskTitle}` : ''}`,
-            smallIcon: 'ic_stat_notify',
+            smallIcon: 'npd_notification_icon',
             schedule: { at: new Date(opts.endAtMs) },
           }],
         });

@@ -48,7 +48,7 @@ export const sendWebNotification = (
     const notification = new Notification(title, {
       body: options.body,
       icon: options.icon || '/launcher-icon.webp',
-      badge: options.badge || '/launcher-icon.webp',
+       badge: options.badge || '/npd_notification_icon.png',
       tag: options.tag,
       requireInteraction: options.requireInteraction ?? false,
       data: options.data,
@@ -69,7 +69,7 @@ export const sendWebNotification = (
         registration.showNotification(title, {
           body: options.body,
           icon: options.icon || '/launcher-icon.webp',
-          badge: options.badge || '/launcher-icon.webp',
+           badge: options.badge || '/npd_notification_icon.png',
           tag: options.tag,
         });
       }).catch(console.error);
