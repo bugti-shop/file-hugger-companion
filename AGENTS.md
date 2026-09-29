@@ -1,6 +1,6 @@
 # Architecture rules
 
-- Bottom tabs navigate on click; pointer-down only preloads, preventing canceled-tap stalls.
+- Both Notes and To-Do bottom tabs navigate on pointer-down (keyboard via click) with a pending-path guard, so both dashboards feel equally instant.
 - Source native subscription totals from the matching store product or offering and disable purchase until a localized price arrives; never substitute a USD estimate in the iOS paywall.
 - Use Capacitor SystemBars' measured Android bottom inset together with WebView safe-area inset for `--safe-bottom`; different navigation modes and WebView versions need device-reported spacing rather than fixed heights.
 - Use native Android AlarmClock intents and a device-local reboot-restorable registry alongside existing local notifications; JS timers cannot wake a killed app or locked device.

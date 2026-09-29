@@ -162,9 +162,12 @@ export const TodoBottomNavigation = () => {
               data-tour={`todo-${item.id}-link`}
               onPointerDown={(e) => {
                 if (e.pointerType === 'mouse' && e.button !== 0) return;
-                void prefetchRoute(item.path);
+                handleNavigation(item.path);
               }}
-              onClick={() => handleNavigation(item.path)}
+              onClick={(e) => {
+                // Keyboard activation (detail === 0) still navigates; taps already did on pointer-down.
+                if (e.detail === 0) handleNavigation(item.path);
+              }}
               onPointerEnter={() => void prefetchRoute(item.path)}
               onTouchStart={() => void prefetchRoute(item.path)}
               className={cn(
