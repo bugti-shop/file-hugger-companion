@@ -5,26 +5,10 @@ interface FlowistAlarmPlugin {
   cancel(options: { key: string }): Promise<void>;
   canUseFullScreenIntent(): Promise<{ allowed: boolean }>;
   openFullScreenIntentSettings(): Promise<void>;
-  getOpenedAlarm(): Promise<{ key?: string; title?: string; scheduledAt?: number }>;
-  getNotificationPermissions(): Promise<{ authorized: boolean; timeSensitive: boolean; sound: boolean; status: string }>;
-  requestNotificationPermissions(): Promise<{ granted: boolean }>;
-  openNotificationSettings(): Promise<void>;
-  startSound(): Promise<void>;
-  stopSound(): Promise<void>;
-  addListener(eventName: 'alarmOpened', listener: (event: { key: string; title: string; scheduledAt: number }) => void): Promise<{ remove(): Promise<void> }>;
 }
 const alarm = registerPlugin<FlowistAlarmPlugin>('FlowistAlarm');
 
-/** iOS only: a notification tap opens the app, then displays the same alarm card. */
-export const listenForOpenedAlarms = (listener: (event: { key: string; title: string; scheduledAt: number }) => void) =>
-  alarm.addListener('alarmOpened', listener);
-
-export const getOpenedAlarm = () => alarm.getOpenedAlarm();
-export const getIOSNotificationPermissions = () => alarm.getNotificationPermissions();
-export const requestIOSNotificationPermissions = () => alarm.requestNotificationPermissions();
-export const openIOSNotificationSettings = () => alarm.openNotificationSettings();
-export const startIOSAlarmSound = () => alarm.startSound();
-export const stopIOSAlarmSound = () => alarm.stopSound();
+/** Native alarms are Android-only; iOS uses regular local notifications. */
 
 /** Android 14+ can revoke full-screen alarm permission — check before relying on it. */
 export const canUseFullScreenAlarm = async (): Promise<boolean> => {
@@ -46,7 +30,7 @@ export const openFullScreenAlarmSettings = async (): Promise<void> => {
 let fullScreenPromptShown = false;
 
 export const scheduleNativeAlarm = async (key: string, title: string, when: Date, priority = 'None', repeatDays = 0, replacementId?: number) => {
-  if (!['android', 'ios'].includes(Capacitor.getPlatform()) || when.getTime() <= Date.now()) return;
+  if (Capacitor.getPlatform() !== 'android' || when.getTime() <= Date.now()) return;
   try {
     // Android 14+ can revoke full-screen access: a ringing notification remains,
     // but the OS will not show the alarm activity automatically until granted.
@@ -65,6 +49,6 @@ export const scheduleNativeAlarm = async (key: string, title: string, when: Date
 };
 
 export const cancelNativeAlarm = async (key: string) => {
-  if (!['android', 'ios'].includes(Capacitor.getPlatform())) return;
+  if (Capacitor.getPlatform() !== 'android') return;
   try { await alarm.cancel({ key }); } catch (error) { console.warn('[Alarm] Cancel failed', error); }
 };
