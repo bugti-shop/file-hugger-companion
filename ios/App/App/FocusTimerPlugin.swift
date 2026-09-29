@@ -242,7 +242,13 @@ final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
-        if FlowistAlarmNotifications.handle(response) { completionHandler(); return }
+        if FlowistAlarmNotifications.handle(response) {
+            if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
+                NotificationCenter.default.post(name: Notification.Name("FlowistAlarmOpened"), object: nil,
+                    userInfo: response.notification.request.content.userInfo)
+            }
+            completionHandler(); return
+        }
         let id = response.actionIdentifier
         if id != UNNotificationDefaultActionIdentifier && id != UNNotificationDismissActionIdentifier {
             plugin?.handleAction(id)

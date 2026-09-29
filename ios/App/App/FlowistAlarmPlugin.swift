@@ -58,16 +58,16 @@ public class FlowistAlarmPlugin: CAPPlugin {
         content.title = title
         content.body = priority == "None" ? "Flowist reminder" : "Priority: \(priority)"
         content.categoryIdentifier = FlowistAlarmNotifications.category
-        content.userInfo = ["key": key, "priority": priority]
+        content.userInfo = ["key": key, "priority": priority, "scheduledAt": when, "alarmTitle": title]
         content.interruptionLevel = .timeSensitive
-        content.sound = .default
+        content.sound = UNNotificationSound(named: UNNotificationSoundName("flowist_alarm.caf"))
 
         // Critical Alerts are deliberately not requested without Apple's restricted
         // entitlement. When approved and provisioned, enable FLOWIST_CRITICAL_ALERTS
         // in the signed iOS target and add the critical-alert entitlement.
         #if FLOWIST_CRITICAL_ALERTS
         content.interruptionLevel = .critical
-        content.sound = UNNotificationSound.defaultCritical
+        content.sound = UNNotificationSound.criticalSoundNamed(UNNotificationSoundName("flowist_alarm.caf"))
         #endif
 
         let date = Date(timeIntervalSince1970: when / 1000)

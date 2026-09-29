@@ -19,6 +19,7 @@
 - [x] Use one Android alarm Activity for both locked and unlocked screens, launched by AlarmManager rather than relying on a background broadcast to open it
 - [x] Fix the first-open crash caused by subscription legal links rendering before the app's navigation is available
 - [x] Play real looping alarm audio with a sound-cycle progress bar on web and Android alarm cards; silence on Stop or swipe, including native Test Alarm
+- [ ] Make every scheduled reminder open the alarm card on iPhone while preserving lock-screen alerts and Android alarms; iOS lock-screen takeover and indefinite audio are restricted by Apple
 
 ## Alarm UI ideas + web alarm testing (2026-09-29)
 - [x] Generate 10 alarm screen concept images (logo + task, light neutral theme)

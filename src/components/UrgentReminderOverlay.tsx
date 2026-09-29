@@ -8,6 +8,8 @@ import { loadTodoItems, saveTodoItems } from '@/utils/todoItemsStorage';
 import { Button } from '@/components/ui/button';
 import appLogo from '@/assets/app-logo.webp';
 import alarmSound from '@/assets/flowist_alarm.wav';
+import { Capacitor } from '@capacitor/core';
+import { listenForOpenedAlarms } from '@/utils/nativeAlarm';
 
 interface UrgentReminder {
   id: string;
@@ -61,6 +63,22 @@ export const UrgentReminderOverlay = () => {
       silence();
     };
   }, [silence]);
+
+  useEffect(() => {
+    if (Capacitor.getPlatform() !== 'ios') return;
+    let alive = true;
+    let remove: (() => Promise<void>) | undefined;
+    void listenForOpenedAlarms(({ key, title, scheduledAt }) => {
+      if (!alive) return;
+      window.dispatchEvent(new CustomEvent('urgentReminderTriggered', {
+        detail: { id: key, taskName: title, triggeredAt: new Date(), scheduledAt: new Date(scheduledAt).toISOString() },
+      }));
+    }).then(handle => {
+      if (alive) remove = () => handle.remove();
+      else void handle.remove();
+    }).catch(error => console.warn('[Alarm] Could not listen for opened iPhone alarms', error));
+    return () => { alive = false; void remove?.(); };
+  }, []);
 
   const triggerUrgentHaptics = async () => {
     try {
@@ -133,7 +151,7 @@ export const UrgentReminderOverlay = () => {
               <Button onClick={dismiss} className="mt-9 h-[60px] w-full rounded-full border-0 text-lg font-semibold shadow-none active:translate-y-0">
                 <Square className="fill-current" /> Stop
               </Button>
-              {reminder.id !== 'test-alarm' && (
+              {reminder.id !== 'test-alarm' && !reminder.id.startsWith('flowist-alarm-') && (
                 <Button variant="ghost" onClick={handleComplete} className="alarm-muted mt-3 text-sm">Complete task</Button>
               )}
             </div>

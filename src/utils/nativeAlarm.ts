@@ -5,8 +5,13 @@ interface FlowistAlarmPlugin {
   cancel(options: { key: string }): Promise<void>;
   canUseFullScreenIntent(): Promise<{ allowed: boolean }>;
   openFullScreenIntentSettings(): Promise<void>;
+  addListener(eventName: 'alarmOpened', listener: (event: { key: string; title: string; scheduledAt: number }) => void): Promise<{ remove(): Promise<void> }>;
 }
 const alarm = registerPlugin<FlowistAlarmPlugin>('FlowistAlarm');
+
+/** iOS only: a notification tap opens the app, then displays the same alarm card. */
+export const listenForOpenedAlarms = (listener: (event: { key: string; title: string; scheduledAt: number }) => void) =>
+  alarm.addListener('alarmOpened', listener);
 
 /** Android 14+ can revoke full-screen alarm permission — check before relying on it. */
 export const canUseFullScreenAlarm = async (): Promise<boolean> => {
