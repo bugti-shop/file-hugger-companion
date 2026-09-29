@@ -1501,10 +1501,14 @@ const Index = () => {
                     </h2>
                     <NotesVirtualGrid
                       notes={favoriteNotes}
+                      singleColumn
+                      estimatedRowHeight={94}
                       getRowKey={(row) => row.map((n) => `${n.id}:${n.updatedAt instanceof Date ? n.updatedAt.getTime() : new Date(n.updatedAt).getTime()}`).join('|')}
                       renderCard={(note) => (
                         <NoteCard
                           note={note}
+                          compact
+                          folderName={folders.find(f => f.id === note.folderId)?.name}
                           onEdit={handleEditNote}
                           onDelete={handleDeleteNote}
                           onArchive={handleArchiveNote}
@@ -1541,10 +1545,14 @@ const Index = () => {
                     )}
                     <NotesVirtualGrid
                       notes={regularNotes}
+                      singleColumn
+                      estimatedRowHeight={94}
                       getRowKey={(row) => row.map((n) => `${n.id}:${n.updatedAt instanceof Date ? n.updatedAt.getTime() : new Date(n.updatedAt).getTime()}`).join('|')}
                       renderCard={(note) => (
                         <NoteCard
                           note={note}
+                          compact
+                          folderName={folders.find(f => f.id === note.folderId)?.name}
                           onEdit={handleEditNote}
                           onDelete={handleDeleteNote}
                           onArchive={handleArchiveNote}

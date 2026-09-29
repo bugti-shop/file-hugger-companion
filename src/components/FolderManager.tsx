@@ -543,7 +543,7 @@ export const FolderManager = ({
         </DialogContent>
       </Dialog>
 
-      <div className="flex gap-1.5 xs:gap-2 overflow-x-auto overflow-y-visible pt-2 pb-2 scrollbar-hide">
+      <div className="flex gap-5 overflow-x-auto overflow-y-visible pt-2 pb-0 scrollbar-hide border-b border-border">
 
 
         {folders.map((folder) => (
@@ -596,12 +596,11 @@ export const FolderManager = ({
                 }}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, folder.id)}
-                className="flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap text-white"
-                style={{
-                  backgroundColor: folder.color,
-                }}
+                className={cn(
+                  "relative flex items-center gap-2 px-1 py-3 whitespace-nowrap text-sm transition-colors border-b-[3px]",
+                  selectedFolderId === folder.id ? "border-primary text-foreground font-semibold" : "border-transparent text-muted-foreground hover:text-foreground"
+                )}
               >
-                <FolderIcon className="w-4 h-4" />
                 {folder.name}
               </button>
             )}
