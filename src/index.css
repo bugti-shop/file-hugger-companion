@@ -82,6 +82,7 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
     --alarm-surface: 0 0% 100%;
     --alarm-ink: 220 12% 16%;
     --alarm-shadow: 220 12% 16%;
+    --alarm-muted: 220 5% 48%;
 
     --radius: 0.5rem;
 
@@ -343,6 +344,7 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
 }
 .alarm-ghost-back { opacity: 0.75; }
 .alarm-ghost-front { opacity: 0.9; }
+.alarm-muted { color: hsl(var(--alarm-muted)); }
 .alarm-time { font-size: clamp(3.6rem, 16vw, 5rem); }
 @media (max-height: 580px) {
   .alarm-screen { align-items: flex-start; }

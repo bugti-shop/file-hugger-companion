@@ -104,11 +104,11 @@ export const UrgentReminderOverlay = () => {
                 <Square className="fill-current" /> Stop
               </Button>
               {reminder.id !== 'test-alarm' && (
-                <Button variant="ghost" onClick={handleComplete} className="mt-3 text-sm text-muted-foreground hover:text-foreground">Complete task</Button>
+                <Button variant="ghost" onClick={handleComplete} className="alarm-muted mt-3 text-sm">Complete task</Button>
               )}
             </div>
           </div>
-          <div className="mt-7 flex flex-col items-center gap-1 text-sm text-muted-foreground">
+          <div className="alarm-muted mt-7 flex flex-col items-center gap-1 text-sm">
             <ChevronsUp className="h-6 w-6" aria-hidden="true" />
             <span>Swipe up to dismiss</span>
           </div>
