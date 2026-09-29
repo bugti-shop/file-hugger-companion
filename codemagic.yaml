@@ -31,10 +31,23 @@ workflows:
         script: |
           cd android
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          set +e
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon --console=plain --stacktrace 2>&1 | tee gradle-build.log
+          GRADLE_STATUS=${PIPESTATUS[0]}
+          set -e
+
+          if [ "$GRADLE_STATUS" -ne 0 ]; then
+            echo ""
+            echo "================ ANDROID BUILD ERROR ================"
+            grep -E -B 5 -A 15 "(^FAILURE:|^\* What went wrong:|^Execution failed for task|^Caused by:|error:|A failure occurred while executing|Could not resolve|Manifest merger failed|Android resource linking failed)" gradle-build.log | tail -n 300 || true
+            echo "======================================================="
+            exit "$GRADLE_STATUS"
+          fi
 
     artifacts:
       - android/app/build/outputs/apk/debug/*.apk
+      - android/gradle-build.log
 
     publishing:
       email:
