@@ -28,7 +28,10 @@ const getReminders = (h: Habit): HabitReminder[] => {
   return (n.reminders ?? []).filter((r) => r.enabled && !!r.time);
 };
 
-const fireHabitWebNotification = async (habit: Habit) => {
+const fireHabitWebNotification = async (habit: Habit, scheduledAt: Date = new Date()) => {
+  window.dispatchEvent(new CustomEvent('urgentReminderTriggered', {
+    detail: { id: `habit-${habit.id}`, taskName: habit.name, triggeredAt: new Date(), scheduledAt: scheduledAt.toISOString() },
+  }));
   try {
     const { addNotification } = await import('@/utils/notificationStore');
     await addNotification({
@@ -88,7 +91,7 @@ const scheduleWebReminder = (habit: Habit, r: HabitReminder, idx: number) => {
     if (delay <= 0) return;
     const t = setTimeout(async () => {
       webTimers.delete(key);
-      await fireHabitWebNotification(habit);
+      await fireHabitWebNotification(habit, when);
       // Re-arm next valid day for this reminder.
       const next = nextOccurrenceOnDays(r.time, r.days, new Date(when.getTime() + 60_000));
       fire(next);

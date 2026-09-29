@@ -35,7 +35,10 @@ const cancelWebTimers = (id: string) => {
   }
 };
 
-const fireWebNotification = async (event: CountdownEvent, daysOut: number) => {
+const fireWebNotification = async (event: CountdownEvent, daysOut: number, scheduledAt: Date) => {
+  window.dispatchEvent(new CustomEvent('urgentReminderTriggered', {
+    detail: { id: `countdown-${event.id}-${daysOut}`, taskName: event.name, triggeredAt: new Date(), scheduledAt: scheduledAt.toISOString() },
+  }));
   const label =
     daysOut === 0 ? 'Today' : daysOut === 1 ? 'Tomorrow' : `In ${daysOut} days`;
   try {
@@ -102,7 +105,7 @@ export const scheduleCountdownReminders = async (
       // Cap setTimeout at ~24.8 days; longer reminders rely on app reopen-restore.
       if (delay > 2_000_000_000) continue;
       const t = setTimeout(() => {
-        void fireWebNotification(event, offset);
+        void fireWebNotification(event, offset, fire);
       }, delay);
       timers.push(t);
     }
