@@ -6,6 +6,9 @@ interface FlowistAlarmPlugin {
   canUseFullScreenIntent(): Promise<{ allowed: boolean }>;
   openFullScreenIntentSettings(): Promise<void>;
   getOpenedAlarm(): Promise<{ key?: string; title?: string; scheduledAt?: number }>;
+  getNotificationPermissions(): Promise<{ authorized: boolean; timeSensitive: boolean; sound: boolean; status: string }>;
+  requestNotificationPermissions(): Promise<{ granted: boolean }>;
+  openNotificationSettings(): Promise<void>;
   startSound(): Promise<void>;
   stopSound(): Promise<void>;
   addListener(eventName: 'alarmOpened', listener: (event: { key: string; title: string; scheduledAt: number }) => void): Promise<{ remove(): Promise<void> }>;
@@ -17,6 +20,9 @@ export const listenForOpenedAlarms = (listener: (event: { key: string; title: st
   alarm.addListener('alarmOpened', listener);
 
 export const getOpenedAlarm = () => alarm.getOpenedAlarm();
+export const getIOSNotificationPermissions = () => alarm.getNotificationPermissions();
+export const requestIOSNotificationPermissions = () => alarm.requestNotificationPermissions();
+export const openIOSNotificationSettings = () => alarm.openNotificationSettings();
 export const startIOSAlarmSound = () => alarm.startSound();
 export const stopIOSAlarmSound = () => alarm.stopSound();
 

@@ -19,7 +19,6 @@ import {
   HelpCircle,
   Info,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useSettingsPageState } from '@/hooks/useSettingsPageState';
 import { SettingsDialogs } from '@/components/settings/SettingsDialogs';
@@ -27,6 +26,7 @@ import { SettingsSheets } from '@/components/settings/SettingsSheets';
 import { FeedbackDialog } from '@/components/FeedbackDialog';
 import { HeaderOffsetSheet } from '@/components/settings/HeaderOffsetSheet';
 import { AccessibilityZoomSheet } from '@/components/settings/AccessibilityZoomSheet';
+import { NotificationPermissionsDialog } from '@/components/settings/NotificationPermissionsDialog';
 import { triggerTestAlarm } from '@/utils/testAlarm';
 import { AlarmClock } from 'lucide-react';
 
@@ -46,6 +46,7 @@ const Settings = () => {
   const [showFeedbackDialog, setShowFeedbackDialog] = useState(false);
   const [showHeaderOffsetSheet, setShowHeaderOffsetSheet] = useState(false);
   const [showAccessibilityZoomSheet, setShowAccessibilityZoomSheet] = useState(false);
+  const [showNotificationPermissions, setShowNotificationPermissions] = useState(false);
   const [query, setQuery] = useState('');
 
   const groups: { rows: IconRow[] }[] = useMemo(() => [
@@ -69,7 +70,7 @@ const Settings = () => {
       rows: [
         { label: 'Accessibility', icon: AccessibilityIcon, color: '#FF2D92', onClick: () => setShowAccessibilityZoomSheet(true), keywords: ['zoom', 'font size', 'text size'] },
         { label: 'App Lock', icon: Lock, color: '#FF3B30', dataTour: 'settings-security', onClick: () => { if (requireFeature('app_lock')) state.setShowAppLockSettingsSheet(true); }, keywords: ['security', 'passcode', 'pin', 'biometric', 'face', 'touch'] },
-        { label: 'Notifications', icon: Bell, color: '#FFCC00', onClick: () => toast.info('Manage notifications from your device settings'), keywords: ['alerts', 'reminders', 'push'] },
+        { label: 'Notifications & Alarms', icon: Bell, color: '#FFCC00', onClick: () => setShowNotificationPermissions(true), keywords: ['alerts', 'reminders', 'push', 'permissions', 'alarm'] },
         { label: 'Test Alarm', icon: AlarmClock, color: '#FF3B30', onClick: () => { triggerTestAlarm(); }, keywords: ['alarm', 'preview', 'full screen'] },
       ],
     },
@@ -249,6 +250,7 @@ const Settings = () => {
       <FeedbackDialog open={showFeedbackDialog} onOpenChange={setShowFeedbackDialog} />
       <HeaderOffsetSheet isOpen={showHeaderOffsetSheet} onClose={() => setShowHeaderOffsetSheet(false)} />
       <AccessibilityZoomSheet isOpen={showAccessibilityZoomSheet} onClose={() => setShowAccessibilityZoomSheet(false)} />
+      <NotificationPermissionsDialog open={showNotificationPermissions} onOpenChange={setShowNotificationPermissions} />
     </div>
   );
 };
