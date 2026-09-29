@@ -1,12 +1,22 @@
 import Foundation
 import Capacitor
 import UserNotifications
+import AVFoundation
 
 /// iOS delivers scheduled notifications after termination, but never grants third-party
 /// apps a Clock-style lock-screen takeover or indefinitely looping notification audio.
 enum FlowistAlarmNotifications {
     static let category = "FLOWIST_ALARM"
     static let prefix = "flowist-alarm-"
+    static var pendingOpened: [AnyHashable: Any]?
+
+    static func opened(_ notification: UNNotification) {
+        var info = notification.request.content.userInfo
+        // For repeating and snoozed reminders the occurrence is the delivery date.
+        info["scheduledAt"] = notification.date.timeIntervalSince1970 * 1000
+        pendingOpened = info
+        NotificationCenter.default.post(name: Notification.Name("FlowistAlarmOpened"), object: nil, userInfo: info)
+    }
 
     static func configure() {
         let snooze = UNNotificationAction(identifier: "FLOWIST_SNOOZE", title: "Snooze 5 min", options: [])
@@ -41,7 +51,64 @@ enum FlowistAlarmNotifications {
 
 @objc(FlowistAlarmPlugin)
 public class FlowistAlarmPlugin: CAPPlugin {
-    override public func load() { FlowistAlarmNotifications.configure() }
+    private var alarmPlayer: AVAudioPlayer?
+
+    override public func load() {
+        FlowistAlarmNotifications.configure()
+        NotificationCenter.default.addObserver(self, selector: #selector(alarmOpened(_:)), name: Notification.Name("FlowistAlarmOpened"), object: nil)
+    }
+
+    deinit { NotificationCenter.default.removeObserver(self) }
+
+    @objc private func alarmOpened(_ notification: Notification) {
+        guard let info = notification.userInfo else { return }
+        emitOpened(info)
+    }
+
+    @objc func getOpenedAlarm(_ call: CAPPluginCall) {
+        guard let pending = FlowistAlarmNotifications.pendingOpened else { call.resolve([:]); return }
+        FlowistAlarmNotifications.pendingOpened = nil
+        let data: [String: Any] = [
+            "key": pending["key"] as? String ?? "",
+            "title": pending["alarmTitle"] as? String ?? "Reminder",
+            "scheduledAt": pending["scheduledAt"] as? Double ?? Date().timeIntervalSince1970 * 1000
+        ]
+        call.resolve(data)
+    }
+
+    private func emitOpened(_ info: [AnyHashable: Any]) {
+        let data: [String: Any] = [
+            "key": info["key"] as? String ?? "",
+            "title": info["alarmTitle"] as? String ?? "Reminder",
+            "scheduledAt": info["scheduledAt"] as? Double ?? Date().timeIntervalSince1970 * 1000
+        ]
+        notifyListeners("alarmOpened", data: data, retainUntilConsumed: true)
+    }
+
+    @objc func startSound(_ call: CAPPluginCall) {
+        guard let url = Bundle.main.url(forResource: "flowist_alarm", withExtension: "caf") else {
+            call.reject("Alarm sound missing from app")
+            return
+        }
+        do {
+            alarmPlayer?.stop()
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
+            let player = try AVAudioPlayer(contentsOf: url)
+            player.numberOfLoops = -1
+            player.prepareToPlay()
+            guard player.play() else { call.reject("Alarm sound could not play"); return }
+            alarmPlayer = player
+            call.resolve()
+        } catch { call.reject("Alarm sound could not play", nil, error) }
+    }
+
+    @objc func stopSound(_ call: CAPPluginCall) {
+        alarmPlayer?.stop()
+        alarmPlayer = nil
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        call.resolve()
+    }
 
     @objc func schedule(_ call: CAPPluginCall) {
         guard let key = call.getString("key"), !key.isEmpty,
@@ -58,16 +125,16 @@ public class FlowistAlarmPlugin: CAPPlugin {
         content.title = title
         content.body = priority == "None" ? "Flowist reminder" : "Priority: \(priority)"
         content.categoryIdentifier = FlowistAlarmNotifications.category
-        content.userInfo = ["key": key, "priority": priority]
+        content.userInfo = ["key": key, "priority": priority, "scheduledAt": when, "alarmTitle": title]
         content.interruptionLevel = .timeSensitive
-        content.sound = .default
+        content.sound = UNNotificationSound(named: UNNotificationSoundName("flowist_alarm.caf"))
 
         // Critical Alerts are deliberately not requested without Apple's restricted
         // entitlement. When approved and provisioned, enable FLOWIST_CRITICAL_ALERTS
         // in the signed iOS target and add the critical-alert entitlement.
         #if FLOWIST_CRITICAL_ALERTS
         content.interruptionLevel = .critical
-        content.sound = UNNotificationSound.defaultCritical
+        content.sound = UNNotificationSound.criticalSoundNamed(UNNotificationSoundName("flowist_alarm.caf"))
         #endif
 
         let date = Date(timeIntervalSince1970: when / 1000)

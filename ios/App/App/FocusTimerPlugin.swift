@@ -242,7 +242,12 @@ final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
-        if FlowistAlarmNotifications.handle(response) { completionHandler(); return }
+        if FlowistAlarmNotifications.handle(response) {
+            if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
+                FlowistAlarmNotifications.opened(response.notification)
+            }
+            completionHandler(); return
+        }
         let id = response.actionIdentifier
         if id != UNNotificationDefaultActionIdentifier && id != UNNotificationDismissActionIdentifier {
             plugin?.handleAction(id)
@@ -253,6 +258,9 @@ final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        if notification.request.content.categoryIdentifier == FlowistAlarmNotifications.category {
+            FlowistAlarmNotifications.opened(notification)
+        }
         completionHandler([.banner, .list, .sound])
     }
 }
