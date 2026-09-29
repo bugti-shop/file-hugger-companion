@@ -1,5 +1,6 @@
 # Roadmap
 
+- [ ] Address App Store review 3.1.2(c): make the actual recurring billed total dominant throughout the iOS purchase flow, with trial terms secondary and no unverified prices.
 - [x] Complete Flowist red rebrand, logo replacement, and native splash refresh
 - [x] Apply the latest Flowist logo to Android, enlarge the splash logo, and update the crowned paywall artwork
 - [x] Make Timeline Board free and default, with a persistent light-red selected bottom tab

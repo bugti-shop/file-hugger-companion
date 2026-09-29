@@ -52,6 +52,29 @@ function usePaywallLogic() {
   const [isRestoring, setIsRestoring] = useState(false);
   const [adminError, setAdminError] = useState('');
 
+  const [storePrices, setStorePrices] = useState<Partial<Record<ProductType, string>>>({});
+  const isNative = Capacitor.isNativePlatform();
+
+  // Offerings may not contain every product. Fetch the same store products that
+  // the purchase fallback uses; never show a USD estimate as an iOS price.
+  useEffect(() => {
+    if (!isNative) return;
+    let mounted = true;
+    Purchases.getProducts({ productIdentifiers: Object.values(BILLING_CONFIG).map(p => p.productId) })
+      .then(({ products }) => {
+        if (!mounted) return;
+        const prices: Partial<Record<ProductType, string>> = {};
+        (Object.keys(BILLING_CONFIG) as ProductType[]).forEach(type => {
+          const id = BILLING_CONFIG[type].productId.split(':')[0];
+          const product = products.find(p => p.identifier === BILLING_CONFIG[type].productId || p.identifier === id || p.identifier?.startsWith(`${id}:`));
+          if (product?.priceString) prices[type] = product.priceString;
+        });
+        setStorePrices(prices);
+      })
+      .catch(() => { /* Offerings may still provide localized prices. */ });
+    return () => { mounted = false; };
+  }, [isNative]);
+
   const PLANS = useMemo(() => {
     const allPackages: PurchasesPackage[] = [];
     if (offerings?.current?.availablePackages) {
@@ -77,35 +100,19 @@ function usePaywallLogic() {
       const pkg = allPackages.find(p => p.packageType === typeMap[type]);
       const product = pkg?.product;
       if (product?.priceString) {
-        return `${product.priceString}${PERIOD_LABELS[type] || ''}`;
+        return product.priceString;
       }
-      return null;
-    };
-
-    const findTrialPrice = (type: ProductType): string | null => {
-      const pkg = allPackages.find(p => p.packageType === typeMap[type]);
-      const product = pkg?.product;
-      if (product?.introPrice) {
-        return product.introPrice.priceString || null;
-      }
-      return null;
+      return storePrices[type] || null;
     };
 
     return FALLBACK_PLANS.map(plan => ({
       ...plan,
-      price: findPrice(plan.id) || plan.price,
-      trialPriceString: findTrialPrice(plan.id),
+      price: isNative ? findPrice(plan.id) : plan.price.replace(PERIOD_LABELS[plan.id], ''),
+      period: { weekly: 'week', monthly: 'month', yearly: 'year' }[plan.id],
     }));
-  }, [offerings]);
+  }, [offerings, storePrices, isNative]);
 
   const currentPlan = PLANS.find(p => p.id === selectedPlan)!;
-
-  // Check if this device has already used a free trial
-  const hasUsedTrial = useMemo(() => {
-    try {
-      return localStorage.getItem('flowist_trial_used') === 'true';
-    } catch { return false; }
-  }, []);
 
   const purchaseNativeByProductId = async (productId: string): Promise<boolean> => {
     // Look up product via RevenueCat offerings first (preferred) then direct
@@ -362,7 +369,7 @@ function usePaywallLogic() {
   return {
     t, showPaywall, closePaywall, isNewFreeUser, isPro, selectedPlan, setSelectedPlan, isPurchasing, isRestoring,
     adminError,
-    PLANS, currentPlan, handlePurchase, handleRestore, hasUsedTrial,
+    PLANS, currentPlan, handlePurchase, handleRestore,
     restoreEmail, setRestoreEmail, showRestoreEmail, softLimitMessage,
     usageBanner, trialExpiredMessage, capacityMessage: capacityMessage || softLimitMessage || trialExpiredMessage || proFeatureMessage,
   };
