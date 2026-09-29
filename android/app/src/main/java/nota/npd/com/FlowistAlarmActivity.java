@@ -54,16 +54,16 @@ public class FlowistAlarmActivity extends Activity {
                 return false;
             }
         });
-        displayAlarm(getIntent());
+        displayAlarm(getIntent(), state == null);
     }
 
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        displayAlarm(intent);
+        displayAlarm(intent, true);
     }
 
-    private void displayAlarm(Intent intent) {
+    private void displayAlarm(Intent intent, boolean startRinging) {
         key = intent.getStringExtra("key");
         if (key == null && intent.getData() != null) key = intent.getData().getLastPathSegment();
         if (key == null) { finish(); return; }
@@ -76,7 +76,8 @@ public class FlowistAlarmActivity extends Activity {
             if (scheduledAt == 0L) scheduledAt = stored.optLong("when", 0L);
         }
         buildUi(title == null ? "Reminder" : title, scheduledAt == 0L ? System.currentTimeMillis() : scheduledAt);
-        if (FlowistAlarm.ACTION_FIRE.equals(intent.getAction()) && stored != null) {
+        // Recreated screens (rotation) must not start or reschedule the alarm twice.
+        if (startRinging && FlowistAlarm.ACTION_FIRE.equals(intent.getAction()) && stored != null) {
             FlowistAlarmReceiver.fire(this, key);
         }
     }
