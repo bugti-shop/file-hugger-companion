@@ -39,7 +39,7 @@ public class FlowistAlarmService extends Service {
         }
         Intent screen = new Intent(this, FlowistAlarmActivity.class).putExtra("key", key).putExtra("title", title)
             .putExtra("scheduledAt", intent.getLongExtra("scheduledAt", System.currentTimeMillis())).putExtra("priority", priority);
-        screen.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        screen.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent full = PendingIntent.getActivity(this, key.hashCode(), screen, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Intent stop = new Intent(this, FlowistAlarmReceiver.class).setAction(FlowistAlarm.ACTION_DISMISS).putExtra("key", key);
         PendingIntent dismiss = PendingIntent.getBroadcast(this, key.hashCode(), stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);

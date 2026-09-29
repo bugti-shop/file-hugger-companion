@@ -31,7 +31,8 @@ public class FlowistAlarmActivity extends Activity {
         super.onCreate(state);
         if (Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(true); setTurnScreenOn(true); }
         else getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON);
-        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
+        // Show above the secure lock screen without unlocking the phone.
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         // True full-screen: hide status & navigation bars
         getWindow().getDecorView().setSystemUiVisibility(
             View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
@@ -40,23 +41,6 @@ public class FlowistAlarmActivity extends Activity {
             | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-
-        key = getIntent().getStringExtra("key");
-        isTest = getIntent().getBooleanExtra("test", false);
-        String title = getIntent().getStringExtra("title");
-        String priority = getIntent().getStringExtra("priority");
-        long scheduledAt = getIntent().getLongExtra("scheduledAt", 0L);
-        if (key == null) { finish(); return; }
-        org.json.JSONObject stored = FlowistAlarm.get(this, key);
-        if (stored != null) {
-            if (title == null) title = stored.optString("title", "Reminder");
-            if (priority == null) priority = stored.optString("priority", "None");
-            if (scheduledAt == 0L) scheduledAt = stored.optLong("when", 0L);
-        }
-
-        final String finalTitle = title == null ? "Reminder" : title;
-        final String finalPriority = priority == null ? "None" : priority;
-        buildUi(finalTitle, scheduledAt == 0L ? System.currentTimeMillis() : scheduledAt);
 
         // Swipe up anywhere to stop the alarm
         gestures = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
@@ -68,6 +52,31 @@ public class FlowistAlarmActivity extends Activity {
                 return false;
             }
         });
+        displayAlarm(getIntent());
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        displayAlarm(intent);
+    }
+
+    private void displayAlarm(Intent intent) {
+        key = intent.getStringExtra("key");
+        if (key == null && intent.getData() != null) key = intent.getData().getLastPathSegment();
+        if (key == null) { finish(); return; }
+        isTest = intent.getBooleanExtra("test", false);
+        String title = intent.getStringExtra("title");
+        long scheduledAt = intent.getLongExtra("scheduledAt", 0L);
+        org.json.JSONObject stored = FlowistAlarm.get(this, key);
+        if (stored != null) {
+            if (title == null) title = stored.optString("title", "Reminder");
+            if (scheduledAt == 0L) scheduledAt = stored.optLong("when", 0L);
+        }
+        buildUi(title == null ? "Reminder" : title, scheduledAt == 0L ? System.currentTimeMillis() : scheduledAt);
+        if (FlowistAlarm.ACTION_FIRE.equals(intent.getAction()) && stored != null) {
+            FlowistAlarmReceiver.fire(this, key);
+        }
     }
 
     @Override public boolean dispatchTouchEvent(MotionEvent event) {

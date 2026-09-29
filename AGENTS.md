@@ -5,3 +5,4 @@
 - Use native iOS Time Sensitive local notifications with alarm categories and actions; enable Critical Alerts only in an Apple-approved provisioning profile because iOS forbids third-party full-screen lock-screen takeover and indefinite notification audio.
 - Keep the web alarm preview and native Android alarm on the same light stacked-card design; each has a different rendering path but users should see the same alarm.
 - Carry the scheduled occurrence into Android alarm intents and web alarm events; the screen must show the user's chosen date/time, not the device's current clock when it rings.
+- Let Android AlarmManager launch the same alarm Activity directly at fire time; background broadcasts cannot reliably open an Activity on modern Android, while the foreground alarm notification remains a fallback.

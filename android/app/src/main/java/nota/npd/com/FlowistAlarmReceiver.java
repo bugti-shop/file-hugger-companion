@@ -33,6 +33,11 @@ public class FlowistAlarmReceiver extends BroadcastReceiver {
             return;
         }
         if (!FlowistAlarm.ACTION_FIRE.equals(action)) return;
+        fire(context, key);
+    }
+
+    /** Also called by the alarm Activity when AlarmManager launches it directly. */
+    static void fire(Context context, String key) {
         JSONObject data = FlowistAlarm.get(context, key);
         if (data == null) return;
         try {
@@ -51,15 +56,17 @@ public class FlowistAlarmReceiver extends BroadcastReceiver {
                 .putExtra("priority", data.optString("priority", "None"));
             if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(service);
             else context.startService(service);
-            // An AlarmClock broadcast can launch its visible UI while the device is in use;
-            // the service's full-screen notification remains the lock-screen fallback.
-            try {
-                Intent screen = new Intent(context, FlowistAlarmActivity.class)
-                    .putExtra("key", key).putExtra("title", data.optString("title", "Reminder"))
-                    .putExtra("scheduledAt", firedAt)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                context.startActivity(screen);
-            } catch (Exception ignored) { }
+            // Older installed alarms may still deliver a broadcast; use the same
+            // Activity as the new Activity-based AlarmClock PendingIntent.
+            if (!(context instanceof android.app.Activity)) {
+                try {
+                    Intent screen = new Intent(context, FlowistAlarmActivity.class)
+                        .putExtra("key", key).putExtra("title", data.optString("title", "Reminder"))
+                        .putExtra("scheduledAt", firedAt)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    context.startActivity(screen);
+                } catch (Exception ignored) { }
+            }
         } catch (Exception ignored) { }
     }
 }
