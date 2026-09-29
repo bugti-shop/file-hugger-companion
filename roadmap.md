@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Make To-Do Home → Progress → Profile navigation respond on one tap without blinking.
 - [x] Show the Flowist logo instead of Android's generic info icon for all local reminders, push notifications, focus alerts, and alarm notifications.
 - [x] Update iOS notification permission handling and add a Permissions screen for reminder/alarm status and device settings.
 - [x] Address App Store review 3.1.2(c): make the actual recurring billed total dominant throughout the iOS purchase flow, with trial terms secondary and no unverified prices.

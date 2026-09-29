@@ -47,7 +47,10 @@ export default function Profile() {
     window.addEventListener('syncStatusChanged', handler as EventListener);
     return () => window.removeEventListener('syncStatusChanged', handler as EventListener);
   }, []);
-  const [lastDashboard, setLastDashboard] = useState<'notes' | 'todo'>('notes');
+  const openedFrom = (location.state as { from?: unknown } | null)?.from;
+  const [lastDashboard, setLastDashboard] = useState<'notes' | 'todo'>(() =>
+    typeof openedFrom === 'string' && openedFrom.startsWith('/todo') ? 'todo' : 'notes'
+  );
   
   const { profile, updateProfile } = useUserProfile();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,8 +80,8 @@ export default function Profile() {
 
   useEffect(() => {
     const checkLastDashboard = async () => {
-      const fromState = (location.state as any)?.from;
-      if (fromState?.startsWith('/todo')) {
+      const fromState = (location.state as { from?: unknown } | null)?.from;
+      if (typeof fromState === 'string' && fromState.startsWith('/todo')) {
         setLastDashboard('todo');
       } else {
         const stored = await getSetting<string>('lastDashboard', 'notes');
