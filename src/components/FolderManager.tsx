@@ -224,8 +224,12 @@ export const FolderManager = ({
   const isCustomFolder = selectedFolder && !selectedFolder.isDefault;
 
   return (
-    <div className="relative mb-2 xs:mb-3" data-tour="folders-section">
-      <div className="absolute right-0 top-2 z-10 bg-background">
+    <div className="mb-2 xs:mb-3" data-tour="folders-section">
+      <div className="flex items-center justify-between mb-1.5 xs:mb-2">
+        <h2 className="text-base xs:text-lg font-semibold flex items-center gap-1.5 xs:gap-2">
+          <FolderIcon className="w-4 h-4 xs:w-5 xs:h-5" />
+          {t('notesMenu.folders')}
+        </h2>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
@@ -539,17 +543,9 @@ export const FolderManager = ({
         </DialogContent>
       </Dialog>
 
-      <div className="flex gap-5 overflow-x-auto overflow-y-visible pt-0 pb-0 pr-10 scrollbar-hide border-b border-border">
-        <Button
-          variant="ghost"
-          onClick={handleSelectAllNotes}
-          className={cn(
-            "h-auto rounded-none px-1 py-3 text-sm border-b-[3px] shrink-0",
-            selectedFolderId === null ? "border-primary text-foreground font-semibold" : "border-transparent text-muted-foreground"
-          )}
-        >
-          All
-        </Button>
+      <div className="flex gap-1.5 xs:gap-2 overflow-x-auto overflow-y-visible pt-2 pb-2 scrollbar-hide">
+
+
         {folders.map((folder) => (
           <div key={folder.id} className="relative">
             {editingId === folder.id ? (
@@ -578,8 +574,7 @@ export const FolderManager = ({
                 </Button>
               </div>
             ) : (
-              <Button
-                variant="ghost"
+              <button
                 onClick={() => handleFolderClick(folder.id)}
                 onContextMenu={(e) => {
                   e.preventDefault();
@@ -601,13 +596,14 @@ export const FolderManager = ({
                 }}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, folder.id)}
-                className={cn(
-                  "relative h-auto rounded-none flex items-center gap-2 px-1 py-3 whitespace-nowrap text-sm transition-colors border-b-[3px]",
-                  selectedFolderId === folder.id ? "border-primary text-foreground font-semibold" : "border-transparent text-muted-foreground hover:text-foreground"
-                )}
+                className="flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap text-white"
+                style={{
+                  backgroundColor: folder.color,
+                }}
               >
+                <FolderIcon className="w-4 h-4" />
                 {folder.name}
-              </Button>
+              </button>
             )}
 
             {!folder.isDefault && editingId !== folder.id && showActionsForFolder === folder.id && (

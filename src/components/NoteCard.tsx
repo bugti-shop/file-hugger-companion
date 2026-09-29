@@ -12,7 +12,6 @@ import { getSetting } from '@/utils/settingsStorage';
 import { logActivity } from '@/utils/activityLogger';
 import { sanitizeDisplayName } from '@/utils/duplicateName';
 import { getTextPreviewFromHtml } from '@/utils/contentPreview';
-import { getNoteMarkerColor } from '@/utils/noteMarkerColors';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   DropdownMenu,
@@ -44,8 +43,6 @@ interface NoteCardProps {
   // Hide/Protect
   onHide?: (noteId: string) => void;
   onProtect?: (noteId: string) => void;
-  compact?: boolean;
-  folderName?: string;
 }
 
 const STICKY_COLORS = {
@@ -171,7 +168,7 @@ const NoteCardOptionsMenu = ({
   );
 };
 
-const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, onToggleFavorite, onMoveToFolder, onDragStart, onDragOver, onDrop, onDragEnd, onDragLeave, isSelectionMode = false, isSelected = false, onToggleSelection, noteProtection, showContextMenu, setShowContextMenu, compact = false, folderName }: NoteCardProps & { noteProtection: NoteProtection; showContextMenu: boolean; setShowContextMenu: (open: boolean) => void }) => {
+const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, onToggleFavorite, onMoveToFolder, onDragStart, onDragOver, onDrop, onDragEnd, onDragLeave, isSelectionMode = false, isSelected = false, onToggleSelection, noteProtection, showContextMenu, setShowContextMenu }: NoteCardProps & { noteProtection: NoteProtection; showContextMenu: boolean; setShowContextMenu: (open: boolean) => void }) => {
   const { t } = useTranslation();
   const [swipeOffset, setSwipeOffset] = useState(0);
   const [isSwiping, setIsSwiping] = useState(false);
@@ -379,7 +376,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
   }, [note.updatedAt]);
 
   return (
-    <div className={cn("relative overflow-hidden perf-contain-item h-full w-full flex", !compact && "rounded-lg")}>
+    <div className="relative overflow-hidden rounded-lg perf-contain-item h-full w-full flex">
       {/* Swipe action backgrounds */}
       <div className="absolute inset-0 flex">
         {/* Left side actions - Favorite + Pin (swipe right reveals) */}
@@ -447,20 +444,16 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
         onDragLeave={onDragLeave}
         className={cn(
           'group relative overflow-hidden cursor-pointer',
-          'w-full h-full',
-          compact ? 'rounded-none border-0 border-b border-border bg-card shadow-none hover:bg-muted/30' : 'hover:shadow-md border border-border/50',
+          'w-full h-full hover:shadow-md border border-border/50',
           isSwiping ? '' : 'transition-transform duration-200',
           isSelected && 'ring-2 ring-primary ring-offset-2'
         )}
         style={{ 
-          ...(compact ? {} : cardStyle),
+          ...cardStyle,
           transform: `translateX(${swipeOffset}px)`,
         }}
       >
-        {compact && (note.markerColor || note.isPinned) && (
-          <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: getNoteMarkerColor(note.markerColor) || 'hsl(var(--primary))' }} />
-        )}
-        <div className={cn("h-full flex flex-col", compact ? "px-4 py-3 justify-center" : "p-4")}>
+        <div className="p-4 h-full flex flex-col">
           <div className="flex items-start justify-between gap-2">
             {/* Selection checkbox */}
             {isSelectionMode && (
@@ -478,9 +471,8 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
               </div>
             )}
           {note.title && (
-              <h3 className={cn("font-semibold text-base line-clamp-1 flex-1 min-w-0", compact ? "text-foreground" : "text-gray-900")}>{sanitizeDisplayName(note.title)}</h3>
+              <h3 className="font-semibold text-base line-clamp-1 text-gray-900 flex-1">{sanitizeDisplayName(note.title)}</h3>
             )}
-            {compact && <span className="text-[11px] uppercase text-muted-foreground shrink-0 tabular-nums">{updatedAtDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
             {note.isPinned && (
               <Pin className="h-4 w-4 text-warning fill-warning shrink-0" />
             )}
@@ -492,12 +484,6 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
             )}
           </div>
 
-          {compact ? (
-            <div className="flex items-center justify-between gap-3 mt-1 min-w-0">
-              <p className="text-sm text-muted-foreground truncate min-w-0 flex-1">{previewText || (note.type === 'sketch' ? t('notes.sketchDrawing') : ' ')}</p>
-              {folderName && <span className="max-w-[35%] truncate rounded bg-muted px-2 py-0.5 text-xs text-muted-foreground shrink-0">{folderName}</span>}
-            </div>
-          ) : <>
           {/* Show metaDescription if available, otherwise show content preview */}
           {note.type === 'sketch' ? (
             note.metaDescription ? (
@@ -551,7 +537,6 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
               <span>{badge.label}</span>
             </div>
           </div>
-          </>}
         </div>
       </Card>
 
@@ -574,7 +559,6 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
     a.type === b.type &&
     a.color === b.color &&
     a.customColor === b.customColor &&
-    a.markerColor === b.markerColor &&
     a.isPinned === b.isPinned &&
     a.isFavorite === b.isFavorite &&
     a.isArchived === b.isArchived &&
@@ -589,9 +573,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
     prev.noteProtection.hasPassword === next.noteProtection.hasPassword &&
     prev.noteProtection.useBiometric === next.noteProtection.useBiometric &&
     prev.isSelectionMode === next.isSelectionMode &&
-    prev.isSelected === next.isSelected &&
-    prev.compact === next.compact &&
-    prev.folderName === next.folderName
+    prev.isSelected === next.isSelected
   );
 });
 NoteCardInner.displayName = 'NoteCardInner';

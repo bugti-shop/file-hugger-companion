@@ -60,8 +60,7 @@ import 'katex/dist/katex.min.css';
 import { ErrorBoundary } from './ErrorBoundary';
 import { PdfExportSuccessDialog } from './PdfExportSuccessDialog';
 import { PdfExportOptionsSheet, PdfExportSettings } from './PdfExportOptionsSheet';
-import { ArrowLeft, ChevronLeft, Folder as FolderIcon, Plus, CalendarIcon, History, FileDown, Link2, ChevronDown, FileText, BookOpen, BarChart3, MoreVertical, MoreHorizontal, Mic, Share2, Share, Search, Image, Table, Minus, SeparatorHorizontal, MessageSquare, FileSymlink, FileType, Bell, Clock, Repeat, Trash2, Mail, Phone, LinkIcon, Copy, Replace, Palette, Hash, Crown, ListFilter, CaseLower, Tag as TagIcon, Camera, Sparkles, Globe, Keyboard, MapPin, Undo2, Redo2, TagIcon as TagPlusIcon, NotebookText, Check } from 'lucide-react';
-import { NOTE_MARKER_COLORS, type NoteMarkerColor } from '@/utils/noteMarkerColors';
+import { ArrowLeft, ChevronLeft, Folder as FolderIcon, Plus, CalendarIcon, History, FileDown, Link2, ChevronDown, FileText, BookOpen, BarChart3, MoreVertical, MoreHorizontal, Mic, Share2, Share, Search, Image, Table, Minus, SeparatorHorizontal, MessageSquare, FileSymlink, FileType, Bell, Clock, Repeat, Trash2, Mail, Phone, LinkIcon, Copy, Replace, Palette, Hash, Crown, ListFilter, CaseLower, Tag as TagIcon, Camera, Sparkles, Globe, Keyboard, MapPin, Undo2, Redo2, TagIcon as TagPlusIcon, NotebookText } from 'lucide-react';
 import { exportNoteToPdf, getPageBreakCount, PdfExportResult } from '@/utils/exportToPdf';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -236,7 +235,6 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
   const [isFindReplaceOpen, setIsFindReplaceOpen] = useState(false);
   const [isShortcutsSheetOpen, setIsShortcutsSheetOpen] = useState(false);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
-  const [showMarkerPalette, setShowMarkerPalette] = useState(false);
   const [showToc, setShowToc] = useState(false);
   const [tocMaxLevel, setTocMaxLevel] = useState<number>(6);
   const isReadOnlyWebClip = !!note?.fullPageSnapshot || WEB_CLIP_RE.test(note?.content || '');
@@ -284,7 +282,6 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
   }, []);
   const [metaDescription, setMetaDescription] = useState<string>('');
   const [customColor, setCustomColor] = useState<string | undefined>(undefined);
-  const [markerColor, setMarkerColor] = useState<NoteMarkerColor | undefined>(undefined);
   
   
   // Voice recorder state
@@ -521,7 +518,6 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
       setIsReadingMode(!!(note.fullPageSnapshot || WEB_CLIP_RE.test(note.content || '')));
       setColor(note.color || 'yellow');
       setCustomColor(note.customColor);
-      setMarkerColor(note.markerColor);
       setImages(note.images || []);
       setFloatingImages(note.floatingImages || []);
       setVoiceRecordings(note.voiceRecordings || []);
@@ -607,7 +603,6 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
       setContent('');
       setColor('yellow');
       setCustomColor(undefined);
-      setMarkerColor(undefined);
       setImages([]);
       setFloatingImages([]);
       setVoiceRecordings([]);
@@ -694,7 +689,6 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
       fullPageSnapshot: note?.fullPageSnapshot,
       color: noteType === 'sticky' ? color : undefined,
       customColor: noteType !== 'sticky' && noteType !== 'voice' ? customColor : undefined,
-      markerColor,
       images: noteType === 'sticky' ? undefined : images,
       floatingImages: (noteType === 'regular' || noteType === 'sticky' || noteType === 'textformat') && floatingImages.length > 0 ? floatingImages : undefined,
       voiceRecordings,
@@ -736,7 +730,6 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     content,
     color,
     customColor,
-    markerColor,
     images,
     floatingImages,
     voiceRecordings,
@@ -1491,31 +1484,13 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
               </Button>
             )}
 
-            {!isReadOnlyWebClip && <DropdownMenu open={isOptionsMenuOpen} onOpenChange={(open) => { setIsOptionsMenuOpen(open); if (!open) setShowMarkerPalette(false); }}>
+            {!isReadOnlyWebClip && <DropdownMenu open={isOptionsMenuOpen} onOpenChange={setIsOptionsMenuOpen}>
               <DropdownMenuTrigger asChild>
                 <Button data-tour="note-options-menu" variant="ghost" size="icon" className={cn("app-header-btn", noteType === 'sticky' && "text-black hover:text-black")}>
                   <MoreHorizontal strokeWidth={2} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 bg-card z-50 max-h-[70vh] overflow-y-auto">
-                <DropdownMenuItem onSelect={(event) => { event.preventDefault(); setShowMarkerPalette((visible) => !visible); }} className="gap-2">
-                  <Palette className="h-4 w-4" /> Note marker color
-                  <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", showMarkerPalette && "rotate-180")} />
-                </DropdownMenuItem>
-                {showMarkerPalette && (
-                  <div className="grid grid-cols-2 gap-1 px-1 py-2" aria-label="Note marker colors">
-                    <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={() => { setMarkerColor(undefined); setIsOptionsMenuOpen(false); }}>
-                      <span className="h-4 w-4 shrink-0 rounded-full border border-border" />None {markerColor === undefined && <Check className="ml-auto h-4 w-4" />}
-                    </Button>
-                    {NOTE_MARKER_COLORS.map(({ name, value }) => (
-                      <Button key={name} variant="ghost" size="sm" className="justify-start gap-2" onClick={() => { setMarkerColor(name); setIsOptionsMenuOpen(false); }}>
-                        <span className="h-4 w-4 shrink-0 rounded-full" style={{ backgroundColor: value }} />
-                        {name} {markerColor === name && <Check className="ml-auto h-4 w-4" />}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-                <DropdownMenuSeparator />
                 {/* Global Font Size Control */}
                 {['sticky', 'lined', 'regular'].includes(noteType) && (
                   <>
