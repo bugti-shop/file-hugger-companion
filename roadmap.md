@@ -12,3 +12,4 @@
 - [ ] Verify Google/Apple buttons render in the sign-in sheet (browser check)
 - [ ] Remove email/password sign-in from EmailAuthSheet (Google + Apple only)
 - [ ] User to enter CRON_SECRET via secure secret form
+- [ ] Android full-screen alarm: cover whole screen (even while phone in use), show over lock screen, swipe-to-dismiss + snooze button like screenshot
