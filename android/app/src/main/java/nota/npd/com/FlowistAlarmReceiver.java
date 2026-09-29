@@ -57,7 +57,7 @@ public class FlowistAlarmReceiver extends BroadcastReceiver {
                 Intent screen = new Intent(context, FlowistAlarmActivity.class)
                     .putExtra("key", key).putExtra("title", data.optString("title", "Reminder"))
                     .putExtra("scheduledAt", firedAt)
-                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                 context.startActivity(screen);
             } catch (Exception ignored) { }
         } catch (Exception ignored) { }
