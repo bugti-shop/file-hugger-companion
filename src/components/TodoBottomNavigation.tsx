@@ -87,14 +87,15 @@ export const TodoBottomNavigation = () => {
   // Prefetch all lazy routes on idle so tab switches are instant
   useEffect(() => { prefetchAllOnIdle(); }, []);
 
-  // Warm the two heavier primary tabs as soon as To-Do navigation is visible.
+  // Warm every visible tab immediately (bypassing idle/network gating) so each
+  // tab switch has the same instant timing instead of waiting on a chunk load.
+  const visiblePathsKey = visibleItems.map(i => i.path).join('|');
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      void prefetchRoute('/todo/progress');
-      void prefetchRoute('/profile');
+      visiblePathsKey.split('|').forEach(p => { if (p) void prefetchRoute(p, 'hover'); });
     }, 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [visiblePathsKey]);
 
   useEffect(() => {
     let cancelled = false;
