@@ -6,7 +6,7 @@ import { useStreak } from '@/hooks/useStreak';
 import { cn } from '@/lib/utils';
 import { Flame, Check, Snowflake, Trophy, Zap, TrendingUp, Calendar, Gift, Clock, Award, CheckSquare, FileText, Sprout } from 'lucide-react';
 import { loadTodoItems } from '@/utils/todoItemsStorage';
-import { countCompletedTasksInDB } from '@/utils/taskStorage';
+import { countCompletedTasksInDB, tasksCache } from '@/utils/taskStorage';
 import { AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 import { startOfWeek, endOfWeek, subDays, subHours, subMonths, subYears, format, startOfDay, startOfHour } from 'date-fns';
@@ -36,7 +36,7 @@ const Progress = () => {
 
   const [weekStats, setWeekStats] = useState({ completed: 0, total: 0 });
   const [lifetimeCompleted, setLifetimeCompleted] = useState(0);
-  const [allTasks, setAllTasks] = useState<any[]>([]);
+  const [allTasks, setAllTasks] = useState<any[]>(tasksCache || []);
   type ChartRange = 'today' | '24h' | '7d' | '30d' | 'month' | 'year';
   const [chartRange, setChartRange] = useState<ChartRange>('7d');
 
@@ -101,7 +101,7 @@ const Progress = () => {
     };
     // Defer heavy loading until after the tab switch has painted and the
     // nav pill animation has finished, so navigation feels instant.
-    const initTimer = window.setTimeout(() => { void loadStats(); }, 220);
+    const initTimer = window.setTimeout(() => { void loadStats(); }, (tasksCache && tasksCache.length > 0) ? 50 : 220);
 
     const handler = () => loadStats();
     window.addEventListener('tasksUpdated', handler);
@@ -202,14 +202,16 @@ const Progress = () => {
     })() : 0;
     for (const task of allTasks) {
       if (!task.completedAt) continue;
-      const dt = new Date(task.completedAt);
-      const ts = dt.getTime();
-      if (!(ts >= rangeStart)) continue;
+      const ts = task.completedAt instanceof Date ? task.completedAt.getTime() : new Date(task.completedAt).getTime();
+      if (ts < rangeStart) continue;
+      
+      const dt = task.completedAt instanceof Date ? task.completedAt : new Date(task.completedAt);
       const ymd = `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}`;
       let key: string;
       if (mode === 'month') key = ymd;
       else if (mode === 'day') key = `${ymd}-${pad(dt.getDate())}`;
       else key = `${ymd}-${pad(dt.getDate())} ${pad(dt.getHours())}`;
+      
       const v = map.get(key);
       if (v !== undefined) map.set(key, v + 1);
     }
