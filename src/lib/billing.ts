@@ -26,12 +26,10 @@ export const BILLING_CONFIG = IS_IOS ? {
   monthly: {
     productId: 'npd_mo:npd-mo',
     basePlanId: 'npd-mo',
-    trialOfferId: 'npd-monthly-offer',
   },
   yearly: {
     productId: 'npd_yr:npd-yearly-plan',
     basePlanId: 'npd-yearly-plan',
-    trialOfferId: 'npd-yearly-trial',
   },
 } as const;
 

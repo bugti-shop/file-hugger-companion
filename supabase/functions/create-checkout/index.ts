@@ -17,7 +17,7 @@ const PRICE_IDS: Record<string, string> = {
 
 
 
-// Free trial is handled through checkout for eligible monthly/yearly plans.
+// No free trial on any plan.
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -78,7 +78,7 @@ serve(async (req) => {
 
     const origin = req.headers.get("origin") || "https://grab-all-the-things.lovable.app";
 
-    // Build session config — offer 3-day free trial only to new customers
+    // Build session config — no free trial on any plan
     const sessionConfig: any = {
       customer: customerId,
       customer_email: customerId ? undefined : userEmail,
@@ -92,7 +92,6 @@ serve(async (req) => {
       subscription_data: {},
     };
 
-    // Web checkout: no free trial on any plan (trial is native-only)
 
 
     const session = await stripe.checkout.sessions.create(sessionConfig);
