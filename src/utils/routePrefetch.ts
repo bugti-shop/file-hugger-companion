@@ -21,6 +21,9 @@ const ROUTE_IMPORTS: Record<string, () => Promise<any>> = {
   '/todo/progress': () => import('@/pages/todo/Progress'),
   '/todo/calendar': () => import('@/pages/todo/TodoCalendar'),
   '/todo/settings': () => import('@/pages/todo/TodoSettings'),
+  '/todo/habits': () => import('@/pages/todo/Habits'),
+  '/todo/matrix': () => import('@/pages/todo/EisenhowerMatrix'),
+  '/todo/countdown': () => import('@/pages/todo/Countdown'),
   '/': () => import('@/pages/todo/Today'),
 };
 
