@@ -41,7 +41,24 @@ enum FlowistAlarmNotifications {
 
 @objc(FlowistAlarmPlugin)
 public class FlowistAlarmPlugin: CAPPlugin {
-    override public func load() { FlowistAlarmNotifications.configure() }
+    private var pendingOpenedAlarm: [AnyHashable: Any]?
+
+    override public func load() {
+        FlowistAlarmNotifications.configure()
+        NotificationCenter.default.addObserver(self, selector: #selector(alarmOpened(_:)), name: Notification.Name("FlowistAlarmOpened"), object: nil)
+    }
+
+    deinit { NotificationCenter.default.removeObserver(self) }
+
+    @objc private func alarmOpened(_ notification: Notification) {
+        guard let info = notification.userInfo else { return }
+        let data: [String: Any] = [
+            "key": info["key"] as? String ?? "",
+            "title": info["alarmTitle"] as? String ?? "Reminder",
+            "scheduledAt": info["scheduledAt"] as? Double ?? Date().timeIntervalSince1970 * 1000
+        ]
+        notifyListeners("alarmOpened", data: data, retainUntilConsumed: true)
+    }
 
     @objc func schedule(_ call: CAPPluginCall) {
         guard let key = call.getString("key"), !key.isEmpty,
