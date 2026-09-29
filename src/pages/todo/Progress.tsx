@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, startTransition } from 'react';
+import { lazy, Suspense, useState, useEffect, useCallback, useMemo, startTransition } from 'react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useTranslation } from 'react-i18next';
 import { TodoLayout } from './TodoLayout';
@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 import { Flame, Check, Snowflake, Trophy, Zap, TrendingUp, Calendar, Gift, Clock, Award, CheckSquare, FileText, Sprout } from 'lucide-react';
 import { loadTodoItems } from '@/utils/todoItemsStorage';
 import { tasksCache } from '@/utils/taskStorage';
-import { AreaChart, Area, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 import { startOfWeek, endOfWeek, subDays, subHours, subMonths, subYears, format, startOfDay, startOfHour } from 'date-fns';
 
@@ -16,10 +15,10 @@ import { SafeComponent } from '@/components/ErrorBoundary';
 
 import { GamificationCertificates, hasNewCertificates } from '@/components/GamificationCertificates';
 import { StreakDetailSheet } from '@/components/StreakDetailSheet';
-import { VirtualJourneyCard } from '@/components/VirtualJourneyCard';
 import { StreakSocietyBadge } from '@/components/StreakSocietyBadge';
-import { StreakConsistencyCertificate } from '@/components/StreakConsistencyCertificate';
 import { useFirstVisitTour } from '@/features/tours/useFeatureTour';
+
+const ProgressDetails = lazy(() => import('@/components/todo/ProgressDetails'));
 
 const summarizeProgressTasks = (tasks: NonNullable<typeof tasksCache>) => {
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 0 }).getTime();
@@ -397,105 +396,14 @@ const Progress = () => {
         </SafeComponent>
 
 
-        {heavyReady && (<>
-        {/* Completed Tasks Last 30 Days - Line Chart (reference-matched) */}
-        <SafeComponent fallback={null}>
-          <div className="bg-white dark:bg-card rounded-3xl p-5 sm:p-6 border border-[#E5E7EB] dark:border-border shadow-sm [content-visibility:auto] [contain-intrinsic-size:360px]">
-            <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
-              <h3 className="text-[17px] sm:text-[19px] font-semibold text-[#111827] dark:text-foreground leading-tight">
-                {t('streak.completedTasks', 'Completed Tasks')}
-              </h3>
-            </div>
-            <div className="flex gap-1.5 mb-5 overflow-x-auto -mx-1 px-1 no-scrollbar">
-              {rangeOptions.map(opt => (
-                <button
-                  key={opt.key}
-                  onClick={() => setChartRange(opt.key)}
-                  className={cn(
-                    "px-3 py-1.5 rounded-full text-[12px] font-medium whitespace-nowrap transition-colors border",
-                    chartRange === opt.key
-                      ? "bg-primary text-primary-foreground border-primary"
-                      : "bg-transparent text-muted-foreground border-border hover:bg-muted"
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="w-full h-64 sm:h-72 md:h-80">
-              <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                <AreaChart data={chartData} margin={{ top: 10, right: 8, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="lovableAreaFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#db252d" stopOpacity={0.32} />
-                      <stop offset="60%" stopColor="#db252d" stopOpacity={0.08} />
-                      <stop offset="100%" stopColor="#db252d" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={false}
-                    axisLine={false}
-                    tickMargin={8}
-                    minTickGap={16}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={28}
-                    allowDecimals={false}
-                    tickMargin={4}
-                  />
-                  <Tooltip
-                    cursor={{ stroke: '#db252d', strokeWidth: 1, strokeOpacity: 0.5 }}
-                    contentStyle={{
-                      background: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: 12,
-                      fontSize: 13,
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-                      color: 'hsl(var(--foreground))',
-                    }}
-                    labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600 }}
-                    formatter={(v: number) => [v, t('streak.tasks', 'tasks')]}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="#db252d"
-                    strokeWidth={2.5}
-                    fill="url(#lovableAreaFill)"
-                    activeDot={{ r: 5, fill: '#db252d', stroke: '#FFFFFF', strokeWidth: 2 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </SafeComponent>
-
-
-        {/* Streak Consistency Certificate - always visible */}
-        <SafeComponent fallback={null}>
-          <div className="-mx-3 sm:mx-0">
-            <StreakConsistencyCertificate
-              currentStreak={data?.currentStreak || 0}
-              totalCompletions={lifetimeCompleted}
-              longestStreak={data?.longestStreak || 0}
-            />
-          </div>
-        </SafeComponent>
-
-
-        {/* Virtual Journey */}
-        <SafeComponent fallback={null}>
-          <VirtualJourneyCard />
-        </SafeComponent>
-
-        </>)}
+        {heavyReady && <Suspense fallback={null}>
+          <ProgressDetails
+            tasks={allTasks}
+            currentStreak={data?.currentStreak || 0}
+            longestStreak={data?.longestStreak || 0}
+            lifetimeCompleted={lifetimeCompleted}
+          />
+        </Suspense>}
         {/* Certificates Button — moved below Virtual Journey */}
         <div>
           <button
