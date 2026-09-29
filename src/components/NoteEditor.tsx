@@ -236,6 +236,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
   const [isFindReplaceOpen, setIsFindReplaceOpen] = useState(false);
   const [isShortcutsSheetOpen, setIsShortcutsSheetOpen] = useState(false);
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
+  const [showMarkerPalette, setShowMarkerPalette] = useState(false);
   const [showToc, setShowToc] = useState(false);
   const [tocMaxLevel, setTocMaxLevel] = useState<number>(6);
   const isReadOnlyWebClip = !!note?.fullPageSnapshot || WEB_CLIP_RE.test(note?.content || '');
@@ -1490,30 +1491,30 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
               </Button>
             )}
 
-            {!isReadOnlyWebClip && <DropdownMenu open={isOptionsMenuOpen} onOpenChange={setIsOptionsMenuOpen}>
+            {!isReadOnlyWebClip && <DropdownMenu open={isOptionsMenuOpen} onOpenChange={(open) => { setIsOptionsMenuOpen(open); if (!open) setShowMarkerPalette(false); }}>
               <DropdownMenuTrigger asChild>
                 <Button data-tour="note-options-menu" variant="ghost" size="icon" className={cn("app-header-btn", noteType === 'sticky' && "text-black hover:text-black")}>
                   <MoreHorizontal strokeWidth={2} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 bg-card z-50 max-h-[70vh] overflow-y-auto">
-                <DropdownMenuSub>
-                  <DropdownMenuSubTrigger className="gap-2">
-                    <Palette className="h-4 w-4" /> Note marker color
-                  </DropdownMenuSubTrigger>
-                  <DropdownMenuSubContent className="w-48 bg-popover max-h-[70vh] overflow-y-auto">
-                    <DropdownMenuItem onClick={() => setMarkerColor(undefined)}>
-                      <span className="mr-2 h-4 w-4 rounded-full border border-border" />
-                      None {markerColor === undefined && <Check className="ml-auto h-4 w-4" />}
-                    </DropdownMenuItem>
+                <DropdownMenuItem onSelect={(event) => { event.preventDefault(); setShowMarkerPalette((visible) => !visible); }} className="gap-2">
+                  <Palette className="h-4 w-4" /> Note marker color
+                  <ChevronDown className={cn("ml-auto h-4 w-4 transition-transform", showMarkerPalette && "rotate-180")} />
+                </DropdownMenuItem>
+                {showMarkerPalette && (
+                  <div className="grid grid-cols-2 gap-1 px-1 py-2" aria-label="Note marker colors">
+                    <Button variant="ghost" size="sm" className="justify-start gap-2" onClick={() => { setMarkerColor(undefined); setIsOptionsMenuOpen(false); }}>
+                      <span className="h-4 w-4 shrink-0 rounded-full border border-border" />None {markerColor === undefined && <Check className="ml-auto h-4 w-4" />}
+                    </Button>
                     {NOTE_MARKER_COLORS.map(({ name, value }) => (
-                      <DropdownMenuItem key={name} onClick={() => setMarkerColor(name)}>
-                        <span className="mr-2 h-4 w-4 rounded-full" style={{ backgroundColor: value }} />
+                      <Button key={name} variant="ghost" size="sm" className="justify-start gap-2" onClick={() => { setMarkerColor(name); setIsOptionsMenuOpen(false); }}>
+                        <span className="h-4 w-4 shrink-0 rounded-full" style={{ backgroundColor: value }} />
                         {name} {markerColor === name && <Check className="ml-auto h-4 w-4" />}
-                      </DropdownMenuItem>
+                      </Button>
                     ))}
-                  </DropdownMenuSubContent>
-                </DropdownMenuSub>
+                  </div>
+                )}
                 <DropdownMenuSeparator />
                 {/* Global Font Size Control */}
                 {['sticky', 'lined', 'regular'].includes(noteType) && (
