@@ -100,6 +100,7 @@ const scheduleUrgentInAppTimer = (taskId: string, taskText: string, reminderTime
         id: taskId,
         taskName: taskText,
         triggeredAt: new Date(),
+         scheduledAt: reminderTime.toISOString(),
         reminderTime: reminderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       }
     }));
@@ -191,7 +192,7 @@ export const scheduleTaskReminder = async (
       body: taskText,
       schedule: { at: reminderTime, allowWhileIdle: true },
       channelId: isUrgent ? 'urgent-task-reminders' : 'task-reminders',
-      extra: { type: 'task', taskId, isUrgent: isUrgent ? 'true' : 'false' },
+      extra: { type: 'task', taskId, isUrgent: isUrgent ? 'true' : 'false', scheduledAt: reminderTime.toISOString() },
     };
 
     // Android: fullScreenIntent wakes screen & shows app even from background
@@ -702,6 +703,7 @@ export const initializeReminders = async (): Promise<void> => {
           id: notification.extra.taskId,
           taskName: notification.body || 'Urgent Task',
           triggeredAt: new Date(),
+          scheduledAt: notification.extra.scheduledAt,
         }
       }));
     }
@@ -715,6 +717,7 @@ export const initializeReminders = async (): Promise<void> => {
           id: action.notification.extra.taskId,
           taskName: action.notification.body || 'Urgent Task',
           triggeredAt: new Date(),
+          scheduledAt: action.notification.extra.scheduledAt,
         }
       }));
     }
@@ -814,6 +817,7 @@ const checkMissedUrgentReminders = () => {
           id: taskId,
           taskName: taskText,
           triggeredAt: new Date(),
+          scheduledAt: reminderTime.toISOString(),
           reminderTime: reminderTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         }
       }));

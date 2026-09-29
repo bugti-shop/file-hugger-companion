@@ -13,6 +13,6 @@ export const triggerTestAlarm = async () => {
     try { await alarm.testAlarm({ title }); return; } catch (e) { console.warn('[Alarm] native test failed, using in-app preview', e); }
   }
   window.dispatchEvent(new CustomEvent('urgentReminderTriggered', {
-    detail: { id: 'test-alarm', taskName: title, triggeredAt: new Date(), reminderTime: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) },
+    detail: { id: 'test-alarm', taskName: title, triggeredAt: new Date(), scheduledAt: new Date().toISOString() },
   }));
 };
