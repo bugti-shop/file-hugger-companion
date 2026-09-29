@@ -573,13 +573,14 @@ export const useTodayState = () => {
       return todayRuntimeCache.processedItems ?? items;
     }
 
+    const allowedFolderIds = effectiveSelectedFolderId ? new Set(getStrictAllowedFolderIds(folders, effectiveSelectedFolderId) ?? []) : null;
+    const includeUnfiled = shouldIncludeUnfiledInFolder(folders, effectiveSelectedFolderId);
+    const today = dateFilter !== 'all' ? startOfDay(new Date()) : null;
+    const smartListFilter = smartList !== 'all' ? getSmartListFilter(smartList) : null;
     let filtered = items.filter(item => {
       if (smartList !== 'all') {
-        const smartListFilter = getSmartListFilter(smartList);
-        if (!smartListFilter(item)) return false;
+        if (smartListFilter && !smartListFilter(item)) return false;
       }
-      const allowedFolderIds = effectiveSelectedFolderId ? new Set(getStrictAllowedFolderIds(folders, effectiveSelectedFolderId) ?? []) : null;
-      const includeUnfiled = shouldIncludeUnfiledInFolder(folders, effectiveSelectedFolderId);
       const folderMatch = allowedFolderIds ? (item.folderId ? allowedFolderIds.has(item.folderId) : includeUnfiled) : true;
       const priorityMatch = priorityFilter === 'all' ? true : item.priority === priorityFilter;
       let statusMatch = true;
@@ -590,13 +591,12 @@ export const useTodayState = () => {
       else if (statusFilter === 'almost_done') statusMatch = item.status === 'almost_done';
       let dateMatch = true;
       if (dateFilter !== 'all') {
-        const today = startOfDay(new Date());
         const itemDate = item.dueDate ? new Date(item.dueDate) : null;
         switch (dateFilter) {
           case 'today': dateMatch = itemDate ? isToday(itemDate) : false; break;
           case 'tomorrow': dateMatch = itemDate ? isTomorrow(itemDate) : false; break;
           case 'this-week': dateMatch = itemDate ? isThisWeek(itemDate) : false; break;
-          case 'overdue': dateMatch = itemDate ? isBefore(itemDate, today) && !item.completed : false; break;
+          case 'overdue': dateMatch = itemDate && today ? isBefore(itemDate, today) && !item.completed : false; break;
           case 'has-date': dateMatch = !!itemDate; break;
           case 'no-date': dateMatch = !itemDate; break;
         }

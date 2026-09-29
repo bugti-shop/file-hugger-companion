@@ -1,5 +1,6 @@
 # Roadmap
 
+- [ ] Smooth Home and Progress tab switches with many tasks without changing their layout or task actions.
 - [x] Make To-Do bottom navigation use Notes-style immediate pointer-down navigation, retaining keyboard activation and Profile origin.
 - [x] Keep Progress statistics warm and live across tab switches while deferring secondary work to prevent scroll stalls.
 - [x] Remove Progress's blocking loading screen and delay below-fold heavy cards until after the tab switch paints.

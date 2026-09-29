@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { TodoItem } from '@/types/note';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Plus } from 'lucide-react';
@@ -49,19 +50,21 @@ export const TimelineView = ({
   const { t } = useTranslation();
   const tz = getUserTimeZone();
 
-  const dayGroups = Array.from({ length: 7 }, (_, i) => {
-    const date = startOfZonedDay(i, new Date(), tz);
-    const id = `timeline-day-${zonedDayKey(date, tz)}`;
-    const label = zonedDayLabel(date, i, t as (k: string, f?: string) => string, tz);
-    const tasks = uncompletedItems.filter(item =>
-      item.dueDate && isSameZonedDay(new Date(item.dueDate), date, tz)
-    );
-    const color =
-      i === 0 ? '#db252d'
-      : i === 1 ? '#f59e0b'
-      : '#10b981';
-    return { id, label, date, tasks, color };
-  });
+  const dayGroups = useMemo(() => {
+    const now = new Date();
+    const days = Array.from({ length: 7 }, (_, i) => {
+      const date = startOfZonedDay(i, now, tz);
+      return { id: `timeline-day-${zonedDayKey(date, tz)}`, label: zonedDayLabel(date, i, t as (k: string, f?: string) => string, tz), date, tasks: [] as TodoItem[], color: i === 0 ? '#db252d' : i === 1 ? '#f59e0b' : '#10b981' };
+    });
+    const byDay = new Map(days.map(day => [zonedDayKey(day.date, tz), day]));
+    for (const item of uncompletedItems) {
+      if (!item.dueDate) continue;
+      const due = new Date(item.dueDate);
+      const group = byDay.get(zonedDayKey(due, tz));
+      if (group) group.tasks.push(item);
+    }
+    return days;
+  }, [uncompletedItems, tz, t]);
 
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
@@ -87,7 +90,7 @@ export const TimelineView = ({
           const orderedTasks = applyTaskOrder(group.tasks, group.id);
           const hasTasks = group.tasks.length > 0;
           return (
-            <div key={group.id} className="group">
+             <div key={group.id} className="group [content-visibility:auto] [contain-intrinsic-size:auto_80px]">
               <div className="flex items-center gap-2 px-2">
                 <button
                   onClick={() => toggleViewSectionCollapse(group.id)}
