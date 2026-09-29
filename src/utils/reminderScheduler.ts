@@ -161,8 +161,8 @@ export const scheduleTaskReminder = async (
     return;
   }
 
-  // For urgent reminders, ALWAYS set an in-app timer so it shows full-screen automatically
-    if (isUrgent && Capacitor.getPlatform() !== 'android') {
+  // Browser timers only: native platforms deliver the alarm independently of JS.
+  if (isUrgent && !Capacitor.isNativePlatform()) {
     scheduleUrgentInAppTimer(taskId, taskText, reminderTime);
   }
 
@@ -177,10 +177,6 @@ export const scheduleTaskReminder = async (
   try {
     await cancelTaskReminder(taskId);
     // Re-set the in-app timer since cancelTaskReminder clears it
-    if (isUrgent && Capacitor.getPlatform() !== 'android') {
-      scheduleUrgentInAppTimer(taskId, taskText, reminderTime);
-    }
-
     // Track for resume-check
     if (isUrgent) {
       pendingUrgentReminders.set(taskId, { taskText, reminderTime });

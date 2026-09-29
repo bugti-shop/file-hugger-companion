@@ -7,6 +7,15 @@ import UserNotifications
 enum FlowistAlarmNotifications {
     static let category = "FLOWIST_ALARM"
     static let prefix = "flowist-alarm-"
+    static var pendingOpened: [AnyHashable: Any]?
+
+    static func opened(_ notification: UNNotification) {
+        var info = notification.request.content.userInfo
+        // For repeating and snoozed reminders the occurrence is the delivery date.
+        info["scheduledAt"] = notification.date.timeIntervalSince1970 * 1000
+        pendingOpened = info
+        NotificationCenter.default.post(name: Notification.Name("FlowistAlarmOpened"), object: nil, userInfo: info)
+    }
 
     static func configure() {
         let snooze = UNNotificationAction(identifier: "FLOWIST_SNOOZE", title: "Snooze 5 min", options: [])
@@ -41,17 +50,24 @@ enum FlowistAlarmNotifications {
 
 @objc(FlowistAlarmPlugin)
 public class FlowistAlarmPlugin: CAPPlugin {
-    private var pendingOpenedAlarm: [AnyHashable: Any]?
-
     override public func load() {
         FlowistAlarmNotifications.configure()
         NotificationCenter.default.addObserver(self, selector: #selector(alarmOpened(_:)), name: Notification.Name("FlowistAlarmOpened"), object: nil)
+        if let pending = FlowistAlarmNotifications.pendingOpened {
+            FlowistAlarmNotifications.pendingOpened = nil
+            emitOpened(pending)
+        }
     }
 
     deinit { NotificationCenter.default.removeObserver(self) }
 
     @objc private func alarmOpened(_ notification: Notification) {
         guard let info = notification.userInfo else { return }
+        FlowistAlarmNotifications.pendingOpened = nil
+        emitOpened(info)
+    }
+
+    private func emitOpened(_ info: [AnyHashable: Any]) {
         let data: [String: Any] = [
             "key": info["key"] as? String ?? "",
             "title": info["alarmTitle"] as? String ?? "Reminder",

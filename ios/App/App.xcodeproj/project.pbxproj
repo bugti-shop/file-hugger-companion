@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		A1B2C3D4E5F6071829300010 /* AlarmViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071829300011 /* AlarmViewController.swift */; };
 		A1B2C3D4E5F6071829300012 /* AlarmLogo.png in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071829300013 /* AlarmLogo.png */; };
+		A1B2C3D4E5F607182930001A /* flowist_alarm.caf in Resources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F607182930001B /* flowist_alarm.caf */; };
 		A1B2C3D4E5F6071829300014 /* AlarmContent.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6071829300015 /* AlarmContent.appex */; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
@@ -25,6 +26,7 @@
 /* Begin PBXFileReference section */
 		A1B2C3D4E5F6071829300011 /* AlarmViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmViewController.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6071829300013 /* AlarmLogo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = AlarmLogo.png; sourceTree = "<group>"; };
+		A1B2C3D4E5F607182930001B /* flowist_alarm.caf */ = {isa = PBXFileReference; lastKnownFileType = file; path = flowist_alarm.caf; sourceTree = "<group>"; };
 		A1B2C3D4E5F6071829300015 /* AlarmContent.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = AlarmContent.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1B2C3D4E5F6071829300016 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
@@ -114,6 +116,7 @@
 				504EC3071FED79650016851F /* AppDelegate.swift */,
 				A1B2C3D4E5F6071829300003 /* FlowistAlarmPlugin.swift */,
 				A1B2C3D4E5F6071829300004 /* FlowistAlarmPlugin.m */,
+				A1B2C3D4E5F607182930001B /* flowist_alarm.caf */,
 				504EC30B1FED79650016851F /* Main.storyboard */,
 				504EC30E1FED79650016851F /* Assets.xcassets */,
 				504EC3101FED79650016851F /* LaunchScreen.storyboard */,
@@ -218,6 +221,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A1B2C3D4E5F607182930001A /* flowist_alarm.caf in Resources */,
 				504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */,
 				50B271D11FEDC1A000F3C39B /* public in Resources */,
 				504EC30F1FED79650016851F /* Assets.xcassets in Resources */,

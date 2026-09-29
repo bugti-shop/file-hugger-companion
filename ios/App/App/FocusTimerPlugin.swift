@@ -244,8 +244,7 @@ final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
         if FlowistAlarmNotifications.handle(response) {
             if response.actionIdentifier == UNNotificationDefaultActionIdentifier {
-                NotificationCenter.default.post(name: Notification.Name("FlowistAlarmOpened"), object: nil,
-                    userInfo: response.notification.request.content.userInfo)
+                FlowistAlarmNotifications.opened(response.notification)
             }
             completionHandler(); return
         }
@@ -259,6 +258,9 @@ final class NotificationRouter: NSObject, UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        if notification.request.content.categoryIdentifier == FlowistAlarmNotifications.category {
+            FlowistAlarmNotifications.opened(notification)
+        }
         completionHandler([.banner, .list, .sound])
     }
 }
