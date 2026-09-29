@@ -573,7 +573,7 @@ function UserComments() {
 
 
 function PaywallScreen({ logic }: { logic: ReturnType<typeof usePaywallLogic> }) {
-  const { t, selectedPlan, setSelectedPlan, isPurchasing, PLANS, currentPlan, handlePurchase, hasUsedTrial, closePaywall, handleRestore, isRestoring, adminError, capacityMessage } = logic;
+  const { t, selectedPlan, setSelectedPlan, isPurchasing, PLANS, currentPlan, handlePurchase, closePaywall, handleRestore, isRestoring, adminError, capacityMessage } = logic;
 
   const current = HERO_SLIDES[0];
 
@@ -683,22 +683,17 @@ function PaywallScreen({ logic }: { logic: ReturnType<typeof usePaywallLogic> })
           <div className="grid grid-cols-3 gap-2.5 pt-3">
             {PLANS.map((plan) => {
               const active = selectedPlan === plan.id;
-              const badge = plan.badgeKey ? t(plan.badgeKey) : null;
               return (
-                <button
+                 <Button
+                   type="button"
+                   variant="ghost"
                   key={plan.id}
                   onClick={() => { triggerTripleHeavyHaptic(); setSelectedPlan(plan.id); }}
-                  className="relative rounded-2xl px-2 py-2 flex flex-col items-center justify-center text-center transition-all active:scale-[0.97] min-h-[58px]"
+                   className="relative h-auto rounded-md px-2 py-3 flex flex-col items-center justify-center text-center transition-all active:scale-[0.97] min-h-[76px] whitespace-normal"
                   style={{
                     background: active ? `${PRO_BLUE}18` : '#141414',
                     border: `1.5px solid ${active ? PRO_BLUE : '#262626'}`,
                   }}>
-                  {badge && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap text-[10px] font-bold px-2.5 py-[3px] rounded-full"
-                      style={{ background: PRO_BLUE, color: '#fff' }}>
-                      {badge}
-                    </span>
-                  )}
                   {active && (
                     <span className="absolute top-1.5 right-1.5 h-4 w-4 rounded-full flex items-center justify-center"
                       style={{ background: PRO_BLUE }}>
@@ -708,50 +703,20 @@ function PaywallScreen({ logic }: { logic: ReturnType<typeof usePaywallLogic> })
                   <p className="text-[13.5px] font-black text-white leading-tight">
                     {t(plan.labelKey)}
                   </p>
-                  <p className="text-[11.5px] font-semibold mt-1" style={{ color: active ? PRO_BLUE : '#8a8a8a' }}>
-                    {plan.price}
+                   <p className="text-[18px] font-extrabold mt-1 leading-tight text-white">
+                     {plan.price ?? '—'}
                   </p>
-                </button>
+                   <p className="text-[11px] font-medium text-white/70">per {plan.period}</p>
+                 </Button>
               );
             })}
           </div>
 
-          {/* ── Trial terms (when eligible for selected plan) ── */}
-          {Capacitor.isNativePlatform() && !hasUsedTrial && currentPlan?.hasTrial && (() => {
-            const trialEnd = new Date();
-            trialEnd.setDate(trialEnd.getDate() + 3);
-            const endStr = trialEnd.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-            const platform = Capacitor.getPlatform();
-            const isIOS = platform === 'ios';
-            const storeName = isIOS ? 'App Store (Apple ID)' : 'Google Play';
-            const renewPrice = currentPlan?.price ?? '';
-            return (
-              <div className="mt-4 rounded-xl p-3.5" style={{ background: '#111', border: `1px solid ${PRO_BLUE}55` }}>
-                <p className="text-[12.5px] font-bold mb-2" style={{ color: PRO_BLUE }}>Free trial terms</p>
-                <ul className="space-y-1.5 text-[11.5px] leading-snug" style={{ color: '#cfcfcf' }}>
-                  <li>• 3-day free trial — you pay <span className="font-bold text-white">$0.00 today</span>.</li>
-                  <li>• Trial ends on <span className="font-bold text-white">{endStr}</span>. After the trial, your subscription auto-renews at <span className="font-bold text-white">{renewPrice}</span> until cancelled.</li>
-                  <li>• Payment is charged to your {storeName} account on the renewal date. Prices may vary by country and applicable taxes.</li>
-                </ul>
-                <p className="text-[12px] font-bold mt-3 mb-1.5" style={{ color: PRO_BLUE }}>
-                  How to cancel ({isIOS ? 'App Store' : 'Google Play'})
-                </p>
-                {isIOS ? (
-                  <ol className="space-y-1 text-[11.5px] leading-snug list-decimal pl-4" style={{ color: '#cfcfcf' }}>
-                    <li>Open <span className="font-semibold text-white">Settings</span> → tap your name → <span className="font-semibold text-white">Subscriptions</span>.</li>
-                    <li>Select <span className="font-semibold text-white">Flowist</span> and tap <span className="font-semibold text-white">Cancel Subscription</span>.</li>
-                    <li>Cancel <span className="font-bold text-white">at least 24 hours before {endStr}</span> to avoid being charged.</li>
-                  </ol>
-                ) : (
-                  <ol className="space-y-1 text-[11.5px] leading-snug list-decimal pl-4" style={{ color: '#cfcfcf' }}>
-                    <li>Open <span className="font-semibold text-white">Google Play Store</span> → profile icon → <span className="font-semibold text-white">Payments &amp; subscriptions</span> → <span className="font-semibold text-white">Subscriptions</span>.</li>
-                    <li>Select <span className="font-semibold text-white">Flowist</span> and tap <span className="font-semibold text-white">Cancel subscription</span>.</li>
-                    <li>Cancel <span className="font-bold text-white">at least 24 hours before {endStr}</span> to avoid being charged.</li>
-                  </ol>
-                )}
-              </div>
-            );
-          })()}
+           <p className="mt-4 text-[12px] leading-snug text-white/70">
+             {currentPlan?.price
+               ? `Auto-renews at ${currentPlan.price} per ${currentPlan.period} until cancelled. Cancel anytime in ${Capacitor.getPlatform() === 'ios' ? 'App Store' : Capacitor.getPlatform() === 'android' ? 'Google Play' : 'your account'} subscription settings.`
+               : 'Subscription price is loading from the store.'}
+           </p>
 
           <div className="mt-5 flex flex-col items-center gap-2">
             {Capacitor.isNativePlatform() && (
@@ -784,17 +749,19 @@ function PaywallScreen({ logic }: { logic: ReturnType<typeof usePaywallLogic> })
       </div>
 
       {/* Sticky bottom CTA */}
-      <div className="absolute left-0 right-0 px-4 pt-3 pointer-events-auto"
+       <div className="absolute left-0 right-0 px-4 pt-3 pointer-events-auto text-center"
         style={{
           bottom: 'max(var(--safe-bottom, 0px), 10px)',
           background: 'linear-gradient(to top, #000 70%, rgba(0,0,0,0))',
         }}>
+         <p className="text-[11px] font-semibold text-white/70">{t(currentPlan.labelKey)} · Billed every {currentPlan.period}</p>
+         <p className="text-[30px] leading-tight font-black text-white" aria-live="polite">
+           {currentPlan.price ?? 'Price loading…'}
+         </p>
         {(() => {
           const ctaLabel = isPurchasing
             ? t('onboarding.paywall.processing')
-            : (Capacitor.isNativePlatform() && !hasUsedTrial && currentPlan?.hasTrial)
-              ? 'Try for $0.00 Today'
-              : `Subscribe · ${currentPlan?.price ?? ''}`;
+             : `Subscribe · ${currentPlan.price ?? 'Price loading…'} per ${currentPlan.period}`;
 
 
           const onCta = () => {
@@ -803,7 +770,7 @@ function PaywallScreen({ logic }: { logic: ReturnType<typeof usePaywallLogic> })
           };
 
           return (
-            <Button onClick={onCta} disabled={isPurchasing} size="lg"
+             <Button onClick={onCta} disabled={isPurchasing || !currentPlan.price} size="lg"
               className="w-full h-12 text-base font-semibold">
               {ctaLabel}
             </Button>
