@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Plus,
-  ListTodo,
+  Home,
   Calendar,
   ListChecks,
   LayoutGrid,
   Hourglass,
-  TrendingUp,
+  BarChart3,
   User,
   Settings,
   Folder as FolderIcon,
@@ -45,12 +45,12 @@ interface NavItem {
 }
 
 const TASKS_NAV: NavItem[] = [
-  { id: 'today', label: 'Today', icon: ListTodo, path: '/todo/today' },
+  { id: 'today', label: 'Today', icon: Home, path: '/todo/today' },
   { id: 'calendar', label: 'Calendar', icon: Calendar, path: '/todo/calendar' },
   { id: 'habits', label: 'Habits', icon: ListChecks, path: '/todo/habits' },
   { id: 'matrix', label: 'Matrix', icon: LayoutGrid, path: '/todo/matrix' },
   { id: 'countdown', label: 'Countdown', icon: Hourglass, path: '/todo/countdown' },
-  { id: 'progress', label: 'Progress', icon: TrendingUp, path: '/todo/progress' },
+  { id: 'progress', label: 'Progress', icon: BarChart3, path: '/todo/progress' },
 ];
 
 const NOTES_NAV: NavItem[] = [

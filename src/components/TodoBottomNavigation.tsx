@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ListTodo, TrendingUp, Calendar, Settings, User, ListChecks, LayoutGrid, Hourglass } from 'lucide-react';
+import { Home, Calendar, Settings, BarChart3, User, ListChecks, LayoutGrid, Hourglass } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
@@ -18,13 +18,9 @@ export interface TodoNavItem {
 }
 
 // Icon mapping for todo navigation
-// Icon mapping for todo navigation. 'Home' and 'BarChart3' are legacy keys from
-// saved custom nav layouts — they render as the new icons.
 const ICON_COMPONENTS: Record<string, React.ComponentType<{ className?: string }>> = {
-  ListTodo,
-  TrendingUp,
-  Home: ListTodo,
-  BarChart3: TrendingUp,
+  Home,
+  BarChart3,
   User,
   Calendar,
   Settings,
@@ -34,8 +30,8 @@ const ICON_COMPONENTS: Record<string, React.ComponentType<{ className?: string }
 };
 
 export const DEFAULT_TODO_NAV_ITEMS: TodoNavItem[] = [
-  { id: 'home', label: 'Home', icon: 'ListTodo', path: '/todo/today', visible: true },
-  { id: 'progress', label: 'Progress', icon: 'TrendingUp', path: '/todo/progress', visible: true },
+  { id: 'home', label: 'Home', icon: 'Home', path: '/todo/today', visible: true },
+  { id: 'progress', label: 'Progress', icon: 'BarChart3', path: '/todo/progress', visible: true },
   { id: 'profile', label: 'Profile', icon: 'User', path: '/profile', visible: true },
   { id: 'calendar', label: 'Calendar', icon: 'Calendar', path: '/todo/calendar', visible: true },
   { id: 'settings', label: 'Settings', icon: 'Settings', path: '/todo/settings', visible: true },
@@ -139,7 +135,7 @@ export const TodoBottomNavigation = () => {
     >
       <div className={cn("grid h-16 max-w-screen-lg mx-auto", gridCols)}>
         {visibleItems.map((item) => {
-          const Icon = ICON_COMPONENTS[item.icon] || ListTodo;
+          const Icon = ICON_COMPONENTS[item.icon] || Home;
           const isActive = location.pathname === item.path;
           const badge = item.id === 'countdown' ? countdownBadge : 0;
 

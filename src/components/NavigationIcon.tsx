@@ -51,9 +51,7 @@ export const NavigationIcon = ({ iconName, Icon, isActive }: NavigationIconProps
     );
   }
 
-  const shouldStayOutline =
-    iconName === 'Home' || iconName === 'BarChart3' ||
-    iconName === 'ListTodo' || iconName === 'TrendingUp';
+  const shouldStayOutline = iconName === 'Home' || iconName === 'BarChart3';
   const keepInnerCircleClear = iconName === 'Settings' || iconName === 'User';
 
   return (
