@@ -78,4 +78,13 @@ public class FlowistAlarmPlugin extends Plugin {
             call.resolve();
         } catch (Exception e) { call.reject("Could not open test alarm", e); }
     }
+
+    @PluginMethod
+    public void getWakeStats(PluginCall call) {
+        android.content.SharedPreferences wp = getContext().getSharedPreferences("flowist_wake", android.content.Context.MODE_PRIVATE);
+        JSObject r = new JSObject();
+        r.put("shown", wp.getInt("shown", 0));
+        r.put("solved", wp.getInt("solved", 0));
+        call.resolve(r);
+    }
 }

@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { Progress } from '@/components/ui/progress';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
-import { checkAnswer, getWakeChallenge, saveWakeChallenge, triggerTestAlarm, WakeChallenge } from '@/utils/wakeChallenge';
+import { checkAnswer, getWakeChallenge, saveWakeChallenge, triggerTestAlarm, WakeChallenge, getWakeStats, recordWakeAttempt, WakeStats } from '@/utils/wakeChallenge';
 
 export const WakeChallengeSheet = ({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) => {
   const saved = getWakeChallenge();
@@ -14,6 +15,19 @@ export const WakeChallengeSheet = ({ isOpen, onClose }: { isOpen: boolean; onClo
   const [challenge, setChallenge] = useState<WakeChallenge | null>(saved);
   const [loading, setLoading] = useState(false);
   const [tryAnswer, setTryAnswer] = useState('');
+  const [stats, setStats] = useState<WakeStats>({ shown: 0, solved: 0 });
+  const refreshStats = () => getWakeStats().then(setStats);
+  useEffect(() => { if (isOpen) refreshStats(); }, [isOpen]);
+  const pct = stats.shown ? Math.round((stats.solved / stats.shown) * 100) : 0;
+
+  const check = () => {
+    if (!challenge || !tryAnswer.trim()) return;
+    const ok = checkAnswer(tryAnswer, challenge.answer);
+    recordWakeAttempt(ok);
+    refreshStats();
+    toast[ok ? 'success' : 'error'](ok ? 'Correct!' : 'Not quite');
+    if (ok) setTryAnswer('');
+  };
 
   const generate = async () => {
     if (!goal.trim()) { toast.error('Please write your morning goal first'); return; }
@@ -55,9 +69,19 @@ export const WakeChallengeSheet = ({ isOpen, onClose }: { isOpen: boolean; onClo
               <p className="font-medium">{challenge.question}</p>
               <div className="flex gap-2">
                 <Input value={tryAnswer} onChange={(e) => setTryAnswer(e.target.value)} placeholder="Try answering" />
-                <Button variant="outline" onClick={() => toast[checkAnswer(tryAnswer, challenge.answer) ? 'success' : 'error'](checkAnswer(tryAnswer, challenge.answer) ? 'Correct!' : 'Not quite')}>Check</Button>
+                <Button variant="outline" onClick={check}>Check</Button>
               </div>
               <Button variant="ghost" className="w-full text-destructive" onClick={remove}>Remove challenge</Button>
+            </div>
+          )}
+
+          {stats.shown > 0 && (
+            <div className="rounded-xl border bg-card p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="font-medium">Challenges completed</span>
+                <span className="text-muted-foreground">{pct}% ({stats.solved}/{stats.shown})</span>
+              </div>
+              <Progress value={pct} className="h-2" />
             </div>
           )}
 

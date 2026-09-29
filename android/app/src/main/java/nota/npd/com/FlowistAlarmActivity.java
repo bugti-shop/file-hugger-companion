@@ -182,7 +182,7 @@ public class FlowistAlarmActivity extends Activity {
         pill2.setColor(ink);
         check.setBackground(pill2);
         check.setOnClickListener(v -> {
-            if (normalize(answerIn.getText().toString()).equals(normalize(challengeA))) stop(false);
+            if (normalize(answerIn.getText().toString()).equals(normalize(challengeA))) showProgressThenStop();
             else { answerIn.setText(""); answerIn.setHint("Not quite — try again"); }
         });
         LinearLayout.LayoutParams chp = new LinearLayout.LayoutParams(-1, dp(52));
@@ -227,9 +227,40 @@ public class FlowistAlarmActivity extends Activity {
 
     private String normalize(String v) { return v == null ? "" : v.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", ""); }
 
+    private boolean challengeCounted;
+
     private void requestStop() {
         if (challengeA.isEmpty()) { stop(false); return; }
+        if (!challengeCounted) {
+            challengeCounted = true;
+            android.content.SharedPreferences wp = getSharedPreferences("flowist_wake", MODE_PRIVATE);
+            wp.edit().putInt("shown", wp.getInt("shown", 0) + 1).apply();
+        }
         challengeBox.setVisibility(View.VISIBLE);
+    }
+
+    // After a correct answer: silence the alarm, show completion progress, then close.
+    private void showProgressThenStop() {
+        android.content.SharedPreferences wp = getSharedPreferences("flowist_wake", MODE_PRIVATE);
+        int solved = wp.getInt("solved", 0) + 1;
+        int shown = Math.max(wp.getInt("shown", 0), solved);
+        wp.edit().putInt("solved", solved).putInt("shown", shown).apply();
+        int pct = Math.round(solved * 100f / shown);
+        if (!isTest) sendBroadcast(new Intent(this, FlowistAlarmReceiver.class).setAction(FlowistAlarm.ACTION_DISMISS).putExtra("key", key));
+
+        challengeBox.removeAllViews();
+        challengeBox.addView(text("Challenge complete!", 18, Color.rgb(24, 24, 27), true));
+        android.widget.ProgressBar bar = new android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
+        bar.setMax(100);
+        bar.setProgress(pct);
+        bar.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.rgb(219, 37, 45)));
+        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, dp(10));
+        bp.topMargin = dp(14);
+        challengeBox.addView(bar, bp);
+        TextView info = text(pct + "% challenges completed (" + solved + "/" + shown + ")", 14, Color.rgb(140, 140, 148), false);
+        info.setPadding(0, dp(8), 0, 0);
+        challengeBox.addView(info);
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(this::finish, 2200);
     }
 
     private void stop(boolean snooze) {
