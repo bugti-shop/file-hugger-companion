@@ -380,6 +380,7 @@ export function EmailAuthSheet({ open, onClose, onSignedIn }: Props) {
                 {t('emailAuth.signIn', 'Sign in')}
               </button>
             </p>
+            {googleButton}
           </div>
         )}
 
@@ -428,6 +429,7 @@ export function EmailAuthSheet({ open, onClose, onSignedIn }: Props) {
                 {t('emailAuth.createAccountShort', 'Create account')}
               </button>
             </div>
+            {googleButton}
           </div>
         )}
 
