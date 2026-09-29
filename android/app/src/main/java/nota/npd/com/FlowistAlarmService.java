@@ -37,7 +37,8 @@ public class FlowistAlarmService extends Service {
             channel.setSound(null, null); // The service owns continuous playback, not the notification.
             manager.createNotificationChannel(channel);
         }
-        Intent screen = new Intent(this, FlowistAlarmActivity.class).putExtra("key", key).putExtra("title", title).putExtra("priority", priority);
+        Intent screen = new Intent(this, FlowistAlarmActivity.class).putExtra("key", key).putExtra("title", title)
+            .putExtra("scheduledAt", intent.getLongExtra("scheduledAt", System.currentTimeMillis())).putExtra("priority", priority);
         screen.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent full = PendingIntent.getActivity(this, key.hashCode(), screen, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Intent stop = new Intent(this, FlowistAlarmReceiver.class).setAction(FlowistAlarm.ACTION_DISMISS).putExtra("key", key);

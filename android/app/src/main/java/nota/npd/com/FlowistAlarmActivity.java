@@ -1,6 +1,7 @@
 package nota.npd.com;
 
 import android.app.Activity;
+import android.animation.ObjectAnimator;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -44,16 +45,18 @@ public class FlowistAlarmActivity extends Activity {
         isTest = getIntent().getBooleanExtra("test", false);
         String title = getIntent().getStringExtra("title");
         String priority = getIntent().getStringExtra("priority");
+        long scheduledAt = getIntent().getLongExtra("scheduledAt", 0L);
         if (key == null) { finish(); return; }
         org.json.JSONObject stored = FlowistAlarm.get(this, key);
         if (stored != null) {
             if (title == null) title = stored.optString("title", "Reminder");
             if (priority == null) priority = stored.optString("priority", "None");
+            if (scheduledAt == 0L) scheduledAt = stored.optLong("when", 0L);
         }
 
         final String finalTitle = title == null ? "Reminder" : title;
         final String finalPriority = priority == null ? "None" : priority;
-        buildUi(finalTitle, finalPriority);
+        buildUi(finalTitle, scheduledAt == 0L ? System.currentTimeMillis() : scheduledAt);
 
         // Swipe up anywhere to stop the alarm
         gestures = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
@@ -74,7 +77,7 @@ public class FlowistAlarmActivity extends Activity {
         return super.dispatchTouchEvent(event);
     }
 
-    private void buildUi(String title, String priority) {
+    private void buildUi(String title, long scheduledAt) {
         final int bg = Color.rgb(244, 244, 245);
         final int ink = Color.rgb(24, 24, 27);
         final int muted = Color.rgb(140, 140, 148);
@@ -117,25 +120,18 @@ public class FlowistAlarmActivity extends Activity {
         bp.topMargin = dp(8);
         main.addView(brand, bp);
 
-        Date now = new Date();
-        LinearLayout timeRow = new LinearLayout(this);
-        timeRow.setOrientation(LinearLayout.HORIZONTAL);
-        timeRow.setGravity(Gravity.CENTER | Gravity.BOTTOM);
-        TextView timeView = text(new SimpleDateFormat("h:mm", Locale.getDefault()).format(now), 64, ink, true);
-        TextView ampmView = text(" " + new SimpleDateFormat("a", Locale.getDefault()).format(now), 22, ink, true);
-        ampmView.setPadding(0, 0, 0, dp(12));
-        timeRow.addView(timeView);
-        timeRow.addView(ampmView);
-        LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(-1, -2);
-        tp.topMargin = dp(20);
-        main.addView(timeRow, tp);
-
-        TextView task = text(title, 20, ink, false);
-        task.setMaxLines(2);
+        TextView task = text(title, 48, ink, true);
+        task.setMaxLines(3);
         task.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        if (Build.VERSION.SDK_INT >= 26) task.setAutoSizeTextTypeUniformWithConfiguration(22, 48, 2, android.util.TypedValue.COMPLEX_UNIT_SP);
         LinearLayout.LayoutParams taskP = new LinearLayout.LayoutParams(-1, -2);
-        taskP.topMargin = dp(8);
+        taskP.topMargin = dp(36);
         main.addView(task, taskP);
+
+        TextView date = text(new SimpleDateFormat("d MMMM yyyy  •  h:mm a", Locale.getDefault()).format(new Date(scheduledAt)), 16, muted, false);
+        LinearLayout.LayoutParams dateP = new LinearLayout.LayoutParams(-1, -2);
+        dateP.topMargin = dp(24);
+        main.addView(date, dateP);
 
         Button stopBtn = new Button(this);
         stopBtn.setText("\u25A0  Stop");
@@ -163,6 +159,11 @@ public class FlowistAlarmActivity extends Activity {
         root.addView(deck, new LinearLayout.LayoutParams(-1, -2));
 
         TextView chevron = text("\u2303", 24, muted, false);
+        ObjectAnimator swipeCue = ObjectAnimator.ofFloat(chevron, View.TRANSLATION_Y, dp(8), -dp(8));
+        swipeCue.setDuration(1200);
+        swipeCue.setRepeatCount(ObjectAnimator.INFINITE);
+        swipeCue.setRepeatMode(ObjectAnimator.RESTART);
+        if (!android.provider.Settings.Global.getString(getContentResolver(), android.provider.Settings.Global.ANIMATOR_DURATION_SCALE).equals("0")) swipeCue.start();
         LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2);
         cp.topMargin = dp(36);
         root.addView(chevron, cp);

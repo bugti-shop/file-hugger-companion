@@ -36,6 +36,7 @@ public class FlowistAlarmReceiver extends BroadcastReceiver {
         JSONObject data = FlowistAlarm.get(context, key);
         if (data == null) return;
         try {
+            long firedAt = data.getLong("when");
             int repeatDays = data.optInt("repeatDays", 0);
             if (repeatDays > 0) {
                 Calendar next = Calendar.getInstance();
@@ -46,6 +47,7 @@ public class FlowistAlarmReceiver extends BroadcastReceiver {
             }
             Intent service = new Intent(context, FlowistAlarmService.class).putExtra("key", key)
                 .putExtra("title", data.optString("title", "Reminder"))
+                .putExtra("scheduledAt", firedAt)
                 .putExtra("priority", data.optString("priority", "None"));
             if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(service);
             else context.startService(service);

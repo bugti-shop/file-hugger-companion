@@ -345,12 +345,19 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
 .alarm-ghost-back { opacity: 0.75; }
 .alarm-ghost-front { opacity: 0.9; }
 .alarm-muted { color: hsl(var(--alarm-muted)); }
-.alarm-time { font-size: clamp(3.6rem, 16vw, 5rem); }
+.alarm-title { font-size: clamp(2rem, 10vw, 4rem); overflow-wrap: anywhere; }
+@keyframes alarm-swipe-up {
+  0% { transform: translateY(8px); opacity: 0.35; }
+  70% { transform: translateY(-8px); opacity: 1; }
+  100% { transform: translateY(-12px); opacity: 0; }
+}
+.alarm-swipe-cue { animation: alarm-swipe-up 1.5s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .alarm-swipe-cue { animation: none; } }
 @media (max-height: 580px) {
   .alarm-screen { align-items: flex-start; }
   .alarm-content { margin: auto; }
   .alarm-card { padding-top: 1.5rem; padding-bottom: 1.5rem; }
-  .alarm-card .alarm-time { font-size: 3.5rem; }
+  .alarm-card .alarm-title { font-size: 2rem; }
 }
 
 @layer components {
