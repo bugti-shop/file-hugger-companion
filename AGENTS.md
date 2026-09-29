@@ -6,3 +6,4 @@
 - Keep the web alarm preview and native Android alarm on the same light stacked-card design; each has a different rendering path but users should see the same alarm.
 - Carry the scheduled occurrence into Android alarm intents and web alarm events; the screen must show the user's chosen date/time, not the device's current clock when it rings.
 - Let Android AlarmManager launch the same alarm Activity directly at fire time; background broadcasts cannot reliably open an Activity on modern Android, while the foreground alarm notification remains a fallback.
+- Keep Android alarm audio in the foreground service and use the bundled two-second loop for web preview; both paths must stop playback on dismiss and show a matching cycling progress bar.

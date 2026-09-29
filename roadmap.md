@@ -18,6 +18,7 @@
 - [x] Keep existing notifications while showing Android full-screen alarms for task, note, habit, and countdown reminders; animate the swipe-up cue
 - [x] Use one Android alarm Activity for both locked and unlocked screens, launched by AlarmManager rather than relying on a background broadcast to open it
 - [x] Fix the first-open crash caused by subscription legal links rendering before the app's navigation is available
+- [x] Play real looping alarm audio with a sound-cycle progress bar on web and Android alarm cards; silence on Stop or swipe, including native Test Alarm
 
 ## Alarm UI ideas + web alarm testing (2026-09-29)
 - [x] Generate 10 alarm screen concept images (logo + task, light neutral theme)

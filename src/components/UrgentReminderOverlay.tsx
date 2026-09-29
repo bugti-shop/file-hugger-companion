@@ -2,11 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronsUp, Square } from 'lucide-react';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
-import { playRingtone, stopRingtone, RingtoneType } from '@/utils/urgentRingtones';
-import { getSetting } from '@/utils/settingsStorage';
 import { loadTodoItems, saveTodoItems } from '@/utils/todoItemsStorage';
 import { Button } from '@/components/ui/button';
 import appLogo from '@/assets/app-logo.webp';
+import alarmSound from '@/assets/flowist_alarm.wav';
 
 interface UrgentReminder {
   id: string;
@@ -19,19 +18,33 @@ interface UrgentReminder {
 export const UrgentReminderOverlay = () => {
   const [reminder, setReminder] = useState<UrgentReminder | null>(null);
   const startY = useRef<number | null>(null);
+  const audio = useRef<HTMLAudioElement | null>(null);
+
+  const silence = useCallback(() => {
+    if (audio.current) {
+      audio.current.pause();
+      audio.current.currentTime = 0;
+      audio.current = null;
+    }
+  }, []);
 
   useEffect(() => {
     const handleUrgentReminder = (e: CustomEvent<UrgentReminder>) => {
       setReminder(e.detail);
       triggerUrgentHaptics();
-      getSetting<RingtoneType>('urgentRingtone', 'alarm').then(tone => {
-        playRingtone(tone);
-      });
+      silence();
+      const ring = new Audio(alarmSound);
+      ring.loop = true;
+      audio.current = ring;
+      void ring.play().catch(() => { /* Browsers may require a user gesture before audio can play. */ });
     };
 
     window.addEventListener('urgentReminderTriggered', handleUrgentReminder as EventListener);
-    return () => window.removeEventListener('urgentReminderTriggered', handleUrgentReminder as EventListener);
-  }, []);
+    return () => {
+      window.removeEventListener('urgentReminderTriggered', handleUrgentReminder as EventListener);
+      silence();
+    };
+  }, [silence]);
 
   const triggerUrgentHaptics = async () => {
     try {
@@ -43,10 +56,10 @@ export const UrgentReminderOverlay = () => {
   };
 
   const dismiss = useCallback(() => {
-    stopRingtone();
+    silence();
     Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
     setReminder(null);
-  }, []);
+  }, [silence]);
 
   const handleComplete = useCallback(async () => {
     if (!reminder) return;
@@ -98,6 +111,9 @@ export const UrgentReminderOverlay = () => {
               <p className="mt-1 text-[23px] font-semibold leading-tight">Flowist</p>
               <h2 className="alarm-title mt-10 w-full break-words font-bold leading-tight">{reminder.taskName}</h2>
               <p className="alarm-muted mt-6 max-w-full text-base leading-snug">{scheduledLabel}</p>
+              <div className="alarm-audio-track mt-7 w-full overflow-hidden rounded-full" role="progressbar" aria-label="Alarm sound cycle" aria-valuetext="Alarm ringing">
+                <div className="alarm-audio-progress h-full rounded-full" />
+              </div>
               <Button onClick={dismiss} className="mt-9 h-[60px] w-full rounded-full border-0 text-lg font-semibold shadow-none active:translate-y-0">
                 <Square className="fill-current" /> Stop
               </Button>

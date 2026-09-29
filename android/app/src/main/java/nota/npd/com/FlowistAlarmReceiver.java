@@ -20,6 +20,7 @@ public class FlowistAlarmReceiver extends BroadcastReceiver {
         if (FlowistAlarm.ACTION_DISMISS.equals(action) || FlowistAlarm.ACTION_SNOOZE.equals(action)) {
             JSONObject data = FlowistAlarm.get(context, key);
             context.stopService(new Intent(context, FlowistAlarmService.class));
+            if ("flowist-test-alarm".equals(key)) return;
             if (FlowistAlarm.ACTION_SNOOZE.equals(action) && data != null) {
                 try {
                     JSONObject snoozed = new JSONObject(data.toString());

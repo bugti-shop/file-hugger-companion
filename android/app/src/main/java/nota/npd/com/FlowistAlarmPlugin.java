@@ -68,6 +68,13 @@ public class FlowistAlarmPlugin extends Plugin {
                 .putExtra("test", true)
                 .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
             getContext().startActivity(i);
+            android.content.Intent sound = new android.content.Intent(getContext(), FlowistAlarmService.class)
+                .putExtra("key", "flowist-test-alarm")
+                .putExtra("title", call.getString("title", "Test Alarm"))
+                .putExtra("scheduledAt", System.currentTimeMillis())
+                .putExtra("priority", "None");
+            if (android.os.Build.VERSION.SDK_INT >= 26) getContext().startForegroundService(sound);
+            else getContext().startService(sound);
             call.resolve();
         } catch (Exception e) { call.reject("Could not open test alarm", e); }
     }
