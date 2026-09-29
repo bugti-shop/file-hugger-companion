@@ -51,6 +51,15 @@ public class FlowistAlarmReceiver extends BroadcastReceiver {
                 .putExtra("priority", data.optString("priority", "None"));
             if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(service);
             else context.startService(service);
+            // An AlarmClock broadcast can launch its visible UI while the device is in use;
+            // the service's full-screen notification remains the lock-screen fallback.
+            try {
+                Intent screen = new Intent(context, FlowistAlarmActivity.class)
+                    .putExtra("key", key).putExtra("title", data.optString("title", "Reminder"))
+                    .putExtra("scheduledAt", firedAt)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+                context.startActivity(screen);
+            } catch (Exception ignored) { }
         } catch (Exception ignored) { }
     }
 }

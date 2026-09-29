@@ -163,7 +163,7 @@ public class FlowistAlarmActivity extends Activity {
         swipeCue.setDuration(1200);
         swipeCue.setRepeatCount(ObjectAnimator.INFINITE);
         swipeCue.setRepeatMode(ObjectAnimator.RESTART);
-        if (!android.provider.Settings.Global.getString(getContentResolver(), android.provider.Settings.Global.ANIMATOR_DURATION_SCALE).equals("0")) swipeCue.start();
+        if (!"0".equals(android.provider.Settings.Global.getString(getContentResolver(), android.provider.Settings.Global.ANIMATOR_DURATION_SCALE))) swipeCue.start();
         LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2);
         cp.topMargin = dp(36);
         root.addView(chevron, cp);
