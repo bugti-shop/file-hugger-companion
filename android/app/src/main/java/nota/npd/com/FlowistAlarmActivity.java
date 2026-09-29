@@ -238,6 +238,10 @@ public class FlowistAlarmActivity extends Activity {
         finish();
     }
 
+    @Override public void onBackPressed() {
+        stop(false);
+    }
+
     @Override protected void onDestroy() {
         if (audioProgress != null) { audioProgress.cancel(); audioProgress = null; }
         super.onDestroy();
