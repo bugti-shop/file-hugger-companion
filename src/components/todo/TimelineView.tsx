@@ -9,7 +9,6 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { ViewModeSectionHeader } from './ViewModeSectionHeader';
 import {
   getUserTimeZone,
-  isSameZonedDay,
   startOfZonedDay,
   zonedDayKey,
   zonedDayLabel,
