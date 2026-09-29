@@ -25,8 +25,6 @@ public class FlowistAlarmActivity extends Activity {
     private String key;
     private GestureDetector gestures;
     private boolean isTest;
-    private String challengeQ = "", challengeA = "";
-    private LinearLayout challengeBox;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -44,9 +42,6 @@ public class FlowistAlarmActivity extends Activity {
 
         key = getIntent().getStringExtra("key");
         isTest = getIntent().getBooleanExtra("test", false);
-        android.content.SharedPreferences wp = getSharedPreferences("flowist_wake", MODE_PRIVATE);
-        challengeQ = wp.getString("question", "");
-        challengeA = wp.getString("answer", "");
         String title = getIntent().getStringExtra("title");
         String priority = getIntent().getStringExtra("priority");
         if (key == null) { finish(); return; }
@@ -64,7 +59,7 @@ public class FlowistAlarmActivity extends Activity {
         gestures = new GestureDetector(this, new GestureDetector.SimpleOnGestureListener() {
             @Override public boolean onFling(MotionEvent e1, MotionEvent e2, float vx, float vy) {
                 if (e1 != null && e2 != null && e1.getY() - e2.getY() > dp(60) && Math.abs(vy) > Math.abs(vx)) {
-                    requestStop();
+                    stop(false);
                     return true;
                 }
                 return false;
@@ -74,7 +69,7 @@ public class FlowistAlarmActivity extends Activity {
 
     @Override public boolean dispatchTouchEvent(MotionEvent event) {
         // Catch swipes begun on the card as well as the empty background.
-        // Button and answer-field taps still go to their normal handlers.
+        // Button taps still go to their normal handlers.
         if (gestures != null && gestures.onTouchEvent(event)) return true;
         return super.dispatchTouchEvent(event);
     }
@@ -152,7 +147,7 @@ public class FlowistAlarmActivity extends Activity {
         pill.setCornerRadius(dp(32));
         pill.setColor(red);
         stopBtn.setBackground(pill);
-        stopBtn.setOnClickListener(v -> requestStop());
+        stopBtn.setOnClickListener(v -> stop(false));
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, dp(60));
         sp.topMargin = dp(32);
         main.addView(stopBtn, sp);
@@ -161,39 +156,6 @@ public class FlowistAlarmActivity extends Activity {
         snooze.setPadding(dp(12), dp(14), dp(12), dp(2));
         snooze.setOnClickListener(v -> stop(true));
         main.addView(snooze, new LinearLayout.LayoutParams(-1, -2));
-
-        challengeBox = new LinearLayout(this);
-        challengeBox.setOrientation(LinearLayout.VERTICAL);
-        challengeBox.setVisibility(View.GONE);
-        TextView cLabel = text("Wake-up challenge", 13, muted, true);
-        challengeBox.addView(cLabel);
-        TextView cQ = text(challengeQ, 17, ink, false);
-        cQ.setPadding(0, dp(6), 0, dp(10));
-        challengeBox.addView(cQ);
-        final android.widget.EditText answerIn = new android.widget.EditText(this);
-        answerIn.setHint("Your answer");
-        answerIn.setSingleLine(true);
-        answerIn.setGravity(Gravity.CENTER);
-        answerIn.setTextColor(ink);
-        challengeBox.addView(answerIn, new LinearLayout.LayoutParams(-1, -2));
-        Button check = new Button(this);
-        check.setText("Submit & Stop");
-        check.setAllCaps(false);
-        check.setTextColor(Color.WHITE);
-        GradientDrawable pill2 = new GradientDrawable();
-        pill2.setCornerRadius(dp(26));
-        pill2.setColor(ink);
-        check.setBackground(pill2);
-        check.setOnClickListener(v -> {
-            if (normalize(answerIn.getText().toString()).equals(normalize(challengeA))) showProgressThenStop();
-            else { answerIn.setText(""); answerIn.setHint("Not quite — try again"); }
-        });
-        LinearLayout.LayoutParams chp = new LinearLayout.LayoutParams(-1, dp(52));
-        chp.topMargin = dp(10);
-        challengeBox.addView(check, chp);
-        LinearLayout.LayoutParams cbp = new LinearLayout.LayoutParams(-1, -2);
-        cbp.topMargin = dp(20);
-        main.addView(challengeBox, cbp);
 
         android.widget.FrameLayout.LayoutParams mp = new android.widget.FrameLayout.LayoutParams(-1, -2);
         mp.topMargin = dp(40);
@@ -227,44 +189,6 @@ public class FlowistAlarmActivity extends Activity {
     }
 
     private int dp(int value) { return Math.round(value * getResources().getDisplayMetrics().density); }
-
-    private String normalize(String v) { return v == null ? "" : v.toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]", ""); }
-
-    private boolean challengeCounted;
-
-    private void requestStop() {
-        if (challengeA.isEmpty()) { stop(false); return; }
-        if (!challengeCounted) {
-            challengeCounted = true;
-            android.content.SharedPreferences wp = getSharedPreferences("flowist_wake", MODE_PRIVATE);
-            wp.edit().putInt("shown", wp.getInt("shown", 0) + 1).apply();
-        }
-        challengeBox.setVisibility(View.VISIBLE);
-    }
-
-    // After a correct answer: silence the alarm, show completion progress, then close.
-    private void showProgressThenStop() {
-        android.content.SharedPreferences wp = getSharedPreferences("flowist_wake", MODE_PRIVATE);
-        int solved = wp.getInt("solved", 0) + 1;
-        int shown = Math.max(wp.getInt("shown", 0), solved);
-        wp.edit().putInt("solved", solved).putInt("shown", shown).apply();
-        int pct = Math.round(solved * 100f / shown);
-        if (!isTest) sendBroadcast(new Intent(this, FlowistAlarmReceiver.class).setAction(FlowistAlarm.ACTION_DISMISS).putExtra("key", key));
-
-        challengeBox.removeAllViews();
-        challengeBox.addView(text("Challenge complete!", 18, Color.rgb(24, 24, 27), true));
-        android.widget.ProgressBar bar = new android.widget.ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
-        bar.setMax(100);
-        bar.setProgress(pct);
-        bar.setProgressTintList(android.content.res.ColorStateList.valueOf(Color.rgb(219, 37, 45)));
-        LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, dp(10));
-        bp.topMargin = dp(14);
-        challengeBox.addView(bar, bp);
-        TextView info = text(pct + "% challenges completed (" + solved + "/" + shown + ")", 14, Color.rgb(140, 140, 148), false);
-        info.setPadding(0, dp(8), 0, 0);
-        challengeBox.addView(info);
-        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(this::finish, 2200);
-    }
 
     private void stop(boolean snooze) {
         if (isTest) { finish(); return; }
