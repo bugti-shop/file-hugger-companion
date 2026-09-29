@@ -68,11 +68,9 @@ const Progress = () => {
   const [completedCycles, setCompletedCycles] = useState(0);
   const [isPersonalBest, setIsPersonalBest] = useState(false);
   // Paint the light top cards first; mount chart/certificate/journey after the tab switch has painted.
-  const [heavyReady, setHeavyReady] = useState(false);
+  const [heavyReady, setHeavyReady] = useState(true);
   useEffect(() => {
     let raf2 = 0;
-    const raf1 = requestAnimationFrame(() => { raf2 = requestAnimationFrame(() => startTransition(() => setHeavyReady(true))); });
-    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
   }, []);
 
   useEffect(() => {

@@ -73,6 +73,8 @@ const __IS_QUICK_ADD_BOOT__ =
 if (!__IS_QUICK_ADD_BOOT__) {
   void preloadTodayPage();
 }
+  void import("./pages/todo/Progress");
+  void import("./pages/Profile");
 
 
 // Lazy load everything else - they load in background after first paint
