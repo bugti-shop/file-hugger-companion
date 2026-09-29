@@ -215,15 +215,6 @@ const Index = () => {
     }
   }, [location.search, folders]);
 
-  // Default selectedFolderId to first folder (Inbox) — "All Notes" view removed.
-  useEffect(() => {
-    if (selectedFolderId == null && folders.length > 0) {
-      const sorted = [...folders].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-      setSelectedFolderId(sorted[0].id);
-    }
-  }, [folders, selectedFolderId]);
-
-
   // Notes are now loaded from NotesContext - no local loading needed!
 
   const foldersLoadedRef = useRef(false);
@@ -1577,10 +1568,14 @@ const Index = () => {
                     </h2>
                       <NotesVirtualGrid
                         notes={favoriteNotes}
+                        singleColumn
+                        estimatedRowHeight={94}
                         getRowKey={(row) => row.map((n) => `${n.id}:${n.updatedAt instanceof Date ? n.updatedAt.getTime() : new Date(n.updatedAt).getTime()}`).join('|')}
                         renderCard={(note) => (
                           <NoteCard
                             note={note}
+                            compact
+                            folderName={folders.find(f => f.id === note.folderId)?.name}
                             onEdit={handleEditNote}
                             onDelete={handleDeleteNote}
                             onArchive={handleArchiveNote}
@@ -1616,10 +1611,14 @@ const Index = () => {
                     )}
                     <NotesVirtualGrid
                       notes={regularNotes}
+                      singleColumn
+                      estimatedRowHeight={94}
                       getRowKey={(row) => row.map((n) => `${n.id}:${n.updatedAt instanceof Date ? n.updatedAt.getTime() : new Date(n.updatedAt).getTime()}`).join('|')}
                       renderCard={(note) => (
                         <NoteCard
                           note={note}
+                          compact
+                          folderName={folders.find(f => f.id === note.folderId)?.name}
                           onEdit={handleEditNote}
                           onDelete={handleDeleteNote}
                           onArchive={handleArchiveNote}

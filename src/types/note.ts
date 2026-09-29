@@ -285,6 +285,7 @@ export interface Note {
   content: string;
   color?: StickyColor;
   customColor?: string; // Custom background color for non-sticky notes (hex)
+  markerColor?: import('@/utils/noteMarkerColors').NoteMarkerColor; // List-edge accent, not paper color
   images?: string[];
   floatingImages?: FloatingImage[];
   voiceRecordings: VoiceRecording[];

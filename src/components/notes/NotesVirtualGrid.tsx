@@ -23,6 +23,7 @@ interface NotesVirtualGridProps {
   estimatedRowHeight?: number;
   /** Override global window/container virtualization for nested scroll areas. */
   useWindowing?: boolean;
+  singleColumn?: boolean;
 }
 
 function getColumnsForWidth(w: number): number {
@@ -37,6 +38,7 @@ export function NotesVirtualGrid({
   getRowKey,
   estimatedRowHeight,
   useWindowing,
+  singleColumn = false,
 }: NotesVirtualGridProps) {
   const [virtualizationSettings] = useVirtualizationSettings();
   const parentRef = useRef<HTMLDivElement>(null);
@@ -53,7 +55,8 @@ export function NotesVirtualGrid({
     return () => window.removeEventListener('resize', onResize);
   }, []);
 
-  const rowCount = Math.ceil(notes.length / columns);
+  const effectiveColumns = singleColumn ? 1 : columns;
+  const rowCount = Math.ceil(notes.length / effectiveColumns);
 
   // Offset accounts for the page header + filters that sit above this grid.
   const [scrollMargin, setScrollMargin] = useState(0);
@@ -67,7 +70,7 @@ export function NotesVirtualGrid({
     measure();
     window.addEventListener('resize', measure);
     return () => window.removeEventListener('resize', measure);
-  }, [columns, notes.length]);
+  }, [effectiveColumns, notes.length]);
 
   const containerVirtualizer = useVirtualizer({
     count: rowCount,
@@ -75,7 +78,7 @@ export function NotesVirtualGrid({
     estimateSize: () => resolvedRowHeight,
     overscan: resolvedOverscan,
     getItemKey: (idx) => {
-      const row = notes.slice(idx * columns, idx * columns + columns);
+      const row = notes.slice(idx * effectiveColumns, idx * effectiveColumns + effectiveColumns);
       return getRowKey?.(row, idx) ?? row[0]?.id ?? idx;
     },
   });
@@ -89,7 +92,7 @@ export function NotesVirtualGrid({
     overscan: resolvedOverscan,
     scrollMargin,
     getItemKey: (idx) => {
-      const row = notes.slice(idx * columns, idx * columns + columns);
+      const row = notes.slice(idx * effectiveColumns, idx * effectiveColumns + effectiveColumns);
       return getRowKey?.(row, idx) ?? row[0]?.id ?? idx;
     },
   });
@@ -101,12 +104,12 @@ export function NotesVirtualGrid({
       label: 'NotesVirtualGrid',
       itemCount: notes.length,
       rows: rowCount,
-      columns,
+      columns: effectiveColumns,
       overscan: resolvedOverscan,
       rowHeight: resolvedRowHeight,
       windowing: resolvedWindowing ? 'window' : 'container',
     });
-  }, [columns, notes.length, resolvedOverscan, resolvedRowHeight, resolvedWindowing, rowCount]);
+  }, [effectiveColumns, notes.length, resolvedOverscan, resolvedRowHeight, resolvedWindowing, rowCount]);
 
   useEffect(() => {
     const target = resolvedWindowing ? window : parentRef.current;
@@ -139,7 +142,7 @@ export function NotesVirtualGrid({
         }}
       >
         {virtualizer.getVirtualItems().map((vrow) => {
-          const row = notes.slice(vrow.index * columns, vrow.index * columns + columns);
+          const row = notes.slice(vrow.index * effectiveColumns, vrow.index * effectiveColumns + effectiveColumns);
           if (!row) return null;
           return (
             <div
@@ -153,11 +156,11 @@ export function NotesVirtualGrid({
                 height: `${resolvedRowHeight}px`,
                 transform: `translateY(${vrow.start - (resolvedWindowing ? scrollMargin : 0)}px)`,
                 display: 'grid',
-                gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+                gridTemplateColumns: `repeat(${effectiveColumns}, minmax(0, 1fr))`,
                 gridAutoRows: '1fr',
                 alignItems: 'stretch',
-                gap: '0.75rem',
-                paddingBottom: '0.75rem',
+                gap: singleColumn ? '0' : '0.75rem',
+                paddingBottom: singleColumn ? '0' : '0.75rem',
                 contain: 'layout paint style',
                 containIntrinsicSize: `${resolvedRowHeight}px auto`,
               } as React.CSSProperties}

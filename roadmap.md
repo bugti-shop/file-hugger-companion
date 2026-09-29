@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Add 10 note-list marker colors in the rich-text editor and compact note rows with understated folder tabs; preserve header, search, logo and actions.
+
 - [x] Update iOS notification permission handling and add a Permissions screen for reminder/alarm status and device settings.
 - [x] Address App Store review 3.1.2(c): make the actual recurring billed total dominant throughout the iOS purchase flow, with trial terms secondary and no unverified prices.
 - [x] Complete Flowist red rebrand, logo replacement, and native splash refresh

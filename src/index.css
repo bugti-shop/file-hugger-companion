@@ -61,6 +61,17 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
     --primary-dark: 358 71% 40%;
     --primary-darker: 358 71% 34%;
     --primary-foreground: 0 0% 100%;
+    /* Note list marker swatches: independent of paper, folder and status colors. */
+    --note-mark-red: 358 71% 50%;
+    --note-mark-orange: 22 86% 52%;
+    --note-mark-yellow: 43 82% 44%;
+    --note-mark-green: 145 55% 39%;
+    --note-mark-teal: 174 58% 38%;
+    --note-mark-blue: 211 70% 49%;
+    --note-mark-indigo: 238 54% 57%;
+    --note-mark-purple: 276 51% 51%;
+    --note-mark-pink: 331 66% 54%;
+    --note-mark-gray: 215 13% 47%;
 
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
