@@ -1,10 +1,12 @@
 import { Capacitor, registerPlugin } from '@capacitor/core';
 
+export interface WakeStats { shown: number; solved: number }
 export interface WakeChallenge { goal: string; question: string; answer: string }
 
 interface Plugin {
   setWakeChallenge(o: { question: string; answer: string }): Promise<void>;
   testAlarm(o: { title: string }): Promise<void>;
+  getWakeStats(): Promise<WakeStats>;
 }
 const alarm = registerPlugin<Plugin>('FlowistAlarm');
 const KEY = 'flowist_wake_challenge';
@@ -32,4 +34,21 @@ export const triggerTestAlarm = async () => {
   window.dispatchEvent(new CustomEvent('urgentReminderTriggered', {
     detail: { id: 'test-alarm', taskName: title, triggeredAt: new Date(), reminderTime: new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) },
   }));
+};
+
+const STATS_KEY = 'flowist_wake_stats';
+const webStats = (): WakeStats => {
+  try { return { shown: 0, solved: 0, ...JSON.parse(localStorage.getItem(STATS_KEY) || '{}') }; } catch { return { shown: 0, solved: 0 }; }
+};
+
+/** Challenges answered vs. shown — combines native alarm results with in-app answers. */
+export const getWakeStats = async (): Promise<WakeStats> => {
+  const w = webStats();
+  if (Capacitor.getPlatform() !== 'android') return w;
+  try { const n = await alarm.getWakeStats(); return { shown: w.shown + n.shown, solved: w.solved + n.solved }; } catch { return w; }
+};
+
+export const recordWakeAttempt = (correct: boolean) => {
+  const w = webStats();
+  localStorage.setItem(STATS_KEY, JSON.stringify({ shown: w.shown + 1, solved: w.solved + (correct ? 1 : 0) }));
 };
