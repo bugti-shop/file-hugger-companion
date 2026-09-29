@@ -1,0 +1,464 @@
+import { format, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameMonth } from "date-fns";
+import { ChevronLeft, ChevronRight, ChevronDown, MoreVertical, Image } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { loadNotesMetadataFromDB } from '@/utils/noteStorage';
+import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+
+export interface DayChip {
+  id: string;
+  label: string;
+  color: string;
+  completed?: boolean;
+}
+
+interface NotesCalendarViewProps {
+  selectedDate?: Date;
+  onDateSelect?: (date: Date) => void;
+  highlightedDates?: Date[];
+  taskDates?: Date[];
+  eventDates?: Date[];
+   
+  showWeekNumbers?: boolean;
+  emptyStateMessage?: string;
+  emptyStateSubMessage?: string;
+  showEmptyState?: boolean;
+  calendarBackground?: string;
+  onBackgroundSettingsClick?: () => void;
+  /** When provided, each day cell renders up to 3 colored task/event chips (Apple-Calendar style). */
+  getDayChips?: (date: Date) => DayChip[];
+  /** Maximum visible chips per cell (default 3). */
+  maxChipsPerDay?: number;
+  /** Called when a chip inside a day cell is tapped. */
+  onChipClick?: (chip: DayChip, day: Date) => void;
+  /** Extra controls rendered in the calendar header (e.g. filter button). */
+  headerExtras?: React.ReactNode;
+}
+
+const BACKGROUND_GRADIENTS: Record<string, string | null> = {
+  none: null,
+  sunset: 'linear-gradient(135deg, hsl(25, 95%, 75%) 0%, hsl(350, 85%, 70%) 50%, hsl(280, 75%, 65%) 100%)',
+  ocean: 'linear-gradient(135deg, hsl(200, 85%, 70%) 0%, hsl(210, 90%, 55%) 50%, hsl(220, 85%, 45%) 100%)',
+  forest: 'linear-gradient(135deg, hsl(140, 65%, 65%) 0%, hsl(150, 60%, 45%) 50%, hsl(160, 55%, 35%) 100%)',
+  night: 'linear-gradient(135deg, hsl(240, 50%, 25%) 0%, hsl(260, 60%, 20%) 50%, hsl(280, 55%, 15%) 100%)',
+  aurora: 'linear-gradient(135deg, hsl(180, 70%, 50%) 0%, hsl(280, 80%, 60%) 50%, hsl(320, 75%, 55%) 100%)',
+  mountain: 'linear-gradient(135deg, hsl(220, 40%, 70%) 0%, hsl(210, 50%, 50%) 50%, hsl(200, 45%, 35%) 100%)',
+  cloudy: 'linear-gradient(135deg, hsl(210, 30%, 85%) 0%, hsl(220, 35%, 75%) 50%, hsl(230, 40%, 65%) 100%)',
+  lavender: 'linear-gradient(135deg, hsl(270, 60%, 80%) 0%, hsl(280, 55%, 70%) 50%, hsl(290, 50%, 60%) 100%)',
+  mint: 'linear-gradient(135deg, hsl(160, 50%, 80%) 0%, hsl(170, 55%, 65%) 50%, hsl(180, 60%, 50%) 100%)',
+  coral: 'linear-gradient(135deg, hsl(15, 85%, 75%) 0%, hsl(5, 80%, 65%) 50%, hsl(355, 75%, 55%) 100%)',
+  golden: 'linear-gradient(135deg, hsl(45, 90%, 75%) 0%, hsl(35, 85%, 60%) 50%, hsl(25, 80%, 50%) 100%)',
+};
+
+// Check if background needs light text
+const needsLightText = (bgId: string) => {
+  return ['night', 'ocean', 'forest', 'mountain', 'aurora'].includes(bgId);
+};
+
+export const NotesCalendarView = ({
+  selectedDate,
+  onDateSelect,
+  highlightedDates,
+  taskDates = [],
+  eventDates = [],
+   
+  emptyStateMessage,
+  emptyStateSubMessage,
+  showEmptyState = false,
+  calendarBackground = 'none',
+  onBackgroundSettingsClick,
+  getDayChips,
+  maxChipsPerDay = 3,
+  onChipClick,
+  headerExtras,
+}: NotesCalendarViewProps) => {
+  const { t } = useTranslation();
+  const resolvedEmptyMessage = emptyStateMessage || t('calendar.noNotes', 'No notes for the day.');
+  const resolvedEmptySubMessage = emptyStateSubMessage || t('calendar.clickToCreate', 'Click "+" to create your notes.');
+  const today = new Date();
+  const [displayMonth, setDisplayMonth] = useState(startOfMonth(selectedDate || today));
+  const [noteDates, setNoteDates] = useState<Date[]>([]);
+
+  const backgroundGradient = BACKGROUND_GRADIENTS[calendarBackground];
+  const useLightText = needsLightText(calendarBackground);
+  const chipsEnabled = typeof getDayChips === 'function';
+
+  useEffect(() => {
+    if (highlightedDates) {
+      setNoteDates(highlightedDates);
+      return;
+    }
+
+    const loadNotes = async () => {
+      const notes = await loadNotesMetadataFromDB();
+      const dates = notes.map(note => new Date(note.createdAt));
+      setNoteDates(dates);
+    };
+
+    loadNotes();
+
+    const handleNotesUpdate = () => loadNotes();
+    window.addEventListener('notesUpdated', handleNotesUpdate);
+
+    return () => window.removeEventListener('notesUpdated', handleNotesUpdate);
+  }, [highlightedDates]);
+
+  // Calculate calendar grid with leading/trailing days
+  const calendarDays = useMemo(() => {
+    const monthStart = startOfMonth(displayMonth);
+    const monthEnd = endOfMonth(displayMonth);
+    const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
+    
+    // Get leading days from previous month
+    const startDayOfWeek = getDay(monthStart);
+    const leadingDays: Date[] = [];
+    if (startDayOfWeek > 0) {
+      const prevMonth = subMonths(monthStart, 1);
+      const prevMonthEnd = endOfMonth(prevMonth);
+      for (let i = startDayOfWeek - 1; i >= 0; i--) {
+        leadingDays.push(new Date(prevMonthEnd.getTime() - i * 24 * 60 * 60 * 1000));
+      }
+    }
+    
+    // Get trailing days to complete the last week
+    const totalDays = leadingDays.length + daysInMonth.length;
+    const trailingDaysCount = totalDays % 7 === 0 ? 0 : 7 - (totalDays % 7);
+    const trailingDays: Date[] = [];
+    const nextMonth = addMonths(monthStart, 1);
+    for (let i = 1; i <= trailingDaysCount; i++) {
+      trailingDays.push(new Date(nextMonth.getTime() + (i - 1) * 24 * 60 * 60 * 1000));
+    }
+    
+    return [...leadingDays, ...daysInMonth, ...trailingDays];
+  }, [displayMonth]);
+
+  // O(1) lookups: bucket date arrays into Set<YYYY-MM-DD>. Critical for perf
+  // when notes/tasks count is in the thousands (previously O(N*42) per render).
+  const dateKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+  const noteDateSet = useMemo(() => new Set(noteDates.map(dateKey)), [noteDates]);
+  const taskDateSet = useMemo(() => new Set(taskDates.map(dateKey)), [taskDates]);
+  const eventDateSet = useMemo(() => new Set(eventDates.map(dateKey)), [eventDates]);
+  const hasNote = (date: Date) => noteDateSet.has(dateKey(date));
+  const hasTask = (date: Date) => taskDateSet.has(dateKey(date));
+  const hasEvent = (date: Date) => eventDateSet.has(dateKey(date));
+
+  // Memoize chip lookup: compute once per (getDayChips, visible month) instead
+  // of running the caller's O(N) filter for every one of ~42 day cells.
+  const chipsByDay = useMemo(() => {
+    if (!getDayChips) return null;
+    const m = new Map<string, DayChip[]>();
+    return { get: (day: Date) => {
+      const k = dateKey(day);
+      let v = m.get(k);
+      if (v === undefined) { v = getDayChips(day) || []; m.set(k, v); }
+      return v;
+    }};
+  }, [getDayChips, displayMonth]);
+
+   
+
+  const handlePrevMonth = () => {
+    setDisplayMonth(prev => subMonths(prev, 1));
+  };
+
+  const handleNextMonth = () => {
+    setDisplayMonth(prev => addMonths(prev, 1));
+  };
+
+  const handleGoToToday = () => {
+    setDisplayMonth(startOfMonth(today));
+    onDateSelect?.(today);
+  };
+
+  const weekDays = [t('calendar.sun', 'Sun'), t('calendar.mon', 'Mon'), t('calendar.tue', 'Tue'), t('calendar.wed', 'Wed'), t('calendar.thu', 'Thu'), t('calendar.fri', 'Fri'), t('calendar.sat', 'Sat')];
+
+  return (
+    <div 
+      className={cn(
+        "w-full transition-all duration-300 flex-shrink-0",
+        !backgroundGradient && "bg-gradient-to-b from-primary/5 to-transparent"
+      )}
+      style={{
+        background: backgroundGradient || undefined,
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+    >
+      {/* Header - Clean Month/Year with Navigation */}
+      <div className="flex items-center justify-between px-4 py-4">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handlePrevMonth}
+            className={cn(
+              "p-1.5 hover:bg-accent/50 rounded-full transition-colors",
+              useLightText && "hover:bg-white/20"
+            )}
+            aria-label="Previous month"
+          >
+            <ChevronLeft className={cn("w-5 h-5", useLightText ? "text-white/80" : "text-muted-foreground")} />
+          </button>
+          
+          <h2 className={cn(
+            "text-xl font-normal flex items-center gap-1",
+            useLightText ? "text-white" : "text-foreground"
+          )}>
+            <span className={useLightText ? "text-white" : "text-primary"}>
+              {format(displayMonth, "MMMM").toUpperCase()}
+            </span>
+            <span>{format(displayMonth, "yyyy")}</span>
+          </h2>
+          
+          <button
+            onClick={handleNextMonth}
+            className={cn(
+              "p-1.5 hover:bg-accent/50 rounded-full transition-colors",
+              useLightText && "hover:bg-white/20"
+            )}
+            aria-label="Next month"
+          >
+            <ChevronRight className={cn("w-5 h-5", useLightText ? "text-white/80" : "text-muted-foreground")} />
+          </button>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          {headerExtras}
+          <button
+            onClick={handleGoToToday}
+            className={cn(
+              "px-2.5 h-7 rounded-full text-xs font-semibold transition-colors border",
+              useLightText
+                ? "text-white border-white/30 hover:bg-white/20"
+                : "text-primary border-primary/30 hover:bg-primary/10"
+            )}
+            aria-label="Go to today"
+          >
+            {t('calendar.today', 'Today')}
+          </button>
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className={cn(
+                "p-1.5 hover:bg-accent/50 rounded-full transition-colors",
+                useLightText && "hover:bg-white/20"
+              )} aria-label={t('common.options', 'Options')}>
+                <MoreVertical className={cn("w-5 h-5", useLightText ? "text-white/80" : "text-muted-foreground")} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="bg-card">
+              <DropdownMenuItem onClick={handleGoToToday}>
+                {t('calendar.goToToday', 'Go to Today')}
+              </DropdownMenuItem>
+              {onBackgroundSettingsClick && (
+                <DropdownMenuItem onClick={onBackgroundSettingsClick} className="gap-2">
+                  <Image className="h-4 w-4" />
+                  {t('calendar.changeBackground', 'Change Background')}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Week Days Header */}
+      <div className="grid grid-cols-7 px-2 mb-1">
+        {weekDays.map((day) => (
+          <div
+            key={day}
+            className={cn(
+              "text-center text-sm font-normal py-2",
+              useLightText ? "text-white/70" : "text-muted-foreground"
+            )}
+          >
+            {day}
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar Grid */}
+      <div
+        className={cn(
+          "grid grid-cols-7 px-2 pb-4",
+          chipsEnabled ? "gap-px bg-transparent" : "gap-y-1"
+        )}
+      >
+        {calendarDays.map((day, index) => {
+          const isCurrentMonth = isSameMonth(day, displayMonth);
+          const hasNoteOnDay = hasNote(day);
+          const hasTaskOnDay = hasTask(day);
+          const hasEventOnDay = hasEvent(day);
+
+          const isToday = isSameDay(day, today);
+          const isSelected = selectedDate && isSameDay(day, selectedDate);
+          const hasAnyIndicator = hasNoteOnDay || hasTaskOnDay || hasEventOnDay;
+
+          // ---------- Apple-Calendar style cell with colored chips ----------
+          if (chipsEnabled) {
+            const chips = (chipsByDay ? chipsByDay.get(day) : getDayChips!(day)) || [];
+            const visible = chips.slice(0, maxChipsPerDay);
+            const extra = chips.length - visible.length;
+
+            return (
+              <button
+                key={`${day.toString()}-${index}`}
+                onClick={() => onDateSelect?.(day)}
+                className={cn(
+                  "relative flex flex-col items-stretch text-left min-w-0",
+                  "min-h-[78px] px-1 pt-1 pb-0.5 rounded-md transition-colors",
+                  "border border-transparent",
+                  isSelected && !isToday && (useLightText
+                    ? "bg-white/15 border-white/30"
+                    : "bg-primary/10 border-primary/40"),
+                  !isCurrentMonth && "opacity-60"
+                )}
+              >
+                {/* Day number */}
+                <div className="flex justify-center">
+                  <span
+                    className={cn(
+                      "min-w-[22px] h-[22px] px-1 flex items-center justify-center rounded-full text-[12px] font-semibold leading-none",
+                      isToday && "text-white",
+                      !isToday && !isCurrentMonth && (useLightText ? "text-white/40" : "text-muted-foreground/50"),
+                      !isToday && isCurrentMonth && (useLightText ? "text-white" : "text-foreground")
+                    )}
+                    style={{
+                      backgroundColor: isToday ? '#db252d' : undefined,
+                    }}
+                  >
+                    {format(day, "d")}
+                  </span>
+                </div>
+
+                {/* Colored chips — clickable */}
+                <div className="mt-1 flex flex-col gap-[2px] w-full min-w-0 overflow-hidden">
+                  {visible.map((chip) => (
+                    <span
+                      key={chip.id}
+                      title={chip.label}
+                      onClick={(e) => {
+                        if (!onChipClick) return;
+                        e.stopPropagation();
+                        e.preventDefault();
+                        onChipClick(chip, day);
+                      }}
+                      role={onChipClick ? 'button' : undefined}
+                      className={cn(
+                        "block max-w-full truncate rounded-[3px] px-1 text-[9px] leading-[12px] font-medium text-white",
+                        onChipClick && "cursor-pointer active:opacity-80",
+                        chip.completed && "opacity-60 line-through"
+                      )}
+                      style={{ backgroundColor: chip.color }}
+                    >
+                      {chip.label}
+                    </span>
+                  ))}
+                  {extra > 0 && (
+                    <span
+                      className={cn(
+                        "block max-w-full truncate text-[9px] leading-[12px] font-semibold px-1",
+                        useLightText ? "text-white/80" : "text-muted-foreground"
+                      )}
+                    >
+                      +{extra} {t('calendar.more', 'more')}
+                    </span>
+                  )}
+                </div>
+
+              </button>
+            );
+          }
+
+          // ---------- Default compact dot-style cell (unchanged) ----------
+          return (
+            <button
+              key={`${day.toString()}-${index}`}
+              onClick={() => onDateSelect?.(day)}
+              className="h-12 flex flex-col items-center justify-center relative"
+            >
+              <span
+                className={cn(
+                  "w-10 h-10 flex items-center justify-center rounded-full text-base font-normal transition-all",
+                  !isCurrentMonth && (useLightText ? "text-white/30" : "text-muted-foreground/40"),
+                  isCurrentMonth && !isToday && !isSelected && !hasAnyIndicator && (useLightText ? "text-white" : "text-foreground"),
+                  isCurrentMonth && !isToday && !isSelected && hasAnyIndicator && "text-white",
+                  isToday && "text-white font-normal",
+                  isSelected && !isToday && !hasAnyIndicator && (useLightText
+                    ? "text-white font-normal ring-2 ring-white/30"
+                    : "text-white font-normal ring-2 ring-white/30")
+                )}
+                style={{
+                  backgroundColor: isToday
+                    ? '#db252d'
+                    : (isSelected && !isToday)
+                      ? '#db252d'
+                      : (hasAnyIndicator && isCurrentMonth && !isToday)
+                        ? '#db252d'
+                        : undefined,
+                }}
+              >
+                {format(day, "d")}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+
+      {/* Empty State */}
+      {showEmptyState && (
+        <div className="flex flex-col items-center justify-center py-16 px-8">
+          {/* Calendar Illustration */}
+          <div className="relative mb-8">
+            <svg 
+              width="180" 
+              height="140" 
+              viewBox="0 0 180 140" 
+              fill="none" 
+              xmlns="http://www.w3.org/2000/svg"
+              className={useLightText ? "opacity-80" : "opacity-60"}
+            >
+              {/* Calendar base */}
+              <rect x="40" y="30" width="100" height="90" rx="8" fill={useLightText ? "rgba(255,255,255,0.1)" : "hsl(var(--primary) / 0.1)"} stroke={useLightText ? "rgba(255,255,255,0.3)" : "hsl(var(--primary) / 0.3)"} strokeWidth="2"/>
+              {/* Calendar header */}
+              <rect x="40" y="30" width="100" height="24" rx="8" fill={useLightText ? "rgba(255,255,255,0.2)" : "hsl(var(--primary) / 0.2)"}/>
+              <rect x="48" y="48" width="84" height="2" rx="1" fill={useLightText ? "rgba(255,255,255,0.2)" : "hsl(var(--muted-foreground) / 0.2)"}/>
+              {/* Calendar lines */}
+              <rect x="48" y="58" width="84" height="2" rx="1" fill={useLightText ? "rgba(255,255,255,0.15)" : "hsl(var(--muted-foreground) / 0.15)"}/>
+              <rect x="48" y="70" width="84" height="2" rx="1" fill={useLightText ? "rgba(255,255,255,0.15)" : "hsl(var(--muted-foreground) / 0.15)"}/>
+              <rect x="48" y="82" width="84" height="2" rx="1" fill={useLightText ? "rgba(255,255,255,0.15)" : "hsl(var(--muted-foreground) / 0.15)"}/>
+              <rect x="48" y="94" width="60" height="2" rx="1" fill={useLightText ? "rgba(255,255,255,0.15)" : "hsl(var(--muted-foreground) / 0.15)"}/>
+              {/* Decorative elements */}
+              <circle cx="25" cy="100" r="15" fill={useLightText ? "rgba(255,255,255,0.15)" : "hsl(var(--primary) / 0.15)"}/>
+              <circle cx="160" cy="50" r="10" fill={useLightText ? "rgba(255,255,255,0.1)" : "hsl(var(--primary) / 0.1)"}/>
+              {/* Curly decoration */}
+              <path 
+                d="M145 60 Q155 55, 160 65 Q165 75, 155 80 Q145 85, 150 75" 
+                stroke={useLightText ? "rgba(255,255,255,0.3)" : "hsl(var(--muted-foreground) / 0.3)"} 
+                strokeWidth="2" 
+                fill="none"
+                strokeLinecap="round"
+              />
+            </svg>
+          </div>
+          
+          <p className={cn(
+            "text-lg text-center mb-1",
+            useLightText ? "text-white/80" : "text-muted-foreground"
+          )}>
+            {resolvedEmptyMessage}
+          </p>
+          <p className={cn(
+            "text-sm text-center",
+            useLightText ? "text-white/60" : "text-muted-foreground/70"
+          )}>
+            {resolvedEmptySubMessage}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};

@@ -1,0 +1,1045 @@
+import React, { useEffect, useState, lazy, Suspense, startTransition, useRef, useCallback } from "react";
+import { LazyMotion, domAnimation } from "framer-motion";
+import { useKeyboardHeight } from "@/hooks/useKeyboardHeight";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, MemoryRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Capacitor } from "@capacitor/core";
+import { Preferences } from "@capacitor/preferences";
+import { supabase } from "@/integrations/supabase/client";
+
+import { SubscriptionProvider, useSubscription } from "@/contexts/SubscriptionContext";
+import { NotesProvider } from "@/contexts/NotesContext";
+import { GoogleAuthProvider } from "@/contexts/GoogleAuthContext";
+import { useGoogleDriveSync } from "@/hooks/useGoogleDriveSync";
+import { useQuickAddSync } from "@/hooks/useQuickAddSync";
+import { useCloudSync } from "@/hooks/useCloudSync";
+const PremiumPaywall = lazy(() => import("@/components/PremiumPaywall").then(m => ({ default: m.PremiumPaywall })));
+
+
+
+
+import { NavigationLoader } from "@/components/NavigationLoader";
+
+import { NavigationBackProvider } from "@/components/NavigationBackProvider";
+import { getSetting, setSetting } from "@/utils/settingsStorage";
+import { shouldAppBeLocked, updateLastUnlockTime } from "@/utils/appLockStorage";
+import { useJourneyAdvancement } from "@/hooks/useJourneyAdvancement";
+import { RouteSkeleton } from "@/components/skeletons/RouteSkeleton";
+
+import { useAchievementToasts } from "@/hooks/useAchievementToasts";
+
+import { useCertificateToasts } from "@/hooks/useCertificateToasts";
+import { useSubscriptionExpiry } from "@/hooks/useSubscriptionExpiry";
+const AppLockScreen = lazy(() => import("@/components/AppLockScreen").then(m => ({ default: m.AppLockScreen })));
+import { useNotificationListener } from "@/hooks/useNotificationListener";
+import { useMentionNotifications } from "@/hooks/useMentionNotifications";
+import { widgetDataSync } from "@/utils/widgetDataSync";
+import { useGlobalShortcuts } from "@/hooks/useGlobalShortcuts";
+import { useShareIntent } from "@/hooks/useShareIntent";
+import { PerfDiagnosticsPanel } from "@/components/PerfDiagnosticsPanel";
+import { FocusBackgroundBar } from "@/components/focus/FocusBackgroundBar";
+import { RadixPointerEventsRescue } from "@/components/RadixPointerEventsRescue";
+import { DesktopSidebar } from "@/components/desktop/DesktopSidebar";
+import { AuthDeepLinkBridge } from "@/components/AuthDeepLinkBridge";
+import { AnalyticsRouteTracker } from "@/components/AnalyticsRouteTracker";
+import { BottomNavigation } from "@/components/BottomNavigation";
+import { WidgetAddTask, WidgetNewSticky, WidgetNewLined, WidgetNewRegular, WidgetNewSketch } from "@/pages/WidgetEntry";
+import { useTourBootstrap } from "@/features/tours/useFeatureTour";
+
+
+const StreakMilestoneCelebration = lazy(() => import("@/components/StreakMilestoneCelebration").then(m => ({ default: m.StreakMilestoneCelebration })));
+const StreakTierCelebration = lazy(() => import("@/components/StreakTierCelebration").then(m => ({ default: m.StreakTierCelebration })));
+const SmartReviewPrompt = lazy(() => import("@/components/SmartReviewPrompt").then(m => ({ default: m.SmartReviewPrompt })));
+
+const ComboOverlay = lazy(() => import("@/components/ComboOverlay").then(m => ({ default: m.ComboOverlay })));
+const EncouragementOverlay = lazy(() => import("@/components/EncouragementOverlay").then(m => ({ default: m.EncouragementOverlay })));
+const UrgentReminderOverlay = lazy(() => import("@/components/UrgentReminderOverlay").then(m => ({ default: m.UrgentReminderOverlay })));
+const SyncConflictSheet = lazy(() => import("@/components/SyncConflictSheet").then(m => ({ default: m.SyncConflictSheet })));
+const SyncProgressSheet = lazy(() => import("@/components/SyncProgressSheet").then(m => ({ default: m.SyncProgressSheet })));
+const preloadTodayPage = () => import("./pages/todo/Today");
+const preloadNotesDashboardPage = () => import("./pages/Index");
+const Today = lazy(preloadTodayPage);
+
+const Index = lazy(preloadNotesDashboardPage);
+// Skip preloading the Today page chunk when we're cold-booting the /quick-add
+// overlay — the widget flow never navigates there and every extra chunk fetch
+// pushes the sheet's first paint back.
+const __IS_QUICK_ADD_BOOT__ =
+  typeof window !== 'undefined' && window.location.pathname === '/quick-add';
+if (!__IS_QUICK_ADD_BOOT__) {
+  void preloadTodayPage();
+}
+
+
+// Lazy load everything else - they load in background after first paint
+const Notes = lazy(() => import("./pages/Notes"));
+const Notebooks = lazy(() => import("./pages/Notebooks"));
+const NotebookDetail = lazy(() => import("./pages/NotebookDetail"));
+const NotesCalendar = lazy(() => import("./pages/NotesCalendar"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Settings = lazy(() => import("./pages/Settings"));
+const SyncDiagnostics = lazy(() => import("./pages/SyncDiagnostics"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const TermsAndConditions = lazy(() => import("./pages/TermsAndConditions"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Progress = lazy(() => import("./pages/todo/Progress"));
+const JourneyHistory = lazy(() => import("./pages/todo/JourneyHistory"));
+const JourneyBadges = lazy(() => import("./pages/todo/JourneyBadges"));
+const TodoCalendar = lazy(() => import("./pages/todo/TodoCalendar"));
+const TodoSettings = lazy(() => import("./pages/todo/TodoSettings"));
+const Habits = lazy(() => import("./pages/todo/Habits"));
+const EisenhowerMatrix = lazy(() => import("./pages/todo/EisenhowerMatrix"));
+const Countdown = lazy(() => import("./pages/todo/Countdown"));
+const CountdownDetail = lazy(() => import("./pages/todo/CountdownDetail"));
+
+const HabitNew = lazy(() => import("./pages/todo/HabitNew"));
+const HabitDetail = lazy(() => import("./pages/todo/HabitDetail"));
+const HabitSections = lazy(() => import("./pages/todo/HabitSections"));
+const HabitGallery = lazy(() => import("./pages/todo/HabitGallery"));
+const WebClipper = lazy(() => import("./pages/WebClipper"));
+const FetchArticleTest = lazy(() => import("./pages/FetchArticleTest"));
+const TaskBench = lazy(() => import("./pages/dev/TaskBench"));
+const Reminders = lazy(() => import("./pages/Reminders"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const AdminOnboarding = lazy(() => import("./pages/AdminOnboarding"));
+const Landing = lazy(() => import("./pages/Landing"));
+const PremiumUnlock = lazy(() => import("./pages/PremiumUnlock"));
+const PublicNote = lazy(() => import("./pages/PublicNote"));
+const AcceptInvite = lazy(() => import("./pages/AcceptInvite"));
+const AuthCallback = lazy(() => import("./pages/AuthCallback"));
+// Eager import: /quick-add is the sole route rendered inside the Android
+// widget overlay WebView. Lazy-loading it would add a network round-trip on
+// cold-open — the exact metric we're optimising here.
+import QuickAdd from "./pages/QuickAdd";
+
+
+
+
+const queryClient = new QueryClient();
+
+// IMPORTANT: Only decide the initial dashboard once per app session.
+// This prevents slow async IndexedDB reads every time the user taps "Home".
+let hasResolvedInitialDashboard = false;
+
+// Minimal fallback — keeps layout stable during chunk load
+const EmptyFallback = () => null;
+
+// Branded fallback — silent (no spinner), but never leaves a blank white root.
+const BrandedFallback = () => <div className="min-h-screen bg-background" aria-hidden="true" />;
+
+const CalendarRouteFallback = () => (
+  <div className="min-h-screen min-h-screen-dynamic bg-background pb-20 flex flex-col items-center justify-center px-6 text-center">
+    <div className="max-w-sm rounded-lg border border-border bg-card p-5 shadow-sm">
+      <h1 className="text-lg font-semibold text-foreground">Calendar couldn’t render</h1>
+      <p className="mt-2 text-sm text-muted-foreground">
+        The calendar hit a render issue, but the app is still available.
+      </p>
+      <button
+        type="button"
+        onClick={() => window.location.assign('/notesdashboard')}
+        className="mt-4 h-10 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground"
+      >
+        Back to Notes
+      </button>
+    </div>
+    <BottomNavigation />
+  </div>
+);
+
+// Detect stale chunk errors and auto-reload once
+const isChunkError = (error: any): boolean => {
+  const msg = String(error?.message || error || '');
+  return (
+    msg.includes('Failed to fetch dynamically imported module') ||
+    msg.includes('Importing a module script failed') ||
+    msg.includes('error loading dynamically imported module') ||
+    msg.includes('Loading chunk') ||
+    msg.includes('Loading CSS chunk')
+  );
+};
+
+const handleChunkError = () => {
+  const key = 'chunk_reload_ts';
+  const hasReloaded = sessionStorage.getItem(key);
+  // Only auto-reload once per tab to avoid refresh loops on heavy pages.
+  if (!hasReloaded) {
+    sessionStorage.setItem(key, String(Date.now()));
+    window.location.reload();
+    return true;
+  }
+  return false;
+};
+
+// Global error handler for unhandled errors (prevents white screen on mobile)
+if (typeof window !== 'undefined') {
+  // Show user-friendly toast for unhandled errors instead of silent crashes
+  const showGlobalError = async (error: any) => {
+    try {
+      const { showErrorToast } = await import('@/lib/errorHandling');
+      showErrorToast(error, { title: '⚠️ Error', log: false });
+    } catch {
+      // Fallback if errorHandling module fails
+      console.error('Unhandled error:', error);
+    }
+  };
+
+  window.onerror = (message, source, lineno, colno, error) => {
+    if (isChunkError(error || message)) {
+      if (handleChunkError()) return true;
+    }
+    console.error('Global error:', { message, source, lineno, colno, error });
+    showGlobalError(error || message);
+    return true;
+  };
+  
+  window.onunhandledrejection = (event) => {
+    // Auto-reload on stale chunk imports
+    if (isChunkError(event?.reason)) {
+      event.preventDefault();
+      if (handleChunkError()) return;
+    }
+    // Suppress "not implemented" errors from Capacitor plugins (web + android + ios)
+    const msg = String(event?.reason?.message || event?.reason || '');
+    if (msg.includes('not implemented') || msg.includes('UNIMPLEMENTED') || msg.includes('not available')) {
+      event.preventDefault();
+      return;
+    }
+    console.error('Unhandled promise rejection:', event.reason);
+    event.preventDefault();
+    showGlobalError(event.reason);
+  };
+}
+
+// Component to track and save last visited dashboard
+const DashboardTracker = () => {
+  const location = useLocation();
+  
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.startsWith('/todo') || path === '/') {
+      setSetting('lastDashboard', 'todo');
+    } else if (path === '/notesdashboard' || path === '/calendar' || path === '/settings') {
+      setSetting('lastDashboard', 'notes');
+    }
+  }, [location.pathname]);
+  
+  return null;
+};
+
+// Listen for tour navigation events and navigate accordingly
+const TourNavigationListener = () => {
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    const handleTourNavigate = (e: CustomEvent<{ path: string }>) => {
+      navigate(e.detail.path);
+    };
+    window.addEventListener('tourNavigate', handleTourNavigate as EventListener);
+    return () => window.removeEventListener('tourNavigate', handleTourNavigate as EventListener);
+  }, [navigate]);
+  
+  return null;
+};
+
+// Feature discovery tour system — wires router navigation + hydrates cloud state.
+const TourBootstrap = () => {
+  useTourBootstrap();
+  return null;
+};
+
+
+
+// Intercept clicks/taps on @mention chips inside any editor and SPA-navigate.
+// Works for both legacy <a class="rt-mention" href="..."> and the new
+// <span class="rt-mention" data-mention-href="..."> (native-safe — no <a> means
+// Capacitor/iOS/Android WebViews won't try to open it externally).
+const MentionClickListener = () => {
+  const navigate = useNavigate();
+  useEffect(() => {
+    let lastNav = 0;
+    let pendingPointer: { id: number; x: number; y: number; target: HTMLElement } | null = null;
+    let pendingTouch: { x: number; y: number; target: HTMLElement } | null = null;
+    const getMentionTarget = (eventTarget: EventTarget | null) => {
+      const node = eventTarget instanceof Node ? eventTarget : null;
+      const targetElement = node instanceof Element ? node : node?.parentElement;
+      return targetElement?.closest?.('.rt-mention, .note-link') as HTMLElement | null;
+    };
+    const openMention = (e: Event, target: HTMLElement) => {
+      const rawHref =
+        target.getAttribute('data-mention-path') ||
+        target.getAttribute('data-mention-href') ||
+        target.getAttribute('href') ||
+        '';
+      let hrefUrl: URL | null = null;
+      try {
+        hrefUrl = rawHref ? new URL(rawHref, window.location.origin) : null;
+      } catch {
+        hrefUrl = null;
+      }
+      const rawPath = `${hrefUrl?.pathname || ''}?${hrefUrl?.search || ''}`;
+      const inferredType =
+        hrefUrl?.searchParams.get('openTask') || rawPath.includes('/todo/') ? 'task' :
+          hrefUrl?.searchParams.get('openNote') || rawPath.includes('/notes') ? 'note' : '';
+      const legacyNoteId = target.getAttribute('data-note-id') || '';
+      const legacyTaskId = target.getAttribute('data-task-id') || '';
+      const rawType = legacyTaskId ? 'task' : legacyNoteId ? 'note' : target.getAttribute('data-mention-type') || target.getAttribute('data-type') || inferredType;
+      const type = rawType === 'note' || rawType === 'task' ? rawType : '';
+      const mentionId =
+        target.getAttribute('data-mention-id') ||
+        target.getAttribute('data-id') ||
+        legacyTaskId ||
+        legacyNoteId ||
+        hrefUrl?.searchParams.get('openTask') ||
+        hrefUrl?.searchParams.get('openNote') ||
+        '';
+      if (!type || !mentionId) return;
+      e.preventDefault?.();
+      e.stopPropagation?.();
+      (e as Event & { stopImmediatePropagation?: () => void }).stopImmediatePropagation?.();
+      // De-dupe pointerdown + click firing back-to-back on the same chip.
+      const now = Date.now();
+      if (now - lastNav < 400) return;
+      lastNav = now;
+      const targetPath = type === 'note' ? '/notesdashboard' : '/todo/today';
+      const queryKey = type === 'note' ? 'openNote' : 'openTask';
+      const targetHref = `${targetPath}?${queryKey}=${encodeURIComponent(mentionId)}`;
+      const detail = { type, id: mentionId, href: targetHref };
+      try {
+        sessionStorage.setItem('lovable:pendingMention', JSON.stringify({ type, id: mentionId, href: targetHref, ts: now }));
+      } catch {}
+      // Emit now for already-mounted target pages, then navigate with an internal
+      // query param so cross-page mentions open after the lazy route mounts too.
+      window.dispatchEvent(new CustomEvent('lovable:openMention', { detail }));
+      navigate(targetHref, { replace: false, state: { mentionOpen: detail } });
+      window.setTimeout(() => {
+        if (window.location.pathname !== targetPath) {
+          window.location.assign(targetHref);
+        }
+      }, 300);
+      [80, 250, 700].forEach((delay) => {
+        window.setTimeout(() => {
+          window.dispatchEvent(new CustomEvent('lovable:openMention', { detail }));
+        }, delay);
+      });
+    };
+    const handler = (e: Event) => {
+      const target = getMentionTarget(e.target);
+      if (target) openMention(e, target);
+    };
+    const pointerDownHandler = (e: PointerEvent) => {
+      const target = getMentionTarget(e.target);
+      if (!target) return;
+      if (e.pointerType === 'mouse') {
+        openMention(e, target);
+        return;
+      }
+      pendingPointer = { id: e.pointerId, x: e.clientX, y: e.clientY, target };
+    };
+    const pointerUpHandler = (e: PointerEvent) => {
+      const pending = pendingPointer;
+      pendingPointer = null;
+      if (!pending || pending.id !== e.pointerId) return;
+      const moved = Math.hypot(e.clientX - pending.x, e.clientY - pending.y);
+      if (moved < 12) openMention(e, pending.target);
+    };
+    const pointerCancelHandler = () => {
+      pendingPointer = null;
+    };
+    const touchStartHandler = (e: TouchEvent) => {
+      const target = getMentionTarget(e.target);
+      const touch = e.touches[0];
+      if (!target || !touch) return;
+      pendingTouch = { x: touch.clientX, y: touch.clientY, target };
+    };
+    const touchEndHandler = (e: TouchEvent) => {
+      const pending = pendingTouch;
+      pendingTouch = null;
+      const touch = e.changedTouches[0];
+      if (!pending || !touch) return;
+      const moved = Math.hypot(touch.clientX - pending.x, touch.clientY - pending.y);
+      if (moved < 12) openMention(e, pending.target);
+    };
+    const keyHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') handler(e);
+    };
+    // Use pointer-up for touch/pen so scrolling from a mention chip does not navigate.
+    // Mouse still opens on pointer-down; click is kept as the legacy fallback.
+    document.addEventListener('pointerdown', pointerDownHandler, true);
+    document.addEventListener('pointerup', pointerUpHandler, true);
+    document.addEventListener('pointercancel', pointerCancelHandler, true);
+    document.addEventListener('touchstart', touchStartHandler, true);
+    document.addEventListener('touchend', touchEndHandler, true);
+    document.addEventListener('touchcancel', pointerCancelHandler, true);
+    document.addEventListener('click', handler, true);
+    document.addEventListener('keydown', keyHandler, true);
+    return () => {
+      document.removeEventListener('pointerdown', pointerDownHandler, true);
+      document.removeEventListener('pointerup', pointerUpHandler, true);
+      document.removeEventListener('pointercancel', pointerCancelHandler, true);
+      document.removeEventListener('touchstart', touchStartHandler, true);
+      document.removeEventListener('touchend', touchEndHandler, true);
+      document.removeEventListener('touchcancel', pointerCancelHandler, true);
+      document.removeEventListener('click', handler, true);
+      document.removeEventListener('keydown', keyHandler, true);
+    };
+  }, [navigate]);
+  return null;
+};
+
+// Show inline-comment text when a user clicks/taps a commented span
+const CommentClickListener = () => {
+  useEffect(() => {
+    let toastFn: ((msg: string) => void) | null = null;
+    import('sonner').then(m => { toastFn = (msg) => m.toast(msg, { duration: 4500 }); });
+    const handler = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement | null)?.closest?.('.rt-comment') as HTMLElement | null;
+      if (!target) return;
+      const text = target.getAttribute('data-comment');
+      if (!text) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (toastFn) toastFn(`💬 ${text}`);
+      else alert(text);
+    };
+    document.addEventListener('click', handler, true);
+    return () => document.removeEventListener('click', handler, true);
+  }, []);
+  return null;
+};
+
+const WidgetRouteListener = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const handleWidgetRoute = (event: CustomEvent<{ path: string }>) => {
+      const path = event.detail?.path;
+      if (!path?.startsWith('/')) return;
+      const target = `${location.pathname}${location.search}`;
+      if (path !== target) navigate(path, { replace: false });
+    };
+    window.addEventListener('widgetRouteOpen', handleWidgetRoute as EventListener);
+    return () => window.removeEventListener('widgetRouteOpen', handleWidgetRoute as EventListener);
+  }, [location.pathname, location.search, navigate]);
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    void widgetDataSync.initialize().then(() => {
+      const actual = `${window.location.pathname}${window.location.search}`;
+      const routed = `${location.pathname}${location.search}`;
+      if (actual.startsWith('/') && actual !== routed) {
+        navigate(actual, { replace: true });
+      }
+    });
+  }, []);
+
+  return null;
+};
+
+// Root redirect component that redirects to Todo dashboard by default
+const RootRedirect = () => {
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    // If we've already resolved once, skip
+    if (hasResolvedInitialDashboard) return;
+    hasResolvedInitialDashboard = true;
+    
+    const checkLastDashboard = async () => {
+      try {
+        const lastDashboard = await getSetting<string>('lastDashboard', 'todo');
+        if (lastDashboard === 'notes') {
+          startTransition(() => {
+            navigate('/notesdashboard', { replace: true });
+          });
+        }
+      } catch (e) {
+        console.warn('Failed to check last dashboard:', e);
+      }
+    };
+    
+    checkLastDashboard();
+  }, [navigate]);
+  
+  // Always render Today (Todo) immediately - no loading screen
+  return <Today />;
+};
+
+const ShareIntentBridge = () => {
+  useShareIntent();
+  return null;
+};
+
+const QuickAddSyncBridge = () => {
+  useQuickAddSync();
+  return null;
+};
+
+const AppRoutes = () => {
+  useGlobalShortcuts();
+  return (
+    <BrowserRouter>
+      <ShareIntentBridge />
+      <QuickAddSyncBridge />
+      <AuthDeepLinkBridge />
+      <NavigationBackProvider>
+        <NavigationLoader />
+        <AnalyticsRouteTracker />
+        <DashboardTracker />
+        <TourNavigationListener />
+        <TourBootstrap />
+
+        <WidgetRouteListener />
+        <MentionClickListener />
+        <CommentClickListener />
+          <Suspense fallback={<RouteSkeleton />}>
+          <DesktopSidebar />
+          <div className="md:pl-[var(--desktop-sidebar-width,0px)] transition-[padding] duration-200">
+          <Routes>
+            <Route path="/" element={<RootRedirect />} />
+            <Route path="/landing" element={<Landing />} />
+            <Route path="/notesdashboard" element={<Index />} />
+            <Route path="/notes" element={<Notes />} />
+            <Route path="/notebooks" element={<Notebooks />} />
+            <Route path="/notebook/:id" element={<NotebookDetail />} />
+            <Route path="/calendar" element={<ErrorBoundary fallback={<CalendarRouteFallback />}><NotesCalendar /></ErrorBoundary>} />
+            <Route path="/clip" element={<WebClipper />} />
+            <Route path="/webclipper" element={<WebClipper />} />
+            <Route path="/dev/fetch-article" element={<FetchArticleTest />} />
+            <Route path="/dev/task-bench" element={<TaskBench />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/settings/sync-diagnostics" element={<SyncDiagnostics />} />
+            <Route path="/reminders" element={<Reminders />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/todo/today" element={<Today />} />
+            <Route path="/todo/calendar" element={<TodoCalendar />} />
+            <Route path="/todo/settings" element={<TodoSettings />} />
+            <Route path="/todo/progress" element={<Progress />} />
+            <Route path="/todo/habits" element={<Habits />} />
+            <Route path="/todo/matrix" element={<EisenhowerMatrix />} />
+            <Route path="/todo/countdown" element={<Countdown />} />
+            <Route path="/todo/countdown/:id" element={<CountdownDetail />} />
+
+            <Route path="/todo/habits/gallery" element={<HabitGallery />} />
+            <Route path="/todo/habits/new" element={<HabitNew />} />
+            <Route path="/todo/habits/sections" element={<HabitSections />} />
+            <Route path="/todo/habits/:id" element={<HabitDetail />} />
+            <Route path="/todo/journey-history" element={<JourneyHistory />} />
+            <Route path="/todo/journey-badges" element={<JourneyBadges />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            
+            <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/admin/onboarding" element={<AdminOnboarding />} />
+            <Route path="/w/add-task" element={<WidgetAddTask />} />
+            <Route path="/w/new/sticky" element={<WidgetNewSticky />} />
+            <Route path="/w/new/lined" element={<WidgetNewLined />} />
+            <Route path="/w/new/regular" element={<WidgetNewRegular />} />
+            <Route path="/w/new/sketch" element={<WidgetNewSketch />} />
+            <Route path="/premium-unlock" element={<PremiumUnlock />} />
+            <Route path="/quick-add" element={<QuickAdd />} />
+            <Route path="/p/:slug" element={<PublicNote />} />
+            <Route path="/invite/:token" element={<AcceptInvite />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="*" element={<NotFound />} />
+
+
+          </Routes>
+          </div>
+        </Suspense>
+      </NavigationBackProvider>
+    </BrowserRouter>
+  );
+};
+
+const DriveSyncBootstrapInner = () => {
+  useGoogleDriveSync();
+  return null;
+};
+
+const DriveSyncBootstrap = () => (
+  <ErrorBoundary fallback={null}>
+    <DriveSyncBootstrapInner />
+  </ErrorBoundary>
+);
+
+const ONBOARDING_PAYWALL_PENDING_KEY = 'flowist_onboarding_paywall_pending_v1';
+const FIRST_PAYWALL_SHOWN_KEY = 'flowist_first_paywall_shown_v1';
+const RECURRING_PAYWALL_LAST_KEY = 'flowist_recurring_paywall_last_v1';
+const RECURRING_PAYWALL_INTERVAL_MS = 6 * 24 * 60 * 60 * 1000; // 6 days
+
+const AppContent = () => {
+  useCloudSync();
+  const [isAppLocked, setIsAppLocked] = useState<boolean | null>(null);
+  // Onboarding removed — always treat as completed so the dashboard renders immediately.
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const openPaywallRef = useRef<((feature?: string) => void) | null>(null);
+
+  useEffect(() => {
+    // Instantly kick the feature tutorial chain the moment the paywall closes.
+    // No delays, no cooldowns — the previous "wait for animation" behaviour
+    // caused the tooltip to never appear on some devices.
+    const TOUR_COOLDOWN_KEY = 'flowist_tour_cooldown_until_v1';
+    const releaseTourAfterPaywall = () => {
+      try { sessionStorage.removeItem(ONBOARDING_PAYWALL_PENDING_KEY); } catch {}
+      try { sessionStorage.removeItem(TOUR_COOLDOWN_KEY); } catch {}
+      try { window.dispatchEvent(new CustomEvent('flowist-onboarding-slides:complete')); } catch {}
+      try { window.dispatchEvent(new CustomEvent('flowist-onboarding:start-chain')); } catch {}
+    };
+    window.addEventListener('flowist:paywall-closed', releaseTourAfterPaywall);
+    return () => {
+      window.removeEventListener('flowist:paywall-closed', releaseTourAfterPaywall);
+    };
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem('onboarding_completed_flag', 'true'); } catch {}
+    setSetting('onboarding_completed', true).catch(() => {});
+    if (Capacitor.isNativePlatform()) {
+      Preferences.set({ key: 'onboarding_completed', value: 'true' }).catch(() => {});
+    }
+  }, []);
+  
+  // Web-only landing page gate. Native apps NEVER show landing.
+  // Multi-signal native detection (Capacitor.isNativePlatform can be false during very early boot
+  // before the bridge attaches; we also sniff the UA + window.Capacitor as belt-and-suspenders).
+  const isNative = (() => {
+    try {
+      if (Capacitor.isNativePlatform()) return true;
+      if (typeof window !== 'undefined') {
+        const w: any = window;
+        if (w.Capacitor?.isNativePlatform?.()) return true;
+        if (w.Capacitor?.platform && w.Capacitor.platform !== 'web') return true;
+        const ua = navigator?.userAgent || '';
+        if (/CapacitorWebView|Capacitor\//i.test(ua)) return true;
+      }
+    } catch {}
+    return false;
+  })();
+  const [showLanding, setShowLanding] = useState<boolean>(() => {
+    if (isNative) return false;
+    try {
+      // If user previously engaged (signed in or paid) — never show landing again until logout/expiry
+      if (localStorage.getItem('flowist_user_engaged') === 'true') return false;
+      // If they already clicked "Get Started" (session OR persisted across reload), skip
+      if (sessionStorage.getItem('flowist_landing_acknowledged') === 'true') return false;
+      if (localStorage.getItem('flowist_landing_acknowledged') === 'true') return false;
+      // Note: onboarding_completed_flag is now always set at boot (onboarding was removed),
+      // so it can't be used as a landing-skip signal. Only explicit engagement / acknowledgement
+      // above should bypass the landing page.
+    } catch {}
+    return true;
+  });
+
+  const { isPro, isLoading: subLoading, isVerifyingCheckout, isNewFreeUser, openPaywall } = useSubscription();
+  openPaywallRef.current = openPaywall;
+  const awaitingSubscriptionChoice = useRef(
+    sessionStorage.getItem('awaitingSubscriptionChoice') === 'true'
+  );
+
+  // Onboarding removed — only keep the landing dismissal listener and the
+  // sign-out reset that returns web users to the landing page.
+  useEffect(() => {
+    const handleReset = () => {
+      awaitingSubscriptionChoice.current = false;
+      sessionStorage.removeItem('awaitingSubscriptionChoice');
+      if (!isNative) {
+        try {
+          localStorage.removeItem('flowist_user_engaged');
+          localStorage.removeItem('flowist_landing_acknowledged');
+          sessionStorage.removeItem('flowist_landing_acknowledged');
+        } catch {}
+        setShowLanding(true);
+      }
+    };
+    window.addEventListener('flowistOnboardingReset', handleReset);
+
+    const handleLandingDismissed = () => setShowLanding(false);
+    window.addEventListener('flowistLandingDismissed', handleLandingDismissed);
+
+    return () => {
+      window.removeEventListener('flowistOnboardingReset', handleReset);
+      window.removeEventListener('flowistLandingDismissed', handleLandingDismissed);
+    };
+  }, [isNative]);
+  
+  // Mark user as "engaged" once they're signed in or subscribed (web only)
+  // This persists across refreshes so they skip landing on return visits
+  useEffect(() => {
+    if (isNative) return;
+    if (isPro) {
+      try { localStorage.setItem('flowist_user_engaged', 'true'); } catch {}
+      setShowLanding(false);
+      return;
+    }
+    // Also engage on sign-in (even without subscription)
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        try { localStorage.setItem('flowist_user_engaged', 'true'); } catch {}
+        setShowLanding(false);
+
+        // Identify user in PostHog
+        try {
+          import('@/lib/posthog').then(({ identifyUser }) => {
+            identifyUser(session.user.id, { email: session.user.email });
+          });
+        } catch {}
+
+        // Resume a pending AI intent (e.g. the scanner the user tapped before sign-in).
+        if (event === 'SIGNED_IN') {
+          try {
+            // Lazy-load to avoid a static import cycle with the guard util.
+            import('@/utils/pendingAiIntent').then(({ consumePendingAiIntent, RESUME_SCAN_PARAM }) => {
+              const intent = consumePendingAiIntent();
+              if (!intent) return;
+              const kindParam = intent.kind === 'scan-tasks' ? 'tasks' : 'note';
+              const url = new URL(intent.path || '/', window.location.origin);
+              url.searchParams.set(RESUME_SCAN_PARAM, kindParam);
+              // Navigate back to where the user was — the destination page
+              // reads the query flag and reopens the scanner instantly.
+              window.location.assign(url.pathname + url.search);
+            });
+          } catch { /* noop */ }
+        }
+      } else if (event === 'SIGNED_OUT') {
+        try {
+          localStorage.removeItem('flowist_user_engaged');
+          localStorage.removeItem('flowist_landing_acknowledged');
+          sessionStorage.removeItem('flowist_landing_acknowledged');
+        } catch {}
+        setShowLanding(true);
+        try { import('@/lib/posthog').then(({ resetPostHog }) => resetPostHog()); } catch {}
+      }
+    });
+    // Initial check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        try { localStorage.setItem('flowist_user_engaged', 'true'); } catch {}
+        setShowLanding(false);
+      }
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [isPro, isNative]);
+
+  // Track whether user was ever granted access this session to prevent white flash
+  const wasEverPro = useRef(false);
+  if (isPro) wasEverPro.current = true;
+
+  // Onboarding removed — subscription state no longer needs to gate/reset it.
+  // While a user is Pro (active/trialing/past_due/grace), keep the recurring
+  // paywall timer "fresh" so that if they later cancel and lose access, they
+  // get a full 6-day window before the next paywall — not an instant one.
+  useEffect(() => {
+    if (subLoading || isVerifyingCheckout) return;
+    if (isPro) {
+      awaitingSubscriptionChoice.current = false;
+      sessionStorage.removeItem('awaitingSubscriptionChoice');
+      try {
+        localStorage.setItem(RECURRING_PAYWALL_LAST_KEY, String(Date.now()));
+        // First-launch paywall no longer needed for anyone who has ever been Pro
+        localStorage.setItem(FIRST_PAYWALL_SHOWN_KEY, 'true');
+      } catch {}
+    }
+  }, [isPro, subLoading, isVerifyingCheckout]);
+
+  // Show paywall for FREE users only:
+  //  - First launch ever (no record) → show once shortly after app load
+  //  - Recurring: every 6 days (persisted in localStorage)
+  // Pro users (active, trialing, past_due, or within cancellation grace period)
+  // are fully excluded via isPro. When a Pro user cancels and isPro flips to
+  // false, this effect re-runs and the 6-day timer (refreshed above while Pro)
+  // gates the next prompt.
+  useEffect(() => {
+    if (subLoading || isVerifyingCheckout) return;
+    if (isPro) return;
+    if (showLanding) return;
+    let firstShown = false;
+    let lastShownAt = 0;
+    try {
+      firstShown = localStorage.getItem(FIRST_PAYWALL_SHOWN_KEY) === 'true';
+      lastShownAt = Number(localStorage.getItem(RECURRING_PAYWALL_LAST_KEY) || 0) || 0;
+    } catch {}
+    const now = Date.now();
+    const dueRecurring = lastShownAt > 0 && now - lastShownAt >= RECURRING_PAYWALL_INTERVAL_MS;
+    const shouldShow = !firstShown || dueRecurring;
+    if (!shouldShow) return;
+    const isFirstLaunch = !firstShown;
+    const reason = isFirstLaunch ? 'first-launch' : 'recurring-free-user';
+    const t = window.setTimeout(() => {
+      // On the very first launch, mark the onboarding-paywall as pending so
+      // the tour bootstrap knows to fire the feature tutorial the instant
+      // the user dismisses the paywall (no extra delay).
+      if (isFirstLaunch) {
+        try { sessionStorage.setItem(ONBOARDING_PAYWALL_PENDING_KEY, 'true'); } catch {}
+      }
+      // Re-check isPro at fire time in case subscription state changed during the delay
+      try { openPaywallRef.current?.(reason); } catch {}
+      try {
+        localStorage.setItem(FIRST_PAYWALL_SHOWN_KEY, 'true');
+        localStorage.setItem(RECURRING_PAYWALL_LAST_KEY, String(Date.now()));
+      } catch {}
+    }, 800);
+    return () => window.clearTimeout(t);
+  }, [isPro, subLoading, isVerifyingCheckout, showLanding]);
+
+  // Kept only so existing refs below don't error; onboarding never "completes" now.
+  const onboardingJustCompleted = useRef(false);
+
+  // Initialize keyboard height detection for mobile toolbar positioning
+  useKeyboardHeight();
+  
+  // Global journey advancement - listens for task completions from any page
+  useJourneyAdvancement();
+  useAchievementToasts();
+  useCertificateToasts();
+  
+  // Subscription expiry watcher — warnings + notifications
+  useSubscriptionExpiry();
+  
+  // In-app notification listener — captures events from all sources
+  useNotificationListener();
+  useMentionNotifications();
+
+  // Share-target listener is mounted inside <BrowserRouter> (see ShareIntentBridge
+  // in AppRoutes) because useShareIntent uses useNavigate, which requires Router context.
+
+  // Listen for "secure your subscription" message (purchase without sign-up)
+  useEffect(() => {
+    const handler = async () => {
+      try {
+        const { toast: uiToast } = await import('@/components/ui/use-toast');
+        uiToast({
+          title: '🔒 Secure Your Subscription',
+          description: 'If you want to secure your subscription, please sign up with your Google account in Profile.',
+          duration: 15000,
+        });
+      } catch {}
+    };
+    window.addEventListener('showSecureSubscriptionMessage', handler);
+    return () => window.removeEventListener('showSecureSubscriptionMessage', handler);
+  }, []);
+
+  // Defer non-critical sync hooks until after first paint
+  const deferredInit = useRef(false);
+  useEffect(() => {
+    if (deferredInit.current) return;
+    deferredInit.current = true;
+
+    const init = async () => {
+      const { widgetDataSync } = await import('@/utils/widgetDataSync');
+      widgetDataSync.initialize().catch(console.error);
+    };
+
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(() => init(), { timeout: 2000 });
+    } else {
+      setTimeout(init, 200);
+    }
+  }, []);
+
+  // App lock check
+  useEffect(() => {
+    const checkLock = async () => {
+      const locked = await shouldAppBeLocked();
+      setIsAppLocked(locked);
+    };
+    checkLock();
+    
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
+  // Handle unlock
+  const handleUnlock = async () => {
+    await updateLastUnlockTime();
+    setIsAppLocked(false);
+  };
+
+  // Show lock screen if locked (but not while checking)
+  if (isAppLocked === true) {
+    return (
+      <>
+        <Toaster />
+        <Sonner />
+        <AppLockScreen onUnlock={handleUnlock} />
+      </>
+    );
+  }
+
+  // Render the dashboard as soon as onboarding is complete. Free users stay in-app with
+  // soft limits; don't unmount the app during subscription rechecks (causes white screen).
+  const canRenderProtectedApp = showOnboarding === false;
+
+  // Web-only: show landing page first for guests who haven't engaged yet.
+  // HARD GUARD: never on native — even if state somehow became true, the platform check wins.
+  if (showLanding && !isNative) {
+    return (
+      <>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Suspense fallback={<BrandedFallback />}>
+            <Routes>
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/premium-unlock" element={<PremiumUnlock />} />
+              <Route path="/p/:slug" element={<PublicNote />} />
+              <Route path="/invite/:token" element={<AcceptInvite />} />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="*" element={<Landing />} />
+
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <Toaster />
+      <Sonner />
+      <PerfDiagnosticsPanel />
+      <FocusBackgroundBar />
+      <RadixPointerEventsRescue />
+      
+      
+
+      
+      <Suspense fallback={null}>
+        <PremiumPaywall />
+      </Suspense>
+      
+
+      {/* Only render app content after subscription access is fully verified */}
+      {showOnboarding === null && !showLanding && <BrandedFallback />}
+
+      {canRenderProtectedApp && (
+        <>
+          <Suspense fallback={null}>
+            <StreakMilestoneCelebration />
+            <StreakTierCelebration />
+            <SmartReviewPrompt />
+            <ComboOverlay />
+            <EncouragementOverlay />
+            <UrgentReminderOverlay />
+            <SyncConflictSheet />
+            <SyncProgressSheet />
+          </Suspense>
+          <DeferredSyncInit />
+          <AppRoutes />
+        </>
+      )}
+    </>
+  );
+};
+
+
+// Deferred sync hooks - lazy loaded after first paint
+const DeferredSyncInit = () => {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const id = 'requestIdleCallback' in window
+      ? requestIdleCallback(() => setReady(true), { timeout: 2000 })
+      : setTimeout(() => setReady(true), 200);
+    return () => {
+      if ('requestIdleCallback' in window) cancelIdleCallback(id as number);
+      else clearTimeout(id as ReturnType<typeof setTimeout>);
+    };
+  }, []);
+
+  if (!ready) return null;
+  return null;
+};
+
+ 
+
+/**
+ * Ultra-lean shell used ONLY when the app is cold-booted at /quick-add inside
+ * the Android widget-overlay WebView. Skips DriveSyncBootstrap, GoogleAuth,
+ * NotesProvider, useCloudSync, onboarding checks, landing gate, all overlays,
+ * the router, and the DesktopSidebar — none of which the Quick-Add sheet
+ * needs. Cuts cold-open TTI dramatically (measured client-side and logged as
+ * `[quick-add] cold-open Xms` below).
+ */
+const QuickAddShell = () => {
+  useEffect(() => {
+    try {
+      const nav = performance.getEntriesByType('navigation')[0] as
+        | PerformanceNavigationTiming
+        | undefined;
+      const startedAt = nav?.startTime ?? 0;
+      // Two RAFs guarantee we log AFTER the first real paint of the sheet.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const ms = Math.round(performance.now() - startedAt);
+          try {
+            performance.mark('quick-add:first-paint');
+            (window as unknown as { __quickAddColdMs?: number }).__quickAddColdMs = ms;
+          } catch {}
+          // Log with a stable tag so `adb logcat | grep quick-add` picks it up.
+          console.log(`[quick-add] cold-open ${ms}ms`);
+        });
+      });
+    } catch {}
+  }, []);
+  return <QuickAdd />;
+};
+
+const App = () => {
+  // Detect once, at module init, before any provider mounts. `window.location`
+  // is safe here because App is only ever imported client-side.
+  const isQuickAddBoot =
+    typeof window !== 'undefined' && window.location.pathname === '/quick-add';
+
+  if (isQuickAddBoot) {
+    return (
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <TooltipProvider>
+            <SubscriptionProvider>
+              <MemoryRouter initialEntries={["/quick-add"]}>
+                <QuickAddShell />
+              </MemoryRouter>
+            </SubscriptionProvider>
+          </TooltipProvider>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <LazyMotion features={domAnimation}>
+          <TooltipProvider>
+            <GoogleAuthProvider>
+              <DriveSyncBootstrap />
+              <NotesProvider>
+                <SubscriptionProvider>
+                  <AppContent />
+                </SubscriptionProvider>
+              </NotesProvider>
+            </GoogleAuthProvider>
+          </TooltipProvider>
+        </LazyMotion>
+      </QueryClientProvider>
+    </ErrorBoundary>
+  );
+};
+
+
+export default App;

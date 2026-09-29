@@ -1,0 +1,17 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": ["TEAMID.com.flowist.app"],
+        "components": [
+          { "/": "/auth/callback*", "comment": "Email verification / password reset — opens app + auto sign-in" },
+          { "/": "/webclipper*", "comment": "Deep-link clipper into the app" },
+          { "/": "/r/*", "comment": "Affiliate / referral links" },
+          { "/": "/clip*" },
+          { "/": "/p/*", "comment": "Published notes — open read-only viewer inside the app" }
+        ]
+      }
+    ]
+  }
+}

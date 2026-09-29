@@ -1,0 +1,1380 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Performance: skip layout/paint for off-screen list items ── */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 72px;
+}
+.cv-auto-note {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 120px;
+}
+.cv-auto-compact {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 48px;
+}
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here.
+All colors MUST be HSL.
+*/
+
+* {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.flowist-task-dragging {
+  user-select: none;
+  overflow-y: auto;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+
+body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
+  overflow-y: auto !important;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+@layer base {
+  :root {
+    --keyboard-inset: 0px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+    --safe-left: env(safe-area-inset-left, 0px);
+    --safe-right: env(safe-area-inset-right, 0px);
+    /* Responsive header system — viewport-adaptive */
+    --header-pad-x: clamp(8px, 2.5vw, 14px);
+    --header-pad-y: 12px;
+    --header-icon-btn: clamp(40px, 11vw, 44px);
+    --header-icon-size: clamp(20px, 5.6vw, 24px);
+    --header-title-size: clamp(15px, 4.4vw, 17px);
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 358 71% 50%;
+    --primary-dark: 358 71% 40%;
+    --primary-darker: 358 71% 34%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 0 0% 0%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 0 0% 0%;
+
+    /* Sticky Note Colors */
+    --sticky-yellow: 60 100% 81%;
+    --sticky-blue: 197 100% 83%;
+    --sticky-green: 142 85% 84%;
+    --sticky-pink: 330 100% 86%;
+    --sticky-orange: 6 100% 82%;
+    
+    /* Streak/Gamification Colors */
+    --streak: 25 95% 53%;
+    --streak-foreground: 0 0% 100%;
+    --streak-muted: 25 95% 53%;
+    --warning: 45 93% 47%;
+    --warning-foreground: 0 0% 100%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+
+    /* Semantic accent colors */
+    --accent-purple: 271 70% 60%;
+    --accent-purple-foreground: 0 0% 100%;
+    --accent-pink: 330 80% 60%;
+    --accent-pink-foreground: 0 0% 100%;
+    --accent-teal: 172 66% 50%;
+    --accent-teal-foreground: 0 0% 100%;
+    --accent-indigo: 239 84% 67%;
+    --accent-indigo-foreground: 0 0% 100%;
+  }
+
+  /* Android SystemBars measures the real navigation-bar inset in native code.
+     Newer WebViews can also expose it through env(); older WebViews whose
+     content is already inset receive 0 from SystemBars. Never force 0 here:
+     gesture and three-button navigation occupy different heights. */
+  body.android-app {
+    /* Nudge dashboard headers a touch closer to the status bar — users asked
+       for the Notes/Home/Profile/Calendar/Settings headers to sit higher. */
+    --safe-top: max(env(safe-area-inset-top, 4px), 4px);
+    --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--safe-area-inset-bottom, 0px));
+  }
+
+  /* iOS: respect the notch inset only, minimal cushion. */
+  body.ios-app {
+    --safe-top: max(env(safe-area-inset-top, 4px), 4px);
+  }
+
+
+
+  /* Android edge-to-edge fix: WebView extends behind system nav bar but
+     100vh only covers the visual viewport, leaving a gap.  Force html/body
+     to stretch to 100% of the WebView so content fills the entire area. */
+  html.android-stretch,
+  html.android-stretch body {
+    height: 100%;
+    min-height: 100%;
+  }
+  html.android-stretch #root {
+    min-height: 100%;
+  }
+
+  /* Fixed fullscreen overlays on Android: ensure they fill the actual
+     WebView height, not just the visual viewport (100vh). */
+  body.android-app .fixed.inset-0,
+  body.android-app [class*="fixed inset-0"] {
+    bottom: 0 !important;
+    height: 100% !important;
+  }
+
+  /* Quick-Add overlay: kill all backgrounds so the Android launcher shows
+     through behind the floating sheet. Overrides the base `bg-background`
+     applied to html/body in the @layer base block below. */
+  html:has(body.quick-add-overlay),
+  body.quick-add-overlay,
+  body.quick-add-overlay #root {
+    background: transparent !important;
+    background-color: transparent !important;
+  }
+
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body.ios-app {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background: hsl(var(--background));
+  }
+
+  .dark,
+  .ocean,
+  .forest,
+  .sunset,
+  .rose,
+  .midnight,
+  .minimal,
+  .nebula,
+  .obsidian,
+  .graphite,
+  .onyx,
+  .charcoal {
+    --background: 140 30% 12%;
+    --foreground: 0 0% 100%;
+    --card: 140 30% 12%;
+    --card-foreground: 0 0% 100%;
+    --popover: 140 30% 12%;
+    --popover-foreground: 0 0% 100%;
+    --secondary: 140 20% 18%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 140 20% 18%;
+    --muted-foreground: 0 0% 85%;
+    --accent: 140 20% 18%;
+    --accent-foreground: 0 0% 100%;
+    --border: 140 15% 25%;
+    --input: 140 15% 25%;
+    --sidebar-background: 140 30% 10%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-accent: 140 20% 15%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 140 15% 25%;
+  }
+
+  /* Theme-specific background variations */
+  .ocean { 
+    --background: 210 50% 10%; 
+    --card: 210 50% 10%; 
+    --popover: 210 50% 10%;
+    --secondary: 210 40% 15%;
+    --muted: 210 40% 15%;
+    --accent: 210 40% 15%;
+    --border: 210 30% 20%;
+    --input: 210 30% 20%;
+  }
+  .forest { 
+    --background: 140 30% 12%; 
+    --card: 140 30% 12%; 
+    --popover: 140 30% 12%;
+    --secondary: 140 20% 18%;
+    --muted: 140 20% 18%;
+    --accent: 140 20% 18%;
+    --border: 140 15% 25%;
+    --input: 140 15% 25%;
+  }
+  .sunset { 
+    --background: 15 30% 10%; 
+    --card: 15 30% 10%; 
+    --popover: 15 30% 10%;
+    --secondary: 15 25% 15%;
+    --muted: 15 25% 15%;
+    --accent: 15 25% 15%;
+    --border: 15 20% 20%;
+    --input: 15 20% 20%;
+  }
+  .rose { 
+    --background: 340 25% 12%; 
+    --card: 340 25% 12%; 
+    --popover: 340 25% 12%;
+    --secondary: 340 20% 18%;
+    --muted: 340 20% 18%;
+    --accent: 340 20% 18%;
+    --border: 340 15% 22%;
+    --input: 340 15% 22%;
+  }
+  .midnight { 
+    --background: 250 30% 10%; 
+    --card: 250 30% 10%; 
+    --popover: 250 30% 10%;
+    --secondary: 250 25% 15%;
+    --muted: 250 25% 15%;
+    --accent: 250 25% 15%;
+    --border: 250 20% 20%;
+    --input: 250 20% 20%;
+  }
+  .minimal { 
+    --background: 220 10% 12%; 
+    --card: 220 10% 12%; 
+    --popover: 220 10% 12%;
+    --secondary: 220 8% 18%;
+    --muted: 220 8% 18%;
+    --accent: 220 8% 18%;
+    --border: 220 8% 22%;
+    --input: 220 8% 22%;
+  }
+  .nebula { 
+    --background: 280 35% 10%; 
+    --card: 280 35% 10%; 
+    --popover: 280 35% 10%;
+    --secondary: 280 30% 15%;
+    --muted: 280 30% 15%;
+    --accent: 280 30% 15%;
+    --border: 280 25% 20%;
+    --input: 280 25% 20%;
+  }
+  .obsidian { 
+    --background: 230 20% 8%; 
+    --card: 230 20% 8%; 
+    --popover: 230 20% 8%;
+    --secondary: 230 18% 12%;
+    --muted: 230 18% 12%;
+    --accent: 230 18% 12%;
+    --border: 230 15% 18%;
+    --input: 230 15% 18%;
+  }
+  .graphite { 
+    --background: 200 15% 10%; 
+    --card: 200 15% 10%; 
+    --popover: 200 15% 10%;
+    --secondary: 200 12% 15%;
+    --muted: 200 12% 15%;
+    --accent: 200 12% 15%;
+    --border: 200 10% 20%;
+    --input: 200 10% 20%;
+  }
+  .onyx { 
+    --background: 0 0% 8%; 
+    --card: 0 0% 8%; 
+    --popover: 0 0% 8%;
+    --secondary: 0 0% 12%;
+    --muted: 0 0% 12%;
+    --accent: 0 0% 12%;
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+  }
+  .charcoal { 
+    --background: 30 8% 10%; 
+    --card: 30 8% 10%; 
+    --popover: 30 8% 10%;
+    --secondary: 30 6% 15%;
+    --muted: 30 6% 15%;
+    --accent: 30 6% 15%;
+    --border: 30 5% 20%;
+    --input: 30 5% 20%;
+  }
+}
+
+@layer components {
+  .sticky-note {
+    @apply relative rounded-lg shadow-lg transform transition-all duration-200 hover:scale-105 hover:shadow-xl;
+    min-width: 260px;
+    min-height: 200px;
+    color: #000000 !important; /* Sticky notes always have black text */
+  }
+  
+  .sticky-note * {
+    color: #000000 !important;
+  }
+  
+  /* Sticky note: force black text ONLY inside the title + editable content.
+     Do NOT cascade to the bottom WordToolbar / popovers so it matches the
+     regular note editor exactly. */
+  .sticky-note-editor > .title-input,
+  .sticky-note-editor > .title-input::placeholder,
+  .sticky-note-editor [contenteditable="true"],
+  .sticky-note-editor [contenteditable="true"] *,
+  .sticky-note-editor .note-hashtag-pills,
+  .sticky-note-editor .note-hashtag-pills * {
+    color: #000000 !important;
+  }
+
+  .sticky-note-editor > .title-input::placeholder {
+    color: rgba(0, 0, 0, 0.5) !important;
+  }
+
+.lined-note {
+  /* Lined paper: subtle ruled lines */
+  --line-gap: 2rem; /* distance between lines */
+  --first-line-offset: 1.5rem; /* push first text row to sit on first line */
+  background-color: hsl(var(--background)) !important;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent calc(var(--line-gap) - 1px),
+    hsl(var(--muted-foreground) / 0.9) calc(var(--line-gap) - 1px),
+    hsl(var(--muted-foreground) / 0.9) var(--line-gap)
+  );
+  background-size: 100% var(--line-gap);
+  background-position: 0 calc(var(--first-line-offset) - 1px);
+  background-origin: padding-box;
+  background-attachment: local; /* lines scroll with content */
+  line-height: var(--line-gap);
+  padding-top: var(--first-line-offset);
+}
+
+/* Ensure the editable area aligns perfectly with the first line and fills full height */
+.rich-text-editor.lined-note {
+  padding-top: var(--first-line-offset) !important;
+  /* Use dynamic viewport unit with flex fallback so iOS keyboard / paste
+     reflows don't push the title input out of the flex column. */
+  min-height: 0 !important;
+  flex: 1 1 auto;
+  box-sizing: border-box;
+}
+
+/* Embedded elements in lined notes - properly align with lines */
+.lined-note .resizable-image-wrapper,
+.lined-note img,
+.lined-note table,
+.lined-note .resizable-table-wrapper,
+.lined-note .audio-player-container,
+.lined-note hr,
+.lined-note .page-break-container,
+.lined-note .file-attachment-wrapper {
+  display: block !important;
+  margin-top: calc(var(--line-gap) - 1px) !important;
+  margin-bottom: calc(var(--line-gap) - 1px) !important;
+  position: relative;
+  z-index: 1;
+  background: hsl(var(--background));
+  /* Ensure element sits on line grid */
+}
+
+/* Images specifically - ensure they have proper background to cover lines */
+.lined-note .resizable-image-wrapper {
+  padding: 0.5rem 0;
+  background: hsl(var(--background));
+  width: fit-content;
+}
+
+.lined-note .resizable-image-wrapper img {
+  margin: 0 !important;
+  display: block;
+}
+
+/* Tables - give them background to cover lines underneath */
+.lined-note table {
+  background: hsl(var(--background));
+  border-collapse: collapse;
+}
+
+/* Resizable table wrapper */
+.lined-note .resizable-table-wrapper {
+  padding: 0.5rem 0;
+  background: hsl(var(--background));
+}
+
+.lined-note .resizable-table-wrapper table {
+  margin: 0 !important;
+}
+
+/* Editable table cells */
+.resizable-table-container td[contenteditable="true"],
+.resizable-table-container th[contenteditable="true"],
+table td[contenteditable="true"],
+table th[contenteditable="true"] {
+  cursor: text;
+  outline: none;
+  transition: background-color 0.15s ease;
+}
+
+.resizable-table-container td[contenteditable="true"]:focus,
+.resizable-table-container th[contenteditable="true"]:focus,
+table td[contenteditable="true"]:focus,
+table th[contenteditable="true"]:focus {
+  background-color: hsl(var(--primary) / 0.1) !important;
+  outline: 2px solid hsl(var(--primary) / 0.5);
+  outline-offset: -2px;
+}
+
+.resizable-table-container td[contenteditable="true"]:hover,
+.resizable-table-container th[contenteditable="true"]:hover,
+table td[contenteditable="true"]:hover,
+table th[contenteditable="true"]:hover {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+/* Audio player container */
+.lined-note .audio-player-container {
+  padding: 0.75rem;
+  background: hsl(var(--background));
+  border-radius: 0.5rem;
+}
+
+/* Horizontal line separator - align with line grid */
+.lined-note hr {
+  margin-top: calc(var(--line-gap) * 0.5) !important;
+  margin-bottom: calc(var(--line-gap) * 0.5) !important;
+  border: none;
+  border-top: 2px solid hsl(var(--foreground));
+  background: transparent !important;
+}
+
+/* Page break container */
+.lined-note .page-break-container {
+  background: hsl(var(--background));
+  padding: 1rem 0;
+}
+
+/* File attachments */
+.lined-note .file-attachment-wrapper {
+  padding: 0.75rem 1rem;
+  background: hsl(var(--muted));
+}
+
+/* Comments in lined notes */
+.lined-note div[style*="border-left: 3px solid"] {
+  margin-top: calc(var(--line-gap) - 1px) !important;
+  margin-bottom: calc(var(--line-gap) - 1px) !important;
+  background: hsl(var(--muted));
+}
+
+/* Ensure paragraphs after embedded elements start on a line and are centered */
+.lined-note .resizable-image-wrapper + p,
+.lined-note .resizable-image-wrapper + div,
+.lined-note .resizable-table-wrapper + p,
+.lined-note .resizable-table-wrapper + div,
+.lined-note table + p,
+.lined-note table + div,
+.lined-note .audio-player-container + p,
+.lined-note .audio-player-container + div,
+.lined-note hr + p,
+.lined-note hr + div,
+.lined-note .page-break-container + p,
+.lined-note .page-break-container + div,
+.lined-note .file-attachment-wrapper + p,
+.lined-note .file-attachment-wrapper + div {
+  margin-top: 0;
+  padding-top: 0;
+  text-align: center;
+}
+
+/* Center embedded elements in lined notes */
+.lined-note .resizable-table-wrapper,
+.lined-note .audio-player-container {
+  text-align: center !important;
+  display: block !important;
+}
+
+.lined-note .audio-player-container audio {
+  margin: 0 auto;
+  display: block;
+}
+
+/* Cursor line in lined notes should be centered */
+.lined-note p:empty,
+.lined-note p br:only-child {
+  text-align: center;
+}
+}
+
+/* Text Formatting Note - special styling for rich copy */
+.textformat-note {
+  /* Ensure all text formatting is properly captured */
+  position: relative;
+}
+
+.textformat-note [contenteditable="true"] {
+  /* Make sure inline styles are preserved */
+  font-feature-settings: inherit;
+  text-rendering: optimizeLegibility;
+}
+
+/* Visual indicator for text formatting mode */
+.textformat-note::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.5));
+  border-radius: 0 0 3px 3px;
+  opacity: 0.7;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    @apply bg-background;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .safe-area-bottom {
+    padding-bottom: var(--safe-bottom, 0px);
+  }
+
+  .safe-area-top {
+    padding-top: var(--safe-top, 0px);
+  }
+
+  /* ============================================================
+     Global app-header system — safe-area aware + responsive icons.
+     Any header wrapper can opt-in with `.app-header`; icon buttons
+     inside auto-scale via CSS vars (no per-file tweaks needed).
+     ============================================================ */
+  .app-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    min-width: 0;
+    padding-top: calc(var(--safe-top, 0px) + var(--header-pad-y));
+    padding-bottom: var(--header-pad-y);
+    padding-left: calc(var(--safe-left, 0px) + var(--header-pad-x));
+    padding-right: calc(var(--safe-right, 0px) + var(--header-pad-x));
+  }
+  .app-header-btn {
+    width: var(--header-icon-btn) !important;
+    height: var(--header-icon-btn) !important;
+    flex-shrink: 0;
+  }
+  .app-header-btn > svg,
+  .app-header-btn > .lucide {
+    width: var(--header-icon-size) !important;
+    height: var(--header-icon-size) !important;
+  }
+  /* Back button — slimmer chevron, but tap target stays comfortable (>=44px via header-icon-btn) */
+  .app-header-back {
+    width: var(--header-icon-btn) !important;
+    height: var(--header-icon-btn) !important;
+    padding: 6px !important;
+  }
+  .app-header-back > svg,
+  .app-header-back > .lucide {
+    width: var(--header-icon-size) !important;
+    height: var(--header-icon-size) !important;
+  }
+  /* Share icon: prominent and vertically aligned with header title baseline */
+  .app-header-share {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  .app-header-share > svg,
+  .app-header-share > .lucide {
+    height: calc(var(--header-icon-size) - 1px) !important;
+    width: calc(var(--header-icon-size) - 1px) !important;
+
+
+    display: block;
+    vertical-align: middle;
+  }
+  .app-header-title {
+    font-size: var(--header-title-size);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Smooth scrolling optimizations */
+  * {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+
+  /* GPU acceleration for transforms */
+  .backdrop-blur-\[1px\],
+  [class*="backdrop-blur"],
+  .sticky,
+  .fixed {
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }
+}
+
+@keyframes flowistSkeletonPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* Hide any skeleton/shimmer placeholders while a feature tour is running so
+   highlighted targets stay visible and aren't obscured by loading UI. */
+body[data-tour-active="true"] .animate-pulse,
+body[data-tour-active="true"] [aria-busy="true"][role="status"] {
+  display: none !important;
+}
+
+
+
+
+/* Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes loading-bar {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+@keyframes slide-in-bottom {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes btn-bounce {
+  0% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(3px);
+  }
+  50% {
+    transform: translateY(1px);
+  }
+  70% {
+    transform: translateY(2px);
+  }
+  100% {
+    transform: translateY(3px);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-in-bottom {
+  animation: slide-in-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Duolingo-style button */
+.btn-duo {
+  background-color: #db252d;
+  color: white;
+  font-weight: 700;
+  border-radius: 0.875rem;
+  border-bottom: 4px solid #b51e25;
+  transition: all 0.1s ease;
+  padding: 0.875rem 1.5rem;
+  font-size: 1rem;
+}
+
+.btn-duo:hover {
+  filter: brightness(1.05);
+}
+
+.btn-duo:active {
+  border-bottom-width: 0;
+  transform: translateY(4px);
+  animation: btn-bounce 0.15s ease-out;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe area utilities for mobile */
+.safe-area-pb {
+  padding-bottom: max(var(--safe-bottom, 0px), 12px);
+}
+
+/* Dynamic viewport height for mobile browsers */
+.min-h-screen-dynamic {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* On Android native, use 100% to fill the actual WebView instead of 100vh */
+.android-stretch .min-h-screen-dynamic {
+  min-height: 100%;
+}
+
+/* Responsive text sizing */
+.text-responsive-xs {
+  font-size: clamp(0.625rem, 2.5vw, 0.75rem);
+}
+
+.text-responsive-sm {
+  font-size: clamp(0.75rem, 3vw, 0.875rem);
+}
+
+.text-responsive-base {
+  font-size: clamp(0.875rem, 3.5vw, 1rem);
+}
+
+.text-responsive-lg {
+  font-size: clamp(1rem, 4vw, 1.125rem);
+}
+
+.text-responsive-xl {
+  font-size: clamp(1.125rem, 4.5vw, 1.25rem);
+}
+
+/* Responsive spacing */
+.p-responsive {
+  padding: clamp(0.5rem, 2vw, 1rem);
+}
+
+.px-responsive {
+  padding-left: clamp(0.75rem, 3vw, 1rem);
+  padding-right: clamp(0.75rem, 3vw, 1rem);
+}
+
+.py-responsive {
+  padding-top: clamp(0.5rem, 2vw, 0.75rem);
+  padding-bottom: clamp(0.5rem, 2vw, 0.75rem);
+}
+
+.gap-responsive {
+  gap: clamp(0.25rem, 1.5vw, 0.5rem);
+}
+
+/* Responsive container */
+.container-responsive {
+  width: 100%;
+  max-width: 100%;
+  padding-left: clamp(0.75rem, 3vw, 1rem);
+  padding-right: clamp(0.75rem, 3vw, 1rem);
+}
+
+/* Touch-friendly tap targets (minimum 44px) */
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Flexible card sizing */
+.card-responsive {
+  padding: clamp(0.75rem, 3vw, 1rem);
+}
+
+/* Ensure text doesn't overflow */
+.text-wrap-balance {
+  text-wrap: balance;
+}
+
+/* Small screen optimizations */
+@media (max-width: 359px) {
+  .hide-xs {
+    display: none !important;
+  }
+  
+  .text-xs-smaller {
+    font-size: 0.625rem !important;
+  }
+  
+  .p-xs-tight {
+    padding: 0.5rem !important;
+  }
+  
+  .gap-xs-tight {
+    gap: 0.25rem !important;
+  }
+}
+
+/* Medium-small screen (360-400px) */
+@media (min-width: 360px) and (max-width: 400px) {
+  .text-sm-adjust {
+    font-size: 0.8125rem;
+  }
+}
+
+/* Viewport height fix for iOS Safari */
+@supports (-webkit-touch-callout: none) {
+  .min-h-screen-dynamic {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Hide scrollbar utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Shake animation for PIN input */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* ── Performance: CSS Containment ── */
+/* List items: isolate layout/paint so sibling changes don't trigger full reflow */
+.perf-contain-item {
+  contain: content;
+}
+
+/* Scroll containers: strict containment for scroll performance */
+.perf-contain-scroll {
+  /* Was `contain: strict` — that collapsed the scroll container to 0
+     height inside flex parents on Android/iOS WebViews (blank pages).
+     `content` still gives us paint/layout isolation without breaking
+     intrinsic sizing. */
+  contain: content;
+  overflow: auto;
+}
+
+
+/* GPU-accelerated elements: swipe actions, sheets, draggable items */
+.perf-gpu-layer {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Animated elements: promote to compositor layer during transitions */
+.perf-will-animate {
+  will-change: transform, opacity;
+}
+
+/* Ensure ALL overlays render above onboarding overlay (z-300) when body has .onboarding-active */
+body.onboarding-active [data-radix-popper-content-wrapper] {
+  z-index: 500 !important;
+}
+body.onboarding-active [data-radix-portal] {
+  z-index: 500 !important;
+}
+body.onboarding-active [data-radix-portal] [role="dialog"],
+body.onboarding-active [data-radix-portal] [data-state] {
+  z-index: 500 !important;
+}
+/* Vaul drawer overlay needs z-boost too */
+body.onboarding-active [vaul-drawer-wrapper],
+body.onboarding-active [vaul-overlay],
+body.onboarding-active [data-vaul-drawer] {
+  z-index: 500 !important;
+}
+
+/* Remove double safe-area padding when Today page is embedded inside onboarding */
+.onboarding-embedded header {
+  padding-top: 12px !important;
+}
+
+
+
+/* Empty-state placeholder hint for contentEditable rich-text body.
+   Uses absolute positioning so it never pushes the caret or interferes
+   with text selection. Matches truly empty and <br>-only states. */
+.rich-text-editor {
+  position: relative;
+}
+.rich-text-editor:empty::before,
+.rich-text-editor:has(> br:only-child):empty::before,
+.rich-text-editor:has(> br:only-child)::before {
+  content: attr(data-placeholder);
+  color: hsl(var(--muted-foreground) / 0.55);
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-select: none;
+  font-style: normal;
+
+  /* Align exactly with the caret. The editor uses `p-4` (1rem padding on
+     every side) so anchoring the placeholder at the same 1rem offset makes
+     it sit flush with where the cursor blinks on both mobile and desktop.
+     Absolute positioning means it never pushes text or affects selection. */
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  right: 1rem;
+  line-height: inherit;
+  font-size: inherit;
+  font-family: inherit;
+  white-space: pre-wrap;
+}
+/* Hide placeholder as soon as the field has focus so the caret is never
+   visually stacked on top of hint text mid-typing. */
+.rich-text-editor:focus::before {
+  content: none;
+}
+.rich-text-editor:focus:not(:empty):not(:has(> br:only-child))::before {
+  content: none;
+}
+
+
+/* ── Evernote-style clipped article renderer ─────────────────────────
+   Applied by sanitizeClippedArticle() which wraps every saved clip in
+   a <div class="evernote-clip">. Gives clipped notes a calm, readable
+   reader vibe: serif headline, generous spacing, framed images with
+   captions, and clean blockquotes/link cards. */
+.evernote-clip {
+  font-family: 'Lora', 'Georgia', 'Cambria', serif;
+  color: hsl(var(--foreground));
+  line-height: 1.7;
+  font-size: 17px;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+}
+.evernote-clip h1 {
+  font-family: 'Lora', 'Georgia', serif;
+  font-weight: 700;
+  font-size: 1.9rem;
+  line-height: 1.2;
+  margin: 0 0 0.75rem;
+  letter-spacing: -0.01em;
+}
+.evernote-clip h2 { font-size: 1.4rem; font-weight: 700; margin: 1.6rem 0 0.6rem; }
+.evernote-clip h3 { font-size: 1.15rem; font-weight: 700; margin: 1.3rem 0 0.5rem; }
+.evernote-clip p { margin: 0.75rem 0; }
+.evernote-clip a { color: hsl(var(--primary)); text-decoration: underline; text-underline-offset: 2px; }
+.evernote-clip blockquote {
+  border-left: 3px solid hsl(var(--primary));
+  margin: 1rem 0;
+  padding: 0.25rem 0 0.25rem 0.9rem;
+  color: hsl(var(--muted-foreground));
+  font-style: italic;
+}
+.evernote-clip img,
+.evernote-clip video,
+.evernote-clip iframe {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.25rem auto;
+  border-radius: 10px;
+  background: hsl(var(--muted) / 0.4);
+}
+.evernote-clip figure { margin: 1.25rem 0; }
+.evernote-clip figcaption {
+  font-size: 0.82rem;
+  color: hsl(var(--muted-foreground));
+  text-align: left;
+  margin-top: 0.4rem;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-style: normal;
+}
+.evernote-clip ul, .evernote-clip ol { padding-left: 1.4rem; margin: 0.75rem 0; }
+.evernote-clip li { margin: 0.35rem 0; }
+.evernote-clip hr { border: 0; border-top: 1px solid hsl(var(--border)); margin: 1.5rem 0; }
+.evernote-clip pre, .evernote-clip code {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+.evernote-clip pre {
+  background: hsl(var(--muted) / 0.5);
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+/* ─── Web Clipper "card" block (global — read-only + editor + published) ─── */
+.flowist-web-clip {
+  display: block;
+  margin: 1.25rem 0;
+  padding: 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  background: hsl(var(--card));
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 6px 20px -12px rgba(0,0,0,0.12);
+  position: relative;
+}
+.flowist-web-clip::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, hsl(var(--primary)), hsl(var(--primary) / 0.4));
+}
+.flowist-web-clip-header {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 10px 14px;
+  border-bottom: 1px solid hsl(var(--border) / 0.7);
+  background: hsl(var(--muted) / 0.35);
+  font-size: 12px;
+  color: hsl(var(--muted-foreground));
+}
+.flowist-web-clip-favicon { width: 16px; height: 16px; border-radius: 3px; flex-shrink: 0; }
+.flowist-web-clip-badge {
+  padding: 2px 8px; border-radius: 999px;
+  background: hsl(var(--primary) / 0.15); color: hsl(var(--primary));
+  font-weight: 700; font-size: 10px; letter-spacing: 0.06em;
+}
+.flowist-web-clip-site { font-weight: 600; color: hsl(var(--foreground)); }
+.flowist-web-clip-dot { opacity: 0.5; }
+.flowist-web-clip-open {
+  margin-left: auto; padding: 3px 10px;
+  border: 1px solid hsl(var(--border)); border-radius: 999px;
+  text-decoration: none; color: hsl(var(--foreground));
+  font-weight: 600; font-size: 11px;
+}
+.flowist-web-clip-open:hover { background: hsl(var(--accent)); }
+.flowist-web-clip-fallback-banner {
+  margin: 12px 14px 0; padding: 10px 12px;
+  border: 1px solid hsl(var(--border)); border-radius: 8px;
+  background: hsl(var(--muted) / 0.6); font-size: 13px;
+}
+.flowist-web-clip-title {
+  margin: 14px 18px 4px !important;
+  font-size: 1.5rem !important; font-weight: 700 !important; line-height: 1.25 !important;
+}
+.flowist-web-clip-meta {
+  margin: 0 18px 10px !important;
+  font-size: 12px; color: hsl(var(--muted-foreground)); font-style: italic;
+}
+.flowist-web-clip-hero { margin: 8px 0 0; padding: 0; }
+.flowist-web-clip-hero img { width: 100%; height: auto; display: block; max-height: 320px; object-fit: cover; }
+
+/* Offline snapshot info card — shown in the note when Full-page mode
+   downloaded the single-file HTML to the user's device. */
+.flowist-offline-snapshot-info {
+  display: flex; flex-direction: column; gap: 4px;
+  margin: 12px 18px !important;
+  padding: 12px 14px !important;
+  border: 1px dashed hsl(var(--primary) / 0.5);
+  background: hsl(var(--primary) / 0.06);
+  border-radius: 10px;
+  font-size: 13px; color: hsl(var(--foreground));
+}
+.flowist-offline-snapshot-info strong { font-weight: 600; }
+.flowist-offline-snapshot-info span { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; color: hsl(var(--muted-foreground)); }
+.flowist-offline-snapshot-info em { font-style: normal; font-size: 12px; color: hsl(var(--muted-foreground)); }
+.flowist-web-clip-excerpt-inline {
+  margin: 10px 18px !important;
+  color: hsl(var(--muted-foreground));
+  font-size: 14px;
+}
+.flowist-web-clip-excerpt,
+.flowist-web-clip-selection {
+  margin: 10px 18px !important;
+  padding: 10px 14px !important;
+  border-left: 3px solid hsl(var(--primary) / 0.5) !important;
+  background: hsl(var(--muted) / 0.4);
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+}
+.flowist-web-clip-body { padding: 6px 18px 16px; position: relative; }
+.flowist-web-clip-body[data-collapsed="1"] {
+  max-height: 380px; overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, #000 65%, transparent);
+          mask-image: linear-gradient(180deg, #000 65%, transparent);
+}
+.flowist-web-clip-body img { max-width: 100%; height: auto; border-radius: 6px; }
+.flowist-web-clip-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin: 4px 18px 14px;
+  padding: 6px 14px;
+  border: 1px solid hsl(var(--border)); border-radius: 999px;
+  background: hsl(var(--card)); color: hsl(var(--foreground));
+  font-size: 12px; font-weight: 600; cursor: pointer;
+}
+.flowist-web-clip-toggle:hover { background: hsl(var(--accent)); }
+.flowist-web-clip-links {
+  list-style: none !important; padding: 0 !important; margin: 8px 0 0 !important;
+  display: grid; gap: 6px;
+}
+.flowist-web-clip-link a {
+  display: flex; gap: 10px; align-items: center;
+  padding: 8px 10px;
+  border: 1px solid hsl(var(--border)); border-radius: 8px;
+  text-decoration: none !important; color: inherit !important;
+}
+.flowist-web-clip-link a:hover { background: hsl(var(--accent)); }
+.flowist-web-clip-link img { width: 20px; height: 20px; flex-shrink: 0; border-radius: 3px; }
+.flowist-web-clip-link span { display: flex; flex-direction: column; min-width: 0; }
+.flowist-web-clip-link strong { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.flowist-web-clip-link em { font-size: 12px; opacity: 0.7; font-style: normal; }
+.flowist-web-clip-footer {
+  padding: 10px 14px;
+  border-top: 1px solid hsl(var(--border) / 0.7);
+  background: hsl(var(--muted) / 0.25);
+  font-size: 11px;
+}
+.flowist-web-clip-source { color: hsl(var(--muted-foreground)); text-decoration: none; word-break: break-all; }
+.flowist-web-clip-source:hover { text-decoration: underline; }
+
+/* ─── Feature discovery tour (driver.js) ─── */
+.flowist-tour-popover.driver-popover {
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  border: 1px solid hsl(var(--border));
+  border-radius: 14px;
+  box-shadow: 0 12px 40px -8px rgba(0,0,0,0.25);
+  padding: 16px 16px 12px;
+  max-width: min(320px, 92vw);
+}
+.flowist-tour-popover .driver-popover-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+  margin: 0 0 4px;
+}
+.flowist-tour-popover .driver-popover-description {
+  font-size: 13px;
+  line-height: 1.45;
+  color: hsl(var(--muted-foreground));
+  margin: 0 0 10px;
+}
+.flowist-tour-popover .driver-popover-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid hsl(var(--border) / 0.5);
+  flex-wrap: wrap;
+}
+.flowist-tour-popover .driver-popover-progress-text {
+  font-size: 11px;
+  color: hsl(var(--muted-foreground));
+  margin-right: auto;
+}
+.flowist-tour-popover .driver-popover-navigation-btns {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.flowist-tour-popover .driver-popover-prev-btn,
+.flowist-tour-popover .driver-popover-next-btn,
+.flowist-tour-popover .driver-popover-close-btn {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-shadow: none;
+  cursor: pointer;
+}
+.flowist-tour-popover .driver-popover-next-btn {
+  position: relative;
+  min-width: 0;
+  width: auto;
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: 0.1px;
+  box-sizing: border-box;
+  touch-action: manipulation;
+  transition: background-color 120ms ease, opacity 120ms ease, transform 80ms ease;
+}
+/* Invisible extended hit area (~48px tall / +12px wider) so the tap target
+   meets mobile guidelines while the visible pill stays compact. */
+.flowist-tour-popover .driver-popover-next-btn::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  bottom: -8px;
+  left: -12px;
+}
+.flowist-tour-popover .driver-popover-next-btn:hover,
+.flowist-tour-popover .driver-popover-next-btn:focus-visible {
+  background: hsl(var(--primary) / 0.9);
+  color: hsl(var(--primary-foreground));
+  outline: none;
+}
+.flowist-tour-popover .driver-popover-next-btn:active {
+  transform: translateY(1px);
+}
+.flowist-tour-popover .driver-popover-next-btn[disabled],
+.flowist-tour-popover .driver-popover-next-btn[aria-disabled="true"],
+.flowist-tour-popover .driver-popover-next-btn.is-loading {
+  opacity: 0.6;
+  cursor: not-allowed;
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 16px;
+}
+.flowist-tour-popover .driver-popover-prev-btn {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+.flowist-tour-popover .driver-popover-close-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  font-size: 16px;
+  line-height: 1;
+  border-radius: 999px;
+}
+.flowist-tour-popover .driver-popover-close-btn:hover {
+  background: hsl(var(--muted));
+  color: hsl(var(--foreground));
+}
+.flowist-tour-popover .flowist-tour-dismiss {
+  background: transparent;
+  border: none;
+  color: hsl(var(--muted-foreground));
+  font-size: 11px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+  order: -1;
+  flex-basis: 100%;
+  text-align: left;
+  margin-bottom: 4px;
+}
+.flowist-tour-popover .flowist-tour-dismiss:hover {
+  color: hsl(var(--foreground));
+}
+.driver-active-element {
+  border-radius: 10px;
+}
+
+/* Forced/compulsory tutorial: block dismissal via overlay tap and hide the ✕. */
+body[data-tour-forced="true"] .driver-overlay {
+  pointer-events: none !important;
+}
+.flowist-tour-popover.flowist-tour-forced .driver-popover-close-btn,
+.flowist-tour-popover.flowist-tour-forced .flowist-tour-dismiss {
+  display: none !important;
+}
+
+/* Task-input tour popovers (Natural language & Scan-from-image) sit above the
+ * task input sheet. driver.js adds ~10px offset + our 6px stagePadding, which
+ * looks like a big gap on iOS/Android where the sheet handle sits directly
+ * under the popover. Pull the popover down to hug the target — desktop keeps
+ * a subtle nudge, mobile closes the gap almost entirely. Arrow follows via
+ * inverse translation so it still lands on the target edge. */
+body[data-tour-id="task-natural-language"] .flowist-tour-popover.driver-popover-side-top,
+body[data-tour-id="task-scan-from-image"] .flowist-tour-popover.driver-popover-side-top {
+  transform: translateY(10px);
+}
+body[data-tour-id="task-natural-language"] .flowist-tour-popover.driver-popover-side-top .driver-popover-arrow,
+body[data-tour-id="task-scan-from-image"] .flowist-tour-popover.driver-popover-side-top .driver-popover-arrow {
+  transform: translateY(-10px);
+}
+@media (max-width: 768px) {
+  body[data-tour-id="task-natural-language"] .flowist-tour-popover.driver-popover-side-top,
+  body[data-tour-id="task-scan-from-image"] .flowist-tour-popover.driver-popover-side-top {
+    transform: translateY(16px);
+  }
+  body[data-tour-id="task-natural-language"] .flowist-tour-popover.driver-popover-side-top .driver-popover-arrow,
+  body[data-tour-id="task-scan-from-image"] .flowist-tour-popover.driver-popover-side-top .driver-popover-arrow {
+    transform: translateY(-16px);
+  }
+}
+
+
+
+
+/* ─── Web Clipper embedded article iframe — responsive height ─────────────
+ * Mobile: 86% viewport height with min/max guards for readability.
+ * Tablet+: taller so long articles get more room per glance.
+ * Uses !important because the iframe carries an inline `style` attribute
+ * (set by the hydration code) for width/border/etc. */
+iframe.webclip-iframe {
+  height: 86vh !important;
+  height: 86dvh !important;
+  max-height: 760px !important;
+  min-height: 340px !important;
+}
+@media (max-height: 460px) {
+  iframe.webclip-iframe {
+    min-height: 260px !important;
+  }
+}
+@media (min-width: 640px) {
+  iframe.webclip-iframe {
+    height: 75vh !important;
+    max-height: 720px !important;
+  }
+}
+@media (min-width: 1024px) {
+  iframe.webclip-iframe {
+    height: 87vh !important;
+    max-height: none !important;
+  }
+}
+
+/* Hide scrollbars for horizontal mockup carousels */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

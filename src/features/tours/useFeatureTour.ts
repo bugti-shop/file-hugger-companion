@@ -1,0 +1,320 @@
+// React glue for the tour system.
+// - Registers the router's navigate() with the singleton TourManager.
+// - Hydrates cloud-side "seen" state on mount and on sign-in.
+// - Exposes reactive `seenSet` so the FeatureGuideModal can show badges.
+
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { TourManager } from './TourManager';
+import {
+  ensureInstallDate,
+  getAllTourStates,
+  getDaysSinceInstall,
+  hydrateFromCloud,
+  markTourSeen,
+  resetTour,
+  type TourStateMap,
+} from './TourStateStore';
+import { FEATURE_TOURS } from './tourRegistry';
+import { supabase } from '@/integrations/supabase/client';
+
+/** Mount once near the app root to wire navigation + cloud hydration. */
+export const useTourBootstrap = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    TourManager.setNavigate((path) => navigate(path));
+    ensureInstallDate().catch(() => {});
+    hydrateFromCloud().catch(() => {});
+
+    // Detect in-app browsers (TikTok, Instagram, Facebook, LINE, etc.).
+    // These WebViews often lose localStorage between sessions, which caused
+    // the forced onboarding chain to re-fire on every open and swallow the
+    // first ~10 bottom-nav taps behind an invisible overlay. Skip auto-tours
+    // entirely inside such browsers — users can still launch tutorials via
+    // the ❓ header button.
+    const ua = navigator.userAgent || '';
+    const isInAppBrowser =
+      /(TikTok|musical_ly|BytedanceWebview|Instagram|FBAN|FBAV|FB_IAB|Line\/|MicroMessenger|Snapchat|Pinterest|Twitter|LinkedInApp)/i.test(ua);
+    // Run auto-tours on all platforms (web + native). Only skip inside
+    // in-app browsers where localStorage is unreliable.
+    const skipAutoTours = isInAppBrowser;
+
+    // Auto-start compulsory onboarding on ALL platforms (web + native).
+    // Wait for the visual onboarding slides AND the post-onboarding paywall
+    // to close before firing the feature tutorial chain.
+    const ONBOARDING_SLIDES_KEY = 'onboarding_slides_seen_v1';
+    const ONBOARDING_PAYWALL_PENDING_KEY = 'flowist_onboarding_paywall_pending_v1';
+    const TOUR_COOLDOWN_KEY = 'flowist_tour_cooldown_until_v1';
+    const slidesDone = () => {
+      try { return localStorage.getItem(ONBOARDING_SLIDES_KEY) === 'true'; } catch { return true; }
+    };
+    const paywallDone = () => {
+      try { return sessionStorage.getItem(ONBOARDING_PAYWALL_PENDING_KEY) !== 'true'; } catch { return true; }
+    };
+    const paywallStillMounted = () => {
+      try { return !!document.querySelector('[data-flowist-paywall="open"]'); } catch { return false; }
+    };
+    const cooldownActive = () => {
+      try {
+        const until = Number(sessionStorage.getItem(TOUR_COOLDOWN_KEY) || 0);
+        return Number.isFinite(until) && Date.now() < until;
+      } catch { return false; }
+    };
+    const onboardingReady = () =>
+      slidesDone() && paywallDone() && !paywallStillMounted() && !cooldownActive();
+    const runBootstrap = async () => {
+      if (skipAutoTours) return;
+      if (!onboardingReady()) return;
+      try {
+        const { getSetting, setSetting } = await import('@/utils/settingsStorage');
+        const KEY = 'feature-guide-first-launch-shown-v5';
+        const CHAIN_KEY = 'feature-guide-chain-started-v5';
+        const shown = await getSetting<boolean>(KEY, false);
+        if (!shown) {
+          await setSetting(KEY, true, { skipCloudSync: true });
+          await setSetting(CHAIN_KEY, true, { skipCloudSync: true });
+          window.setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('flowist-onboarding:start-chain'));
+          }, 0);
+          return;
+        }
+        const chainStarted = await getSetting<boolean>(CHAIN_KEY, false);
+        if (!chainStarted) return;
+        await hydrateFromCloud().catch(() => {});
+        const { ONBOARDING_CHAIN } = await import('./tourRegistry');
+        const { hasSeenTour } = await import('./TourStateStore');
+        for (const id of ONBOARDING_CHAIN) {
+          if (!(await hasSeenTour(id))) {
+            window.dispatchEvent(new CustomEvent('flowist-onboarding:start-chain'));
+            return;
+          }
+        }
+      } catch {}
+    };
+
+    let slidesListener: (() => void) | null = null;
+    if (onboardingReady()) {
+      runBootstrap();
+    } else {
+      slidesListener = () => { runBootstrap(); };
+      window.addEventListener('flowist-onboarding-slides:complete', slidesListener);
+    }
+
+
+
+    // Whenever the welcome sheet closes AFTER a first-launch open, start the
+    // onboarding chain from the first not-yet-seen tour. Individual chained
+    // tours themselves skip if already marked seen, so a returning user who
+    // reopens the sheet manually won't be re-walked through everything.
+    const onChainRequest = () => {
+      import('./tourRegistry').then(({ ONBOARDING_CHAIN }) => {
+        (async () => {
+          const { hasSeenTour } = await import('./TourStateStore');
+          for (const id of ONBOARDING_CHAIN) {
+            if (!(await hasSeenTour(id))) {
+              // Compulsory: onboarding + "Start full tutorial" always run as
+              // forced tours so users can't dismiss mid-flow.
+              TourManager.startTour(id, { chain: true, forced: true });
+              return;
+            }
+          }
+        })();
+      });
+    };
+    window.addEventListener('flowist-onboarding:start-chain', onChainRequest);
+
+    // Action-completion → advance chain. Feature code fires this event with
+    // { tourId } whenever the user completes the action for a chained tour.
+    const onActionCompleted = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ tourId?: string }>).detail;
+      const tourId = detail?.tourId;
+      if (!tourId) return;
+      TourManager.advanceOnboardingChain(tourId).catch(() => {});
+    };
+    window.addEventListener('flowist-onboarding:action-completed', onActionCompleted);
+
+    // Activity watchdog: if the compulsory onboarding chain has been started
+    // but not finished, any user activity (click / key / task or note create)
+    // while NO tour is active should force-reopen the chain so new users
+    // can't just "click around" to escape the tutorial.
+    let watchdogPending = false;
+    const kickChainIfPending = async () => {
+      if (watchdogPending) return;
+      if (TourManager.isActive()) return;
+      // Don't race with a chain advance that's already scheduled (setTimeout
+      // between tours) — otherwise we'd mount two drivers at once, which was
+      // the root cause of the Android WebView crash on first install.
+      if (TourManager.isChainScheduled()) return;
+      watchdogPending = true;
+
+      try {
+        const { getSetting } = await import('@/utils/settingsStorage');
+        const CHAIN_KEY = 'feature-guide-chain-started-v5';
+        const chainStarted = await getSetting<boolean>(CHAIN_KEY, false);
+        if (!chainStarted) return;
+        const { ONBOARDING_CHAIN } = await import('./tourRegistry');
+        const { hasSeenTour } = await import('./TourStateStore');
+        for (const id of ONBOARDING_CHAIN) {
+          if (!(await hasSeenTour(id))) {
+            if (!TourManager.isActive()) {
+              TourManager.startTour(id, { chain: true, forced: true });
+            }
+            return;
+          }
+        }
+      } catch {
+        /* ignore */
+      } finally {
+        // small cooldown so a burst of clicks doesn't spam startTour
+        setTimeout(() => { watchdogPending = false; }, 800);
+      }
+    };
+    const activityHandler = () => { if (!skipAutoTours && onboardingReady()) kickChainIfPending(); };
+    window.addEventListener('pointerdown', activityHandler, { capture: true });
+    window.addEventListener('keydown', activityHandler, { capture: true });
+
+    window.addEventListener('flowist-tasks-updated', activityHandler);
+    window.addEventListener('flowist-notes-updated', activityHandler);
+
+
+    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') hydrateFromCloud().catch(() => {});
+    });
+    return () => {
+      sub.subscription.unsubscribe();
+      if (slidesListener) window.removeEventListener('flowist-onboarding-slides:complete', slidesListener);
+      window.removeEventListener('flowist-onboarding:start-chain', onChainRequest);
+      window.removeEventListener('flowist-onboarding:action-completed', onActionCompleted);
+      window.removeEventListener('pointerdown', activityHandler, { capture: true } as any);
+      window.removeEventListener('keydown', activityHandler, { capture: true } as any);
+      window.removeEventListener('flowist-tasks-updated', activityHandler);
+      window.removeEventListener('flowist-notes-updated', activityHandler);
+    };
+  }, [navigate]);
+};
+
+/**
+ * Fire a milestone-based tour exactly once per user.
+ * Kept for back-compat with existing call sites — internally these now feed
+ * the onboarding chain so the correct next tour auto-fires.
+ */
+export const notifyOnboardingMilestone = async (
+  kind: 'first-task' | 'first-note' | 'first-notebook',
+) => {
+  const tourId =
+    kind === 'first-task'
+      ? 'task-create-first'
+      : kind === 'first-note'
+      ? 'notes-create-first'
+      : 'notes-create-notebook';
+  window.dispatchEvent(new CustomEvent('flowist-onboarding:action-completed', {
+    detail: { tourId },
+  }));
+};
+
+
+
+/** Consumer hook: reactive seen-state + tour actions. */
+export const useFeatureTour = () => {
+  const [seen, setSeen] = useState<TourStateMap>({});
+
+  useEffect(() => {
+    let mounted = true;
+    getAllTourStates().then((m) => mounted && setSeen(m));
+    const onChange = () => {
+      getAllTourStates().then((m) => mounted && setSeen(m));
+    };
+    window.addEventListener('featureToursChanged', onChange);
+    return () => {
+      mounted = false;
+      window.removeEventListener('featureToursChanged', onChange);
+    };
+  }, []);
+
+  const hasSeen = useCallback(
+    (tourId: string) => !!seen[tourId]?.seenAt || !!seen[tourId]?.dismissedForever,
+    [seen],
+  );
+
+  const start = useCallback((tourId: string) => TourManager.startTour(tourId, { force: true }), []);
+  const queue = useCallback((tourId: string) => TourManager.queueTour(tourId), []);
+  const reset = useCallback((tourId: string) => resetTour(tourId), []);
+  const markSeen = useCallback((tourId: string) => markTourSeen(tourId), []);
+
+  return { seen, hasSeen, start, queue, reset, markSeen };
+};
+
+/** Fire the first-visit tour(s) for a given route, if any and not yet seen. */
+export const useFirstVisitTour = (route: string, explicitTourId?: string) => {
+  useEffect(() => {
+    const ONBOARDING_SLIDES_KEY = 'onboarding_slides_seen_v1';
+    const ONBOARDING_PAYWALL_PENDING_KEY = 'flowist_onboarding_paywall_pending_v1';
+    const TOUR_COOLDOWN_KEY = 'flowist_tour_cooldown_until_v1';
+    const slidesDone = () => {
+      try { return localStorage.getItem(ONBOARDING_SLIDES_KEY) === 'true'; } catch { return true; }
+    };
+    const paywallDone = () => {
+      try { return sessionStorage.getItem(ONBOARDING_PAYWALL_PENDING_KEY) !== 'true'; } catch { return true; }
+    };
+    const paywallStillMounted = () => {
+      try { return !!document.querySelector('[data-flowist-paywall="open"]'); } catch { return false; }
+    };
+    const cooldownActive = () => {
+      try {
+        const until = Number(sessionStorage.getItem(TOUR_COOLDOWN_KEY) || 0);
+        return Number.isFinite(until) && Date.now() < until;
+      } catch { return false; }
+    };
+    const onboardingReady = () =>
+      slidesDone() && paywallDone() && !paywallStillMounted() && !cooldownActive();
+
+    let cancelled = false;
+    let slidesListener: (() => void) | null = null;
+
+    const run = async () => {
+      if (cancelled) return;
+      if (!onboardingReady()) return;
+      if (explicitTourId) {
+        TourManager.startTour(explicitTourId, { auto: true });
+        return;
+      }
+      const eligible = FEATURE_TOURS.filter(
+        (t) => t.trigger === 'first-visit' && t.route === route,
+      );
+      if (eligible.length === 0) return;
+      for (const tour of eligible) {
+        TourManager.startTour(tour.id, { auto: true });
+      }
+      const days = await getDaysSinceInstall();
+      const dueByAge = FEATURE_TOURS.filter(
+        (t) =>
+          t.trigger === 'days-since-install' &&
+          t.route === route &&
+          (t.triggerConfig?.days ?? 0) <= days,
+      );
+      for (const tour of dueByAge) {
+        TourManager.startTour(tour.id, { auto: true });
+      }
+    };
+
+    if (onboardingReady()) {
+      run();
+    } else {
+      slidesListener = () => { run(); };
+      window.addEventListener('flowist-onboarding-slides:complete', slidesListener);
+    }
+
+    return () => {
+      cancelled = true;
+      if (slidesListener) window.removeEventListener('flowist-onboarding-slides:complete', slidesListener);
+    };
+  }, [route, explicitTourId]);
+};
+
+
+/** Fire an empty-state tour manually (e.g. from a Notes empty view). */
+export const triggerEmptyStateTour = (tourId: string) => {
+  TourManager.startTour(tourId, { auto: true });
+};

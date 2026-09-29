@@ -1,0 +1,408 @@
+// Edge function: extract a richly-formatted note from an image of a page.
+// Uses Lovable AI Gateway with vision (google/gemini-3-flash-preview) to OCR
+// the page AND preserve detected structure (headings, bullet/numbered lists,
+// paragraphs) as semantic HTML the rich text editor can render directly.
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+interface ExtractRequest {
+  imageBase64: string;
+  languageCode?: string;
+  languageName?: string;
+  webUnlockCode?: string;
+  /**
+   * When true, the extractor uses a stronger vision model + handwriting-tuned
+   * prompt: cursive letters, ambiguous glyphs, cross-outs, margin notes,
+   * arrows/callouts, and mixed print+cursive. Killer feature to beat
+   * Evernote's Penultimate/Scannable OCR moat.
+   */
+  handwriting?: boolean;
+}
+
+const AI_GATEWAY_TIMEOUT_MS = 40_000;
+// Pro is verified server-side via entitlements plus web Stripe subscriptions.
+const STRIPE_GRACE_PERIOD_MS = 2 * 24 * 60 * 60 * 1000;
+const REVENUECAT_ENTITLEMENT_ID = "Pro";
+
+const MAX_IMAGE_BASE64_BYTES = 8 * 1024 * 1024;
+
+const verifyRevenueCatAccess = async (admin: any, identifiers: string[]) => {
+  const rcSecret = Deno.env.get("REVENUECAT_SECRET_API_KEY");
+  if (!rcSecret || identifiers.length === 0) return false;
+
+  for (const identifier of identifiers) {
+    try {
+      const res = await fetch(
+        `https://api.revenuecat.com/v1/subscribers/${encodeURIComponent(identifier)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${rcSecret}`,
+            Accept: "application/json",
+          },
+        },
+      );
+      if (res.status === 404) continue;
+      if (!res.ok) {
+        console.warn("RevenueCat verify failed", { status: res.status });
+        continue;
+      }
+
+      const data = await res.json();
+      const entitlement = data?.subscriber?.entitlements?.[REVENUECAT_ENTITLEMENT_ID];
+      if (!entitlement) continue;
+
+      const expiresAt = entitlement.expires_date ? new Date(entitlement.expires_date).getTime() : Infinity;
+      if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) continue;
+
+      const rows = identifiers.map((appUserId) => ({
+        app_user_id: appUserId,
+        is_active: true,
+        product_id: entitlement.product_identifier || entitlement.product_id || "revenuecat_pro",
+        expires_at: entitlement.expires_date || null,
+        grace_period_expires_at: null,
+      }));
+      await admin.from("user_entitlements").upsert(rows, { onConflict: "app_user_id" });
+      return true;
+    } catch (e) {
+      console.warn("RevenueCat verify error", String(e));
+    }
+  }
+  return false;
+};
+
+const hasActiveProAccess = async (
+  admin: any,
+  userId: string,
+  userEmail: string,
+  extraIdentifiers: string[] = [],
+) => {
+  const merged = [userId, userEmail, ...extraIdentifiers]
+    .filter((v): v is string => typeof v === "string" && v.length > 0 && v.length < 256)
+    .map((v) => v.trim())
+    .filter(Boolean);
+  const identifiers = Array.from(new Set(merged)).slice(0, 10);
+  const nowMs = Date.now();
+
+  if (identifiers.length) {
+    const { data: ents } = await admin
+      .from("user_entitlements")
+      .select("is_active, expires_at, grace_period_expires_at")
+      .in("app_user_id", identifiers);
+
+    const hasEntitlement = (ents || []).some((e: any) => {
+      if (!e?.is_active) return false;
+      const exp = e.expires_at ? new Date(e.expires_at).getTime() : Infinity;
+      const grace = e.grace_period_expires_at ? new Date(e.grace_period_expires_at).getTime() : 0;
+      return exp > nowMs || grace > nowMs;
+    });
+    if (hasEntitlement) return true;
+  }
+
+  if (await verifyRevenueCatAccess(admin, identifiers)) return true;
+
+  if (!userEmail) return false;
+  const { data: subs } = await admin
+    .from("subscriptions")
+    .select("status, current_period_end")
+    .eq("user_email", userEmail)
+    .in("status", ["active", "trialing", "past_due"])
+    .order("updated_at", { ascending: false })
+    .limit(3);
+
+  return (subs || []).some((sub: any) => {
+    if (sub.status === "active" || sub.status === "trialing") return true;
+    if (sub.status !== "past_due" || !sub.current_period_end) return false;
+    return Date.now() < new Date(sub.current_period_end).getTime() + STRIPE_GRACE_PERIOD_MS;
+  });
+};
+
+const hashIdentifier = async (value: string) => {
+  const bytes = new TextEncoder().encode(value);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("")
+    .slice(0, 32);
+};
+
+const getAnonymousIdentifier = async (req: Request) => {
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("cf-connecting-ip") ||
+    req.headers.get("x-real-ip") ||
+    "unknown-ip";
+  const userAgent = req.headers.get("user-agent") || "unknown-agent";
+  return `anon_${await hashIdentifier(`${ip}|${userAgent}`)}`;
+};
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Prefer authenticated users; allow legacy anonymous scans through a
+    // server-derived anonymous identifier so clients cannot write counters directly.
+    const authHeader = req.headers.get("Authorization") || "";
+    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    if (!authHeader.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Sign in required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const accessToken = authHeader.replace("Bearer ", "");
+    if (!accessToken || accessToken === anonKey) {
+      return new Response(JSON.stringify({ error: "Sign in required" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const sb = createClient(Deno.env.get("SUPABASE_URL")!, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: userData, error: userError } = await sb.auth.getUser(accessToken);
+    if (userError || !userData?.user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const userId = String(userData.user.id || "");
+    const userEmail = String(userData.user.email || "").toLowerCase();
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) {
+      return new Response(JSON.stringify({ error: "AI not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const body = (await req.json()) as ExtractRequest;
+    const rawImage = (body.imageBase64 || "").trim();
+    if (!rawImage) {
+      return new Response(JSON.stringify({ error: "Missing image" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (rawImage.length > MAX_IMAGE_BASE64_BYTES) {
+      return new Response(JSON.stringify({ error: "Image too large" }), {
+        status: 413,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+
+    const clientIdentifiers = Array.isArray((body as any)?.clientIdentifiers)
+      ? ((body as any).clientIdentifiers as unknown[]).filter((v): v is string => typeof v === "string")
+      : [];
+    const isPro = await hasActiveProAccess(admin, userId, userEmail, clientIdentifiers);
+
+    if (!isPro) {
+      return new Response(
+        JSON.stringify({ error: "AI scanning is a Pro feature. Please upgrade to continue." }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const refundUsage = async () => { /* no-op: Pro only */ };
+
+    const imageUrl = rawImage.startsWith("data:")
+      ? rawImage
+      : `data:image/jpeg;base64,${rawImage}`;
+
+    const langName = body.languageName || "auto";
+    const langCode = body.languageCode || "auto";
+
+    const handwritingMode = body.handwriting === true;
+
+    const systemPrompt = handwritingMode
+      ? `You are a specialist handwriting-recognition transcriber. The user photographed a HANDWRITTEN page (notebook, journal, whiteboard, sticky notes, planner, meeting notes, lecture notes, letters).
+
+Your job: transcribe ALL handwritten text with maximum fidelity and preserve the page's visual structure as semantic HTML.
+
+Primary language hint: ${langName} (${langCode}). Preserve the original language(s) — do NOT translate.
+
+HANDWRITING RULES — this is the entire point of the task:
+- Read cursive, print, and mixed styles. Handle stylistic loops, slanted script, and inconsistent letter sizing.
+- Disambiguate look-alikes from context: 0/O, 1/l/I, 2/Z, 5/S, 6/G, rn/m, u/v, cl/d. Use surrounding words to decide.
+- Honor cross-outs and strikethroughs: wrap the crossed-out text in <s>...</s>. Never silently drop struck text.
+- Insertions (carets ^, arrows between lines, "insert here" marks): place the inserted phrase where the writer clearly intended.
+- Margin notes and sidebar annotations: render as <blockquote>MARGIN: ...</blockquote> after the paragraph they relate to.
+- Arrows/callouts connecting ideas: render as "→" glyphs inside the text.
+- Bullets drawn as dots, dashes, stars, or hand-drawn boxes → <ul><li> (checkboxes stay as ☐/☒).
+- Numbered/lettered lists (1. 2., a) b), i. ii.) → <ol><li>.
+- Section titles underlined, boxed, or written larger → <h2> or <h3>.
+- If a word is truly unreadable, output <mark>[illegible]</mark> instead of guessing wildly.
+- Keep the writer's original spelling and punctuation. Do NOT auto-correct grammar.
+- Diagrams/sketches: describe them briefly in <em>[sketch: ...]</em> only if they carry meaning.
+
+Also convert printed regions on the same page using the normal structure rules below.
+
+STRUCTURE RULES:
+- Page title / top heading → <h1>
+- Paragraphs → <p>. Line breaks inside a paragraph → <br> only when meaningful.
+- Horizontal dividers → <hr>
+- Emphasized words (UNDERLINED, ALL CAPS standalone, circled) → <strong>
+- Tables (columns of data) → <table><tr><td>...</td></tr></table>
+
+CONTENT RULES:
+- Transcribe everything readable. Skip page numbers, decorative borders, doodles unless they annotate text.
+- Output ONLY the body HTML (no <html>, <head>, <body>, no markdown fences, no commentary).
+- If nothing is readable, return an empty string.
+
+Return strictly via the tool call.`
+      : `You are a vision-based document transcriber. The user photographed a page (handwritten notebook, printed document, whiteboard, sticky notes, planner, etc.).
+
+Your job: faithfully transcribe ALL readable text AND preserve the page's visual structure as semantic HTML.
+
+Primary language hint: ${langName} (${langCode}). Preserve the original language(s) of the page — do NOT translate.
+
+STRUCTURE RULES — detect and convert:
+- Page title or top-most large heading → <h1>
+- Section headings (underlined, bold, larger) → <h2> or <h3>
+- Bulleted lists (•, -, *, ●, ▪, hand-drawn dots) → <ul><li>
+- Numbered lists (1. 2. 3., a) b), i. ii.) → <ol><li>
+- Checkboxes (☐, ☒, [ ], [x]) → <ul><li>☐ ...</li></ul> (keep the box character)
+- Paragraphs → <p>
+- Horizontal dividers / lines across the page → <hr>
+- Emphasized words (UNDERLINED, **bold**, ALL CAPS standalone) → <strong>
+- Tables → <table><tr><td>...</td></tr></table>
+
+CONTENT RULES:
+- Transcribe everything readable. Skip doodles, page numbers, decorative borders.
+- Keep line breaks inside a paragraph as <br> only when meaningful.
+- Output ONLY the body HTML (no <html>, <head>, <body>, no markdown fences, no commentary).
+- If nothing is readable, return an empty string.
+
+Return strictly via the tool call.`;
+
+    const aiModel = handwritingMode
+      ? "google/gemini-2.5-pro"
+      : "google/gemini-3-flash-preview";
+
+    const aiResponse = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        signal: AbortSignal.timeout(AI_GATEWAY_TIMEOUT_MS),
+        headers: {
+          "Lovable-API-Key": LOVABLE_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: aiModel,
+          messages: [
+            { role: "system", content: systemPrompt },
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Transcribe this page into structured HTML, preserving headings and lists.",
+                },
+                { type: "image_url", image_url: { url: imageUrl } },
+              ],
+            },
+          ],
+          tools: [
+            {
+              type: "function",
+              function: {
+                name: "extract_note",
+                description: "Return the transcribed page as semantic HTML and a short title.",
+                parameters: {
+                  type: "object",
+                  properties: {
+                    title: {
+                      type: "string",
+                      description: "Suggested note title (5-8 words). Empty string if not obvious.",
+                    },
+                    html: {
+                      type: "string",
+                      description: "Body HTML preserving headings, lists, paragraphs.",
+                    },
+                  },
+                  required: ["title", "html"],
+                  additionalProperties: false,
+                },
+              },
+            },
+          ],
+          tool_choice: {
+            type: "function",
+            function: { name: "extract_note" },
+          },
+        }),
+      },
+    );
+
+    if (!aiResponse.ok) {
+      await refundUsage();
+      if (aiResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      if (aiResponse.status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const txt = await aiResponse.text();
+      console.error("AI gateway error", aiResponse.status, txt);
+      return new Response(JSON.stringify({ error: "AI gateway error" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const data = await aiResponse.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall) {
+      return new Response(JSON.stringify({ title: "", html: "" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    let parsed: { title?: string; html?: string } = {};
+    try {
+      parsed = JSON.parse(toolCall.function.arguments);
+    } catch (e) {
+      console.error("Failed to parse tool args", e);
+      await refundUsage();
+      return new Response(JSON.stringify({ error: "Bad AI response" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    return new Response(
+      JSON.stringify({
+        title: typeof parsed.title === "string" ? parsed.title : "",
+        html: typeof parsed.html === "string" ? parsed.html : "",
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  } catch (e) {
+    console.error("ai-extract-note-from-image error", e);
+    const timedOut = e instanceof Error && (e.name === "TimeoutError" || e.name === "AbortError");
+    return new Response(
+      JSON.stringify({ error: timedOut ? "AI scan timed out" : "An unexpected error occurred" }),
+      {
+        status: timedOut ? 504 : 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
+    );
+  }
+});
+

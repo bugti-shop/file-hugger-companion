@@ -1,0 +1,330 @@
+/**
+ * HTML Sanitization utilities using DOMPurify
+ * Provides defense-in-depth against XSS attacks
+ */
+import DOMPurify from 'dompurify';
+
+const HTML_DATA_SRC_PREFIX = 'data:text/html;charset=utf-8;base64,';
+
+const htmlToDataSrc = (html: string): string => {
+  try {
+    const bytes = new TextEncoder().encode(html || '');
+    const chunkSize = 0x8000;
+    let binary = '';
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+    }
+    return `${HTML_DATA_SRC_PREFIX}${btoa(binary)}`;
+  } catch {
+    return '';
+  }
+};
+
+const isFastOfflineWebClipFrame = (frame: HTMLIFrameElement): boolean =>
+  frame.classList.contains('flowist-web-clip-page') ||
+  frame.getAttribute('data-role') === 'page-embed' ||
+  !!frame.closest('.webclipper-embed');
+
+export const normalizeWebClipHtmlForFastOffline = (html: string): string => {
+  if (!html || (!html.includes('flowist-web-clip-page') && !html.includes('webclipper-embed'))) return html;
+  try {
+    if (typeof window === 'undefined') return html;
+    const doc = new DOMParser().parseFromString(`<div id="__root">${html}</div>`, 'text/html');
+    const root = doc.getElementById('__root');
+    if (!root) return html;
+    root.querySelectorAll<HTMLIFrameElement>('iframe').forEach((frame) => {
+      if (!isFastOfflineWebClipFrame(frame)) return;
+      const sandbox = frame.getAttribute('sandbox') || '';
+      const tokens = new Set(sandbox.split(/\s+/).filter(Boolean).filter((t) => t !== 'allow-scripts'));
+      tokens.add('allow-same-origin');
+      tokens.add('allow-popups');
+      tokens.add('allow-popups-to-escape-sandbox');
+      frame.setAttribute('sandbox', Array.from(tokens).join(' '));
+      frame.setAttribute('referrerpolicy', 'no-referrer');
+      frame.setAttribute('loading', 'eager');
+      const srcdoc = frame.getAttribute('srcdoc') || '';
+      const src = frame.getAttribute('src') || '';
+      if (srcdoc && !src.startsWith(HTML_DATA_SRC_PREFIX)) {
+        const dataSrc = htmlToDataSrc(srcdoc);
+        if (dataSrc) frame.setAttribute('src', dataSrc);
+      }
+      frame.removeAttribute('srcdoc');
+    });
+    return root.innerHTML;
+  } catch {
+    return html;
+  }
+};
+
+// Configure DOMPurify with allowed tags and attributes for rich text editing
+const RICH_TEXT_CONFIG = {
+  ALLOWED_TAGS: [
+    'b', 'i', 'u', 'a', 'img', 'p', 'br', 'div', 'span',
+    'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'ul', 'ol', 'li',
+    'table', 'thead', 'tbody', 'tr', 'td', 'th',
+    'strong', 'em', 'code', 'pre', 'mark',
+    'blockquote', 'hr', 'sub', 'sup', 's', 'strike',
+    'font', 'small', 'big',
+    'details', 'summary', // Toggle blocks
+    'figure', 'figcaption', // Image captions
+    'select', 'option', 'button', 'input', // Code-block chrome + checklists
+    'audio', 'source',
+    'svg', 'polygon', 'rect', 'path', 'circle', 'line', 'polyline', 'g',
+    'math', 'semantics', 'annotation', 'mrow', 'mi', 'mo', 'mn', 'ms', 'mtext',
+    'mfrac', 'msup', 'msub', 'msubsup', 'msqrt', 'mroot', 'mover', 'munder',
+    'munderover', 'mtable', 'mtr', 'mtd', 'mstyle', 'mspace', 'mpadded', 'mphantom',
+  ],
+  ALLOWED_ATTR: [
+    'href', 'src', 'alt', 'class', 'style', 'id',
+    'target', 'rel', 'width', 'height', 'colspan', 'rowspan',
+    'data-id', 'data-type', 'data-find-highlight',
+    'data-mention-type', 'data-mention-id', 'data-mention-path', 'data-mention-href', 'data-prefix', 'data-variant',
+    'data-latex', 'data-display', 'data-cols', 'data-comment', 'data-comment-id', 'data-synced-id', 'data-role',
+    'data-lang', 'data-line-numbers', 'data-image-caption', 'data-image-align', 'data-image-width', 'data-placeholder',
+    'open', 'title',
+    'data-recording-id', 'data-audio-src',
+    'data-file-name', 'data-file-type', 'data-file-size', 'data-file-url', 'data-click-attached',
+    'data-task-id', 'checked', 'value', 'selected', 'spellcheck', 'placeholder',
+    'color', 'size', 'face', 'contenteditable', 'draggable',
+    'controls', 'type',
+    'aria-label', 'aria-hidden', 'role', 'tabindex',
+    'viewBox', 'xmlns', 'fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin',
+    'points', 'x', 'y', 'rx', 'ry', 'd', 'cx', 'cy', 'r',
+    'mathvariant', 'displaystyle', 'scriptlevel', 'lspace', 'rspace', 'separator', 'stretchy', 'accent',
+  ],
+  ALLOW_DATA_ATTR: true,
+  // Allow safe URLs only
+  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto|tel|data|blob):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+  // Return string instead of TrustedHTML
+  RETURN_TRUSTED_TYPE: false,
+};
+
+// Stricter config for code highlighting (only span tags with specific attributes)
+const CODE_HIGHLIGHT_CONFIG = {
+  ALLOWED_TAGS: ['span', 'br'],
+  ALLOWED_ATTR: ['class', 'style'],
+  ALLOW_DATA_ATTR: false,
+  RETURN_TRUSTED_TYPE: false,
+};
+
+/**
+ * Sanitize HTML content for rich text editing
+ * Use this for editor innerHTML operations
+ */
+export const sanitizeHtml = (html: string): string => {
+  const clean = DOMPurify.sanitize(html, {
+    ...RICH_TEXT_CONFIG,
+    // Allow Web Clipper full-page snapshot iframes (srcdoc with inlined HTML).
+    ADD_TAGS: ['iframe'],
+    ADD_ATTR: ['loading', 'srcdoc', 'sandbox', 'referrerpolicy', 'frameborder', 'allow', 'allowfullscreen'],
+    ADD_URI_SAFE_ATTR: ['srcdoc'],
+    FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur', 'onsubmit'],
+  }) as string;
+  try {
+    if (typeof window === 'undefined' || !clean) return clean;
+    const doc = new DOMParser().parseFromString(`<div id="__root">${clean}</div>`, 'text/html');
+    const root = doc.getElementById('__root');
+    if (!root) return clean;
+    root.querySelectorAll<HTMLIFrameElement>('iframe').forEach((frame) => {
+      const sandbox = frame.getAttribute('sandbox') || '';
+      const tokens = new Set(sandbox.split(/\s+/).filter(Boolean).filter((t) => t !== 'allow-scripts'));
+      const isOfflineFrame = isFastOfflineWebClipFrame(frame);
+      if (frame.hasAttribute('srcdoc') || isOfflineFrame) tokens.add('allow-same-origin');
+      frame.setAttribute('sandbox', Array.from(tokens).join(' ').trim() || 'allow-same-origin');
+      frame.setAttribute('referrerpolicy', 'no-referrer');
+      frame.setAttribute('loading', isOfflineFrame ? 'eager' : 'lazy');
+      if (isOfflineFrame) {
+        const srcdoc = frame.getAttribute('srcdoc') || '';
+        const src = frame.getAttribute('src') || '';
+        if (srcdoc && !src.startsWith(HTML_DATA_SRC_PREFIX)) {
+          const dataSrc = htmlToDataSrc(srcdoc);
+          if (dataSrc) frame.setAttribute('src', dataSrc);
+        }
+        frame.removeAttribute('srcdoc');
+      }
+    });
+    return root.innerHTML;
+  } catch {
+    return clean;
+  }
+};
+
+/**
+ * Sanitize code highlighting output
+ * Use this for syntax-highlighted code display
+ */
+export const sanitizeCodeHtml = (html: string): string => {
+  return DOMPurify.sanitize(html, CODE_HIGHLIGHT_CONFIG) as string;
+};
+
+/**
+ * Sanitize HTML for read-only display
+ * Slightly more permissive for viewing content
+ */
+export const sanitizeForDisplay = (html: string): string => {
+  const clean = DOMPurify.sanitize(html, {
+    ...RICH_TEXT_CONFIG,
+    // Allow lazy loading for images, plus read-only web-clip page iframes
+    // (used by the Web Clipper to embed a full captured page start-to-finish).
+    ADD_TAGS: ['iframe'],
+    ADD_ATTR: ['loading', 'srcdoc', 'sandbox', 'referrerpolicy', 'frameborder', 'allow', 'allowfullscreen'],
+    ADD_URI_SAFE_ATTR: ['srcdoc'],
+    FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur', 'onsubmit'],
+  }) as string;
+  try {
+    if (typeof window === 'undefined' || !clean) return clean;
+    const doc = new DOMParser().parseFromString(`<div id="__root">${clean}</div>`, 'text/html');
+    const root = doc.getElementById('__root');
+    if (!root) return clean;
+    root.querySelectorAll<HTMLIFrameElement>('iframe').forEach((frame) => {
+      const sandbox = frame.getAttribute('sandbox') || '';
+      const tokens = new Set(sandbox.split(/\s+/).filter(Boolean).filter((t) => t !== 'allow-scripts'));
+      const isOfflineFrame = isFastOfflineWebClipFrame(frame);
+      if (frame.hasAttribute('srcdoc') || isOfflineFrame) tokens.add('allow-same-origin');
+      frame.setAttribute('sandbox', Array.from(tokens).join(' ').trim() || 'allow-same-origin');
+      frame.setAttribute('referrerpolicy', 'no-referrer');
+      frame.setAttribute('loading', isOfflineFrame ? 'eager' : 'lazy');
+      frame.removeAttribute('contenteditable');
+      if (isOfflineFrame) {
+        const srcdoc = frame.getAttribute('srcdoc') || '';
+        const src = frame.getAttribute('src') || '';
+        if (srcdoc && !src.startsWith(HTML_DATA_SRC_PREFIX)) {
+          const dataSrc = htmlToDataSrc(srcdoc);
+          if (dataSrc) frame.setAttribute('src', dataSrc);
+        }
+        frame.removeAttribute('srcdoc');
+      }
+    });
+    return root.innerHTML;
+  } catch {
+    return clean;
+  }
+};
+
+/**
+ * Sanitize HTML captured by the Web Clipper. Extends the display config to
+ * allow safe embeds (iframe/video) so users can keep YouTube/Vimeo-style
+ * players and lazy-loaded imagery in the saved note, and — critically — to
+ * preserve the full-page read-only snapshot iframe (`srcdoc` document with
+ * the entire captured page inlined).
+ */
+export const sanitizeClippedArticle = (html: string): string => {
+  const clean = DOMPurify.sanitize(html, {
+    ...RICH_TEXT_CONFIG,
+    ADD_TAGS: ['iframe', 'video', 'figure', 'figcaption', 'picture', 'section', 'article', 'aside', 'header', 'footer', 'time'],
+    ADD_ATTR: [
+      'loading', 'srcset', 'sizes', 'poster', 'controls', 'muted',
+      'playsinline', 'autoplay', 'preload',
+      'frameborder', 'allow', 'allowfullscreen', 'referrerpolicy',
+      'alt', 'title', 'aria-label', 'data-caption',
+      'data-bytes', 'data-url', 'data-captured-at',
+      'sandbox', 'srcdoc',
+    ],
+    // `srcdoc` carries an entire HTML document as an attribute value — it is
+    // not a URL, so treat it as URI-safe and let it through unmodified.
+    ADD_URI_SAFE_ATTR: ['srcdoc'],
+    FORBID_ATTR: ['onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur', 'onsubmit'],
+    FORBID_TAGS: ['script', 'style'],
+  }) as string;
+  try {
+    if (typeof window === 'undefined' || !clean) return clean;
+    const doc = new DOMParser().parseFromString(`<div id="__root">${clean}</div>`, 'text/html');
+    const root = doc.getElementById('__root');
+    if (!root) return clean;
+
+    const KILL_STYLE = /(?:^|;)\s*(?:float|position|transform|clip|clip-path|z-index|top|left|right|bottom|max-height|min-width|min-height|columns|column-count|writing-mode)\s*:[^;]+/gi;
+    const KILL_WIDTH = /(?:^|;)\s*(?:width|max-width)\s*:[^;]+/gi;
+
+    root.querySelectorAll<HTMLElement>('*').forEach((el) => {
+      const s = el.getAttribute('style');
+      if (s) {
+        let next = s.replace(KILL_STYLE, '');
+        if (!/^(IMG|VIDEO|IFRAME|PICTURE)$/i.test(el.tagName)) next = next.replace(KILL_WIDTH, '');
+        next = next.replace(/^\s*;+/, '').trim();
+        if (next) el.setAttribute('style', next);
+        else el.removeAttribute('style');
+      }
+      if (el.hasAttribute('align')) el.removeAttribute('align');
+      if (!/^(IMG|VIDEO|IFRAME|PICTURE|TABLE|TD|TH)$/i.test(el.tagName)) {
+        el.removeAttribute('width');
+        el.removeAttribute('height');
+      }
+    });
+
+    root.querySelectorAll<HTMLImageElement>('img').forEach((img) => {
+      img.removeAttribute('width');
+      img.removeAttribute('height');
+      img.setAttribute('loading', 'lazy');
+      img.setAttribute('referrerpolicy', 'no-referrer');
+      const prev = img.getAttribute('style') || '';
+      img.setAttribute(
+        'style',
+        `${prev};display:block;max-width:100%;height:auto;margin:16px auto;border-radius:8px;`.replace(/^;/, ''),
+      );
+    });
+
+    // Full-page read-only web-clip embeds: always force a script-free sandbox
+    // and strip anything that could turn the iframe interactive-editable.
+    root.querySelectorAll<HTMLIFrameElement>('iframe').forEach((frame) => {
+      // Never allow scripts inside a captured-page iframe.
+      const sandbox = frame.getAttribute('sandbox') || '';
+      const tokens = new Set(
+        sandbox.split(/\s+/).filter(Boolean).filter((t) => t !== 'allow-scripts'),
+      );
+      const isOfflineFrame = isFastOfflineWebClipFrame(frame);
+      if (frame.hasAttribute('srcdoc') || isOfflineFrame) {
+        tokens.add('allow-same-origin');
+        tokens.add('allow-popups');
+        tokens.add('allow-popups-to-escape-sandbox');
+      }
+      frame.setAttribute('sandbox', Array.from(tokens).join(' ').trim() || 'allow-same-origin');
+      frame.setAttribute('referrerpolicy', 'no-referrer');
+      frame.setAttribute('loading', isOfflineFrame ? 'eager' : 'lazy');
+      if (isOfflineFrame) {
+        const srcdoc = frame.getAttribute('srcdoc') || '';
+        const src = frame.getAttribute('src') || '';
+        if (srcdoc && !src.startsWith(HTML_DATA_SRC_PREFIX)) {
+          const dataSrc = htmlToDataSrc(srcdoc);
+          if (dataSrc) frame.setAttribute('src', dataSrc);
+        }
+        frame.removeAttribute('srcdoc');
+      }
+      frame.removeAttribute('contenteditable');
+    });
+
+    root.querySelectorAll<HTMLElement>('div,span,section,aside').forEach((el) => {
+      const hasMedia = el.querySelector('img,video,iframe,picture,svg,audio');
+      const text = (el.textContent || '').trim();
+      if (!hasMedia && text.length === 0) el.remove();
+    });
+
+    root.querySelectorAll<SVGElement>('svg').forEach((svg) => {
+      const w = parseInt(svg.getAttribute('width') || '0', 10);
+      const h = parseInt(svg.getAttribute('height') || '0', 10);
+      if (w && h && w < 24 && h < 24) svg.remove();
+    });
+
+    if (!root.querySelector(':scope > .evernote-clip')) {
+      const shell = doc.createElement('div');
+      shell.className = 'evernote-clip';
+      while (root.firstChild) shell.appendChild(root.firstChild);
+      root.appendChild(shell);
+    }
+    return root.innerHTML;
+  } catch {
+    return clean;
+  }
+};
+
+/**
+ * Strip all HTML tags and return plain text
+ * Useful for extracting text content safely
+ */
+export const stripHtml = (html: string): string => {
+  return DOMPurify.sanitize(html, { 
+    ALLOWED_TAGS: [], 
+    ALLOWED_ATTR: [],
+    RETURN_TRUSTED_TYPE: false,
+  }) as string;
+};

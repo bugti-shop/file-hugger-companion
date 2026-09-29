@@ -1,0 +1,2929 @@
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { genId } from '@/utils/genId';
+import { sanitizeHtml, sanitizeClippedArticle, normalizeWebClipHtmlForFastOffline } from '@/lib/sanitize';
+import { supabase } from '@/integrations/supabase/client';
+import { getCachedClip, putCachedClip, normalizeClipUrl } from '@/lib/webClipCache';
+import { getSetting, setSetting } from '@/utils/settingsStorage';
+import { compressImage, isCompressibleImage } from '@/utils/imageCompression';
+import { decompressHtml, formatBytesShort } from '@/utils/htmlCompression';
+import { hydrateSnapshotFrames } from '@/utils/webClipSnapshotFrame';
+import { useNavigate } from 'react-router-dom';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useTranslation } from 'react-i18next';
+import { Note, NoteType, StickyColor, VoiceRecording, Folder, FloatingImage, TodoItem } from '@/types/note';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RichTextEditor } from './RichTextEditor';
+import { FloatingImageLayer, FloatingImageLayerHandle } from './FloatingImageLayer';
+import { LinkedInTextFormatter } from './LinkedInTextFormatter';
+import { getTableStyles, TableStyle } from './TableEditor';
+import { InlineFindReplace } from './InlineFindReplace';
+import ShortcutsCheatSheet from './richtext/ShortcutsCheatSheet';
+
+import { VirtualizedCodeEditor } from './VirtualizedCodeEditor';
+import { lazy, Suspense } from 'react';
+
+const sketchImport = () => import('./SketchEditor').then(m => ({ default: m.SketchEditor }));
+const SketchEditor = lazy(() =>
+  sketchImport().catch(() => sketchImport())
+);
+
+// Preload sketch chunk as soon as NoteEditor module is loaded
+sketchImport().catch(() => {});
+import { SketchNotebookLibrary } from './SketchNotebookLibrary';
+import { TemplateSelector } from './TemplateSelector';
+import { NoteVersionHistorySheet } from './NoteVersionHistorySheet';
+import { NoteLinkingSheet } from './NoteLinkingSheet';
+import { injectHeadingIds } from './NoteTableOfContents';
+import { TableOfContents } from './richtext/TableOfContents';
+import { InputSheetPage } from './InputSheetPage';
+import { VoiceRecordingSheet } from './VoiceRecordingSheet';
+import { NoteAttachmentsSection } from './NoteAttachmentsSection';
+import { ScanNoteSheet } from './ScanNoteSheet';
+import { TextTaskExtractorSheet } from './TextTaskExtractorSheet';
+
+import { SafeComponent } from './ErrorBoundary';
+import { loadTasksFromDB, saveTasksToDB } from '@/utils/taskStorage';
+import { stripHtml } from '@/lib/sanitize';
+
+import { ListChecks } from 'lucide-react';
+
+import { NoteVoicePlayer } from './NoteVoicePlayer';
+import { AudioPlayer } from './AudioPlayer';
+import { useHardwareBackButton } from '@/hooks/useHardwareBackButton';
+import { sanitizeForDisplay } from '@/lib/sanitize';
+import { renderMathIn, hydrateSyncedIn, hydrateWebClipsIn } from './richtext/richTextBlocks';
+import 'katex/dist/katex.min.css';
+
+import { ErrorBoundary } from './ErrorBoundary';
+import { PdfExportSuccessDialog } from './PdfExportSuccessDialog';
+import { PdfExportOptionsSheet, PdfExportSettings } from './PdfExportOptionsSheet';
+import { ArrowLeft, ChevronLeft, Folder as FolderIcon, Plus, CalendarIcon, History, FileDown, Link2, ChevronDown, FileText, BookOpen, BarChart3, MoreVertical, MoreHorizontal, Mic, Share2, Share, Search, Image, Table, Minus, SeparatorHorizontal, MessageSquare, FileSymlink, FileType, Bell, Clock, Repeat, Trash2, Mail, Phone, LinkIcon, Copy, Replace, Palette, Hash, Crown, ListFilter, CaseLower, Tag as TagIcon, Camera, Sparkles, Globe, Keyboard, MapPin, Undo2, Redo2, TagIcon as TagPlusIcon, NotebookText } from 'lucide-react';
+import { exportNoteToPdf, getPageBreakCount, PdfExportResult } from '@/utils/exportToPdf';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Switch } from '@/components/ui/switch';
+import { format } from 'date-fns';
+
+import { saveNoteVersion } from '@/utils/noteVersionHistory';
+import { triggerTripleHeavyHaptic } from '@/utils/haptics';
+import { saveNoteToDBSingle } from '@/utils/noteStorage';
+import { exportNoteToMarkdown } from '@/utils/markdownExport';
+import { insertNoteLink, findBacklinks } from '@/utils/noteLinking';
+import { calculateNoteStats, formatReadingTime } from '@/utils/noteStats';
+import { copyWithFormatting } from '@/utils/richTextCopy';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+} from '@/components/ui/dropdown-menu';
+import { TagManagementSheet } from './TagManagementSheet';
+import PublishNoteSheet from './PublishNoteSheet';
+import { syncNoteChecklistToTasks } from '@/utils/syncNoteTasks';
+
+interface NoteEditorProps {
+  note: Note | null;
+  isOpen: boolean;
+  onClose: () => void;
+  /** Return false (or resolve to false) to block persistence — e.g. when a soft paywall rejects the save. */
+  onSave: (note: Note) => boolean | void | Promise<boolean | void>;
+  defaultType?: NoteType;
+  defaultFolderId?: string;
+  allNotes?: Note[];
+  /** Route to navigate back to when editor closes. If not provided, stays on current route. */
+  returnTo?: string;
+  /** When true, skip browser history push/pop (used inside onboarding to avoid step skipping) */
+  skipHistory?: boolean;
+}
+
+// User-created folders only - no default note type folders
+
+const STICKY_COLORS: StickyColor[] = ['yellow', 'blue', 'green', 'pink', 'orange'];
+
+const STICKY_COLOR_VALUES = {
+  yellow: 'hsl(var(--sticky-yellow))',
+  blue: 'hsl(var(--sticky-blue))',
+  green: 'hsl(var(--sticky-green))',
+  pink: 'hsl(var(--sticky-pink))',
+  orange: 'hsl(var(--sticky-orange))',
+};
+
+const WEB_CLIP_RE = /class=["'][^"']*flowist-web-clip|data-block-type=["']webClip|class=["'][^"']*flowist-web-clip-page/i;
+
+const triggerReadOnlyHtmlDownload = (filename: string, html: string) => {
+  if (!html) return;
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const objectUrl = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = objectUrl;
+  a.download = filename.endsWith('.html') ? filename : `${filename}.html`;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(objectUrl), 4000);
+};
+
+export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regular', defaultFolderId, allNotes = [], returnTo, skipHistory = false }: NoteEditorProps) => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const { requireFeature, isPro, requireCapacity, requireProFeature } = useSubscription();
+  
+  const draftIdRef = useRef<string | null>(null);
+  const isOpenRef = useRef(isOpen);
+  const returnToRef = useRef(returnTo);
+
+  useEffect(() => {
+    isOpenRef.current = isOpen;
+  }, [isOpen]);
+
+  // Capture the returnTo route when editor opens
+  useEffect(() => {
+    if (isOpen && returnTo) {
+      returnToRef.current = returnTo;
+    }
+  }, [isOpen, returnTo]);
+
+  const getCurrentNoteId = useCallback(() => {
+    if (note?.id) return note.id;
+    // UUID required so the note round-trips through Lovable Cloud sync.
+    if (!draftIdRef.current) draftIdRef.current = genId();
+    return draftIdRef.current;
+  }, [note?.id]);
+
+  const [noteType, setNoteType] = useState<NoteType>(defaultType);
+  const [title, setTitle] = useState('');
+  const [location, setLocation] = useState('');
+  const [isLocationInputOpen, setIsLocationInputOpen] = useState(false);
+  const [content, setContentState] = useState('');
+  const contentRef = useRef('');
+  // Snapshot of initial title/content/codeContent when a note is opened.
+  // Autosave is skipped until the user actually edits something so that
+  // simply opening a note does not bump `updatedAt`.
+  const initialSnapshotRef = useRef<{ title: string; content: string; codeContent: string } | null>(null);
+  const setContent = useCallback((val: React.SetStateAction<string>) => {
+    setContentState(prev => {
+      const next = typeof val === 'function' ? val(prev) : val;
+      contentRef.current = next;
+      return next;
+    });
+  }, []);
+  const [color, setColor] = useState<StickyColor>('yellow');
+  const [images, setImages] = useState<string[]>([]);
+  const [floatingImages, setFloatingImages] = useState<FloatingImage[]>([]);
+  const floatingImageRef = useRef<FloatingImageLayerHandle>(null);
+  const [voiceRecordings, setVoiceRecordings] = useState<VoiceRecording[]>([]);
+  const [noteAttachments, setNoteAttachments] = useState<import('@/types/note').TaskAttachment[]>([]);
+  const [tableRows, setTableRows] = useState(3);
+  const [tableCols, setTableCols] = useState(3);
+  const [isTablePickerOpen, setIsTablePickerOpen] = useState(false);
+  const [tableStyle, setTableStyle] = useState<'default' | 'striped' | 'bordered' | 'minimal' | 'modern'>('default');
+  
+  const TABLE_STYLE_OPTIONS = [
+    { id: 'default', name: t('editor.tableStyles.default', 'Default') },
+    { id: 'striped', name: t('editor.tableStyles.striped', 'Striped') },
+    { id: 'bordered', name: t('editor.tableStyles.bordered', 'Bordered') },
+    { id: 'minimal', name: t('editor.tableStyles.minimal', 'Minimal') },
+    { id: 'modern', name: t('editor.tableStyles.modern', 'Modern') },
+  ] as const;
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false);
+  const [fontFamily, setFontFamily] = useState<string>('-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
+  const [fontSize, setFontSize] = useState<string>('16px');
+  const [fontWeight, setFontWeight] = useState<string>('400');
+  const [letterSpacing, setLetterSpacing] = useState<string>('0em');
+  const [isItalic, setIsItalic] = useState<boolean>(false);
+  const [lineHeight, setLineHeight] = useState<string>('1.5');
+  const [createdAt, setCreatedAt] = useState<Date>(new Date());
+  const [createdTime, setCreatedTime] = useState<string>('12:00');
+  const [reminderEnabled, setReminderEnabled] = useState(false);
+  const [reminderTime, setReminderTime] = useState<string>('12:00');
+  const [reminderRecurring, setReminderRecurring] = useState<'none' | 'daily' | 'weekly' | 'monthly'>('none');
+  const [reminderVibration, setReminderVibration] = useState<boolean>(true);
+  const [notificationId, setNotificationId] = useState<number | undefined>(undefined);
+  const [notificationIds, setNotificationIds] = useState<number[] | undefined>(undefined);
+
+  // Code note state
+  const [codeContent, setCodeContent] = useState<string>('');
+  const [codeLanguage, setCodeLanguage] = useState<string>('auto');
+
+
+  // Folder state
+  const [folders, setFolders] = useState<Folder[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>(undefined);
+  const [isNewFolderDialogOpen, setIsNewFolderDialogOpen] = useState(false);
+  const [newFolderName, setNewFolderName] = useState('');
+  // Tag state
+  const [noteTagIds, setNoteTagIds] = useState<string[]>([]);
+  const [showTagSheet, setShowTagSheet] = useState(false);
+  const [showPublishSheet, setShowPublishSheet] = useState(false);
+  const [newFolderColor, setNewFolderColor] = useState('#db252d');
+  const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
+  const [isNoteLinkingOpen, setIsNoteLinkingOpen] = useState(false);
+  const [isBacklinksOpen, setIsBacklinksOpen] = useState(true);
+  const [isReadingMode, setIsReadingMode] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [isFindReplaceOpen, setIsFindReplaceOpen] = useState(false);
+  const [isShortcutsSheetOpen, setIsShortcutsSheetOpen] = useState(false);
+  const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
+  const [showToc, setShowToc] = useState(false);
+  const [tocMaxLevel, setTocMaxLevel] = useState<number>(6);
+  const isReadOnlyWebClip = !!note?.fullPageSnapshot || WEB_CLIP_RE.test(note?.content || '');
+  const [readOnlySnapshotHtml, setReadOnlySnapshotHtml] = useState('');
+  const readOnlyContentRef = useRef<HTMLDivElement>(null);
+  const currentNoteId = getCurrentNoteId();
+  useEffect(() => {
+    let cancelled = false;
+    setReadOnlySnapshotHtml('');
+    if (!isOpen || !note?.fullPageSnapshot?.gz) return () => { cancelled = true; };
+    decompressHtml(note.fullPageSnapshot.gz)
+      .then((html) => { if (!cancelled) setReadOnlySnapshotHtml(html); })
+      .catch((err) => console.warn('[NoteEditor] could not expand full-page snapshot', err));
+    return () => { cancelled = true; };
+  }, [isOpen, note?.id, note?.fullPageSnapshot?.gz]);
+
+  useEffect(() => {
+    // Per-note visibility, falling back to the global default when the note has no saved value.
+    let cancelled = false;
+    (async () => {
+      const globalDefault = await getSetting<boolean>('noteEditor.showToc', false).catch(() => false);
+      const perNote = await getSetting<boolean | null>(`noteEditor.showToc.${currentNoteId}`, null as any).catch(() => null);
+      if (cancelled) return;
+      setShowToc(typeof perNote === 'boolean' ? perNote : !!globalDefault);
+    })();
+    return () => { cancelled = true; };
+  }, [currentNoteId]);
+  useEffect(() => {
+    getSetting<number>('noteEditor.tocMaxLevel', 6).then(v => setTocMaxLevel(Math.min(6, Math.max(1, Number(v) || 6)))).catch(() => {});
+  }, []);
+  const toggleToc = useCallback(() => {
+    setShowToc(prev => {
+      const next = !prev;
+      // Persist per note so opening the same note again keeps the preference.
+      setSetting(`noteEditor.showToc.${currentNoteId}`, next).catch(() => {});
+      // Also update the global default so brand-new notes match the last choice.
+      setSetting('noteEditor.showToc', next).catch(() => {});
+      return next;
+    });
+  }, [currentNoteId]);
+  const changeTocMaxLevel = useCallback((level: number) => {
+    const clamped = Math.min(6, Math.max(1, level));
+    setTocMaxLevel(clamped);
+    setSetting('noteEditor.tocMaxLevel', clamped).catch(() => {});
+  }, []);
+  const [metaDescription, setMetaDescription] = useState<string>('');
+  const [customColor, setCustomColor] = useState<string | undefined>(undefined);
+  
+  
+  // Voice recorder state
+  const [showVoiceRecorder, setShowVoiceRecorder] = useState(false);
+  const [showScanNote, setShowScanNote] = useState(false);
+  const [showExtractTasks, setShowExtractTasks] = useState(false);
+  // Auto-resume note scanner after sign-in redirect (?resumeScan=note).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('resumeScan') !== 'note') return;
+    params.delete('resumeScan');
+    const next = params.toString();
+    window.history.replaceState(null, '', window.location.pathname + (next ? `?${next}` : '') + window.location.hash);
+    setShowScanNote(true);
+  }, []);
+  
+  
+  const [showSketchLibrary, setShowSketchLibrary] = useState(false);
+  
+  // Input sheet page states (replaces window.prompt)
+  const [isLinkInputOpen, setIsLinkInputOpen] = useState(false);
+  const [isCommentInputOpen, setIsCommentInputOpen] = useState(false);
+  const [isMetaDescInputOpen, setIsMetaDescInputOpen] = useState(false);
+  const [isTitleEditOpen, setIsTitleEditOpen] = useState(false);
+
+  // Web Clipper dialog state — paste any URL, fetch its full page, embed the
+  // snapshot as a sandboxed iframe (srcdoc = inline HTML) directly into the
+  // note. Because the HTML lives inside the note content, it renders offline
+  // on both web and Android (Capacitor WebView) after the first fetch.
+  const [isWebClipperOpen, setIsWebClipperOpen] = useState(false);
+  const [webClipUrl, setWebClipUrl] = useState('');
+  const [webClipLoading, setWebClipLoading] = useState(false);
+  const [webClipError, setWebClipError] = useState<string | null>(null);
+  
+  // Sketch meta dialog state - shown when closing a sketch note
+  const [showSketchMetaDialog, setShowSketchMetaDialog] = useState(false);
+  const [sketchMetaTitle, setSketchMetaTitle] = useState('');
+  const [sketchMetaDesc, setSketchMetaDesc] = useState('');
+  const sketchMetaPendingCloseRef = useRef(false);
+  // PDF export success dialog state
+  const [pdfExportResult, setPdfExportResult] = useState<{ filename: string; base64Data: string } | null>(null);
+  const [showPdfOptionsSheet, setShowPdfOptionsSheet] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  
+  const editorRef = useRef<HTMLDivElement>(null);
+  
+  // Handle voice recording completion - insert inline at cursor position
+  const handleVoiceRecordingComplete = useCallback((audioBlob: Blob, audioUrl: string, duration: number) => {
+    const newRecording: VoiceRecording = {
+      id: `voice-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
+      audioUrl,
+      duration,
+      timestamp: new Date(),
+    };
+    setVoiceRecordings(prev => [...prev, newRecording]);
+    
+    // Insert audio player HTML at cursor position in the editor
+    const formatDuration = (secs: number) => {
+      const mins = Math.floor(secs / 60);
+      const s = Math.floor(secs % 60);
+      return `${mins}:${s.toString().padStart(2, '0')}`;
+    };
+    
+    // Generate waveform bars with varying heights for dynamic look
+    const generateWaveformBars = (isProgress = false) => {
+      const bars = [];
+      // Pre-defined heights to create a natural waveform pattern
+      const heights = [4, 8, 12, 6, 14, 10, 16, 8, 12, 18, 10, 6, 14, 8, 16, 12, 6, 10, 14, 8, 18, 12, 6, 10, 16, 8, 14, 10, 6, 12];
+      for (let i = 0; i < 30; i++) {
+        const height = heights[i % heights.length];
+        const color = isProgress ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground) / 0.35)';
+        bars.push(`<span class="waveform-bar" data-index="${i}" style="display: inline-block; width: 3px; height: ${height}px; border-radius: 2px; background: ${color}; margin: 0 1px;"></span>`);
+      }
+      return bars.join('');
+    };
+    
+    const audioPlayerHtml = `
+      <div class="voice-recording-inline" data-voice-id="${newRecording.id}" data-duration="${duration}" data-speed="1" contenteditable="false">
+        <audio src="${audioUrl}" data-duration="${duration}"></audio>
+        <button class="voice-play-btn" type="button" aria-label="Play/Pause">
+          <svg class="play-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          <svg class="pause-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none" style="display: none;"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+        </button>
+        <div class="voice-waveform voice-seek-area" role="slider" aria-label="Seek audio" tabindex="0">
+          <div class="waveform-progress" style="position: absolute; left: 0; top: 0; height: 100%; width: 0%; overflow: hidden; display: flex; align-items: center; pointer-events: none;">
+            ${generateWaveformBars(true)}
+          </div>
+          <div class="waveform-background" style="display: flex; align-items: center; pointer-events: none;">
+            ${generateWaveformBars(false)}
+          </div>
+        </div>
+        <span class="voice-duration">${formatDuration(duration)}</span>
+        <button class="voice-speed-btn" type="button" aria-label="Playback speed">1x</button>
+        <button class="voice-delete-btn" type="button" aria-label="Delete">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+        </button>
+      </div>
+    `.trim();
+    
+    // Try to insert at cursor position
+    if (editorRef.current) {
+      editorRef.current.focus();
+      document.execCommand('insertHTML', false, audioPlayerHtml + '<p><br></p>');
+    } else {
+      // Fallback: append to content
+      setContent(prev => prev + audioPlayerHtml);
+    }
+  }, []);
+
+  /**
+   * Deep-link scroll: NoteBlocksWidget (Home) navigates here with a
+   * `focusText` query, Notes.tsx re-emits it as a `lovable:focusNoteBlock`
+   * event. We scan the editor DOM for the first element whose textContent
+   * contains that snippet and scroll it into view + briefly highlight it.
+   * The content itself is never mutated — this is a pure jump so the
+   * originally clipped/linked content stays exactly as saved.
+   */
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent<{ text?: string }>).detail;
+      const needle = (detail?.text || '').trim().toLowerCase();
+      if (!needle || !editorRef.current) return;
+      const nodes = editorRef.current.querySelectorAll<HTMLElement>(
+        'h1,h2,h3,h4,h5,h6,p,li,figure,a,img,.flowist-web-clip',
+      );
+      for (const node of Array.from(nodes)) {
+        const hay = (node.textContent || node.getAttribute('alt') || node.getAttribute('href') || '')
+          .trim().toLowerCase();
+        if (!hay) continue;
+        if (hay.includes(needle) || needle.includes(hay.slice(0, 40))) {
+          node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          const prev = node.style.transition;
+          const prevBg = node.style.backgroundColor;
+          node.style.transition = 'background-color 600ms ease';
+          node.style.backgroundColor = 'hsl(var(--primary) / 0.18)';
+          window.setTimeout(() => {
+            node.style.backgroundColor = prevBg;
+            node.style.transition = prev;
+          }, 1600);
+          break;
+        }
+      }
+    };
+    window.addEventListener('lovable:focusNoteBlock', handler as EventListener);
+    return () => window.removeEventListener('lovable:focusNoteBlock', handler as EventListener);
+  }, []);
+  
+  // Calculate stats only when the stats bar is visible. Large 30k–200k word
+  // notes must not be re-scanned on every keystroke or navigation frame.
+  const noteStats = useMemo(
+    () => showStats
+      ? calculateNoteStats(content, title)
+      : { wordCount: 0, characterCount: 0, characterCountNoSpaces: 0, readingTimeMinutes: 0 },
+    [showStats, content, title],
+  );
+  const instantSavedWebClipContent = useMemo(
+    () => (note?.content && WEB_CLIP_RE.test(note.content) ? normalizeWebClipHtmlForFastOffline(note.content) : ''),
+    [note?.content],
+  );
+  const visibleReadOnlyContent = (isReadOnlyWebClip && instantSavedWebClipContent) ? instantSavedWebClipContent : content;
+  const displayContentHtml = useMemo(
+    () => (isReadOnlyWebClip || isReadingMode ? sanitizeForDisplay(visibleReadOnlyContent) : ''),
+    [visibleReadOnlyContent, isReadOnlyWebClip, isReadingMode],
+  );
+
+  useEffect(() => {
+    if (!isReadOnlyWebClip || !readOnlySnapshotHtml || !readOnlyContentRef.current) return;
+    return hydrateSnapshotFrames(readOnlyContentRef.current, readOnlySnapshotHtml);
+  }, [isReadOnlyWebClip, readOnlySnapshotHtml, displayContentHtml]);
+  
+  // Calculate backlinks
+  const backlinks = note ? findBacklinks(note, allNotes) : [];
+
+  const extractTasksInitialText = useMemo(() => {
+    if (!showExtractTasks) return '';
+    const plain = stripHtml(content || '').slice(0, 100_000);
+    return `${title ? title + '\n\n' : ''}${plain}`.trim();
+  }, [showExtractTasks, title, content]);
+
+  useEffect(() => {
+    const loadFolders = async () => {
+      const savedFolders = await getSetting<Folder[] | null>('folders', null);
+      if (savedFolders) {
+        setFolders(savedFolders.map((f: Folder) => ({
+          ...f,
+          createdAt: new Date(f.createdAt),
+        })));
+      }
+    };
+    loadFolders();
+    
+    // Re-load when folders change externally
+    const handleFoldersUpdated = () => loadFolders();
+    window.addEventListener('foldersUpdated', handleFoldersUpdated);
+    return () => window.removeEventListener('foldersUpdated', handleFoldersUpdated);
+  }, []);
+
+  useEffect(() => {
+    if (note) {
+      console.log(`[NoteEditor] Loading note: id=${note.id}, type=${note.type}, content length=${note.content?.length || 0}`);
+      setNoteType(note.type);
+      setTitle(note.title);
+      
+      // Check for crash-recovery data that may be newer than what's in IndexedDB
+      let recoveredContent = note.content;
+      try {
+        const recoveryRaw = localStorage.getItem('note_crash_recovery');
+        if (recoveryRaw) {
+          const recovery = JSON.parse(recoveryRaw);
+          // Only use recovery if it's for THIS note and less than 30 seconds old
+          if (recovery.id === note.id && (Date.now() - recovery.timestamp) < 30000) {
+            if (recovery.content && recovery.content.length > (note.content?.length || 0)) {
+              recoveredContent = recovery.content;
+              console.log('[NoteEditor] Recovered unsaved content from crash recovery');
+            }
+            if (recovery.codeContent) {
+              setCodeContent(recovery.codeContent);
+            }
+          }
+          // Clear recovery data after use
+          localStorage.removeItem('note_crash_recovery');
+        }
+      } catch {}
+      
+      const fastOfflineContent = WEB_CLIP_RE.test(recoveredContent || '')
+        ? normalizeWebClipHtmlForFastOffline(recoveredContent)
+        : recoveredContent;
+      setContent(fastOfflineContent);
+      if (fastOfflineContent !== recoveredContent) {
+        saveNoteToDBSingle({ ...note, content: fastOfflineContent, updatedAt: new Date() })
+          .catch((e) => console.warn('[NoteEditor] could not upgrade web clip for fast offline open', e));
+      }
+      setIsReadingMode(!!(note.fullPageSnapshot || WEB_CLIP_RE.test(note.content || '')));
+      setColor(note.color || 'yellow');
+      setCustomColor(note.customColor);
+      setImages(note.images || []);
+      setFloatingImages(note.floatingImages || []);
+      setVoiceRecordings(note.voiceRecordings || []);
+      setNoteAttachments(note.attachments || []);
+      setSelectedFolderId(note.folderId);
+      setNoteTagIds(note.tagIds || []);
+      setFontFamily(note.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
+      setFontSize(note.fontSize || '16px');
+      setFontWeight(note.fontWeight || '400');
+      setLetterSpacing(note.letterSpacing || '0em');
+      setIsItalic(note.isItalic || false);
+      setLineHeight(note.lineHeight || '1.5');
+      const noteDate = new Date(note.createdAt);
+      setCreatedAt(noteDate);
+      setCreatedTime(format(noteDate, 'HH:mm'));
+      setReminderEnabled(note.reminderEnabled || false);
+      setReminderRecurring(note.reminderRecurring || 'none');
+      setReminderVibration(note.reminderVibration !== false);
+      if (note.reminderTime) {
+        const reminderDate = new Date(note.reminderTime);
+        setReminderTime(format(reminderDate, 'HH:mm'));
+      }
+      setNotificationId(note.notificationId);
+      setNotificationIds(note.notificationIds);
+
+      // Code fields
+      if (!recoveredContent || note.type !== 'code') {
+        setCodeContent(note.codeContent || '');
+      }
+      setCodeLanguage(note.codeLanguage || 'auto');
+      setMetaDescription(note.metaDescription || '');
+      setLocation(note.location || '');
+
+      // Capture snapshot AFTER state setters queue so autosave can compare.
+      initialSnapshotRef.current = {
+        title: note.title || '',
+        content: (recoveredContent && WEB_CLIP_RE.test(recoveredContent))
+          ? normalizeWebClipHtmlForFastOffline(recoveredContent)
+          : (recoveredContent || ''),
+        codeContent: note.codeContent || '',
+      };
+      
+      
+    } else {
+      // Reset draft ID for new notes to prevent overwriting
+      draftIdRef.current = null;
+      
+      // Load default font settings from notes settings
+      const loadDefaultFontSettings = async () => {
+        try {
+          const notesSettings = await getSetting<{
+            normalText?: { fontFamily?: string; fontSize?: string; fontColor?: string };
+            headings?: { fontFamily?: string; fontSize?: string; fontColor?: string };
+          } | null>('notesEditorSettings', null);
+          
+          if (notesSettings?.normalText) {
+            const { fontFamily: savedFont, fontSize: savedSize } = notesSettings.normalText;
+            if (savedFont && savedFont !== 'System Default') {
+              setFontFamily(savedFont);
+            } else {
+              setFontFamily('-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
+            }
+            if (savedSize) {
+              setFontSize(`${savedSize}px`);
+            } else {
+              setFontSize('16px');
+            }
+          } else {
+            setFontFamily('-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
+            setFontSize('16px');
+          }
+        } catch (error) {
+          console.error('Error loading default font settings:', error);
+          setFontFamily('-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
+          setFontSize('16px');
+        }
+      };
+      
+      loadDefaultFontSettings();
+      
+      setNoteType(defaultType);
+      setTitle('');
+      setContent('');
+      setColor('yellow');
+      setCustomColor(undefined);
+      setImages([]);
+      setFloatingImages([]);
+      setVoiceRecordings([]);
+      setNoteAttachments([]);
+      setSelectedFolderId(defaultFolderId);
+      setNoteTagIds([]);
+      setFontWeight('400');
+      setLetterSpacing('0em');
+      setIsItalic(false);
+      setLineHeight('1.5');
+      const now = new Date();
+      setCreatedAt(now);
+      setCreatedTime(format(now, 'HH:mm'));
+      setReminderEnabled(false);
+      setReminderTime('12:00');
+      setReminderRecurring('none');
+      setReminderVibration(true);
+      setNotificationId(undefined);
+      setNotificationIds(undefined);
+      setMetaDescription('');
+      setLocation('');
+
+      // Reset code fields
+      setCodeContent('');
+      setCodeLanguage('auto');
+
+      // New note snapshot: empty. Any typed character will flip dirty=true.
+      initialSnapshotRef.current = { title: '', content: '', codeContent: '' };
+      
+      // Auto-open voice recorder for new voice notes
+      if (defaultType === 'voice') {
+        setTimeout(() => setShowVoiceRecorder(true), 100);
+      }
+    }
+  }, [note, defaultType, defaultFolderId, isOpen]);
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    if (!requireCapacity('noteFolders', folders.filter(f => !f.isDefault).length)) return;
+
+    const newFolder: Folder = {
+      id: genId(),
+      name: newFolderName,
+      isDefault: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      color: newFolderColor,
+    } as Folder;
+
+    const updatedFolders = [...folders, newFolder];
+    setFolders(updatedFolders);
+    // Save folders to IndexedDB and dispatch event
+    const foldersToSave = updatedFolders.filter(f => !f.isDefault);
+    await setSetting('folders', foldersToSave);
+    // Dispatch event so Index.tsx can pick up the new folder
+    window.dispatchEvent(new Event('foldersUpdated'));
+    setSelectedFolderId(newFolder.id);
+    setNewFolderName('');
+    setNewFolderColor('#db252d');
+    setIsNewFolderDialogOpen(false);
+    toast.success(t('toast.folderCreated'));
+  };
+
+  const persistNoteToIndexedDB = useCallback(async (savedNote: Note) => {
+    try {
+      console.log(`[NoteEditor] persistNoteToIndexedDB: id=${savedNote.id}, type=${savedNote.type}, content length=${savedNote.content?.length || 0}`);
+      await saveNoteToDBSingle(savedNote);
+    } catch (e) {
+      console.warn('Failed to persist note to IndexedDB', e);
+    }
+  }, []);
+
+  const buildCurrentNote = useCallback((): Note => {
+    // Combine date and time
+    const [hours, minutes] = createdTime.split(':').map(Number);
+    const combinedDateTime = new Date(createdAt);
+    combinedDateTime.setHours(hours, minutes, 0, 0);
+
+    return {
+      id: getCurrentNoteId(),
+      type: noteType,
+      title,
+      content: noteType === 'code' ? '' : contentRef.current,
+      fullPageSnapshot: note?.fullPageSnapshot,
+      color: noteType === 'sticky' ? color : undefined,
+      customColor: noteType !== 'sticky' && noteType !== 'voice' ? customColor : undefined,
+      images: noteType === 'sticky' ? undefined : images,
+      floatingImages: (noteType === 'regular' || noteType === 'sticky' || noteType === 'textformat') && floatingImages.length > 0 ? floatingImages : undefined,
+      voiceRecordings,
+      attachments: noteAttachments.length > 0 ? noteAttachments : undefined,
+      folderId: selectedFolderId || defaultFolderId || undefined,
+      fontFamily: (noteType === 'sticky' || noteType === 'lined' || noteType === 'regular' || noteType === 'textformat') ? fontFamily : undefined,
+      fontSize: (noteType === 'sticky' || noteType === 'lined' || noteType === 'regular' || noteType === 'textformat') ? fontSize : undefined,
+      fontWeight: (noteType === 'sticky' || noteType === 'lined' || noteType === 'regular' || noteType === 'textformat') ? fontWeight : undefined,
+      letterSpacing: (noteType === 'sticky' || noteType === 'lined' || noteType === 'regular' || noteType === 'textformat') ? letterSpacing : undefined,
+      isItalic: (noteType === 'sticky' || noteType === 'lined' || noteType === 'regular' || noteType === 'textformat') ? isItalic : undefined,
+      lineHeight: (noteType === 'sticky' || noteType === 'lined' || noteType === 'regular' || noteType === 'textformat') ? lineHeight : undefined,
+      codeContent: noteType === 'code' ? codeContent : undefined,
+      codeLanguage: noteType === 'code' ? codeLanguage : undefined,
+      reminderEnabled,
+      reminderTime: reminderEnabled ? (() => {
+        const [remHours, remMinutes] = reminderTime.split(':').map(Number);
+        const reminderDateTime = new Date(createdAt);
+        reminderDateTime.setHours(remHours, remMinutes, 0, 0);
+        return reminderDateTime;
+      })() : undefined,
+      reminderRecurring,
+      reminderVibration,
+      notificationId,
+      notificationIds,
+      metaDescription: metaDescription || undefined,
+      location: location || undefined,
+      tagIds: noteTagIds.length > 0 ? noteTagIds : undefined,
+      createdAt: note?.createdAt || combinedDateTime,
+      updatedAt: new Date(),
+    };
+  }, [
+    createdAt,
+    createdTime,
+    getCurrentNoteId,
+    note?.createdAt,
+    note?.fullPageSnapshot,
+    noteType,
+    title,
+    content,
+    color,
+    customColor,
+    images,
+    floatingImages,
+    voiceRecordings,
+    noteAttachments,
+    selectedFolderId,
+    noteTagIds,
+    fontFamily,
+    fontSize,
+    fontWeight,
+    letterSpacing,
+    isItalic,
+    lineHeight,
+    codeContent,
+    codeLanguage,
+    reminderEnabled,
+    reminderTime,
+    reminderRecurring,
+    reminderVibration,
+    notificationId,
+    notificationIds,
+    metaDescription,
+    location,
+  ]);
+
+  const commitNote = useCallback(async ({ full }: { full: boolean }) => {
+    const savedNote = buildCurrentNote();
+
+    // Ask the parent first — if they reject (e.g. soft paywall), do NOT persist.
+    let accepted: boolean | void = true;
+    try {
+      accepted = await onSave(savedNote);
+    } catch (e) {
+      console.warn('[NoteEditor] onSave threw, treating as rejected', e);
+      accepted = false;
+    }
+    if (accepted === false) return;
+
+    // Bridge checklist items to global tasks on EVERY save (partial or full)
+    // so ticking a checkbox in a note mirrors to Today instantly.
+    syncNoteChecklistToTasks(savedNote)
+      .then((rewritten) => {
+        if (rewritten && rewritten !== savedNote.content) {
+          setContentState(rewritten);
+        }
+      })
+      .catch((e) => console.warn('[NoteEditor] task sync failed', e));
+
+    if (full) {
+      // Schedule or cancel note reminder in background
+      if (savedNote.reminderEnabled && savedNote.reminderTime) {
+        import('@/utils/reminderScheduler').then(({ scheduleNoteReminder }) => {
+          scheduleNoteReminder(savedNote.id, savedNote.title || 'Note reminder', new Date(savedNote.reminderTime!)).catch(console.warn);
+        });
+      } else {
+        import('@/utils/reminderScheduler').then(({ cancelNoteReminder }) => {
+          cancelNoteReminder(savedNote.id).catch(console.warn);
+        });
+      }
+
+      // Save version history (only on "full" save)
+      saveNoteVersion(savedNote, note ? 'edit' : 'create');
+
+      // Update semantic search embeddings (debounced per note)
+      import('@/utils/semanticSearch').then(({ scheduleEmbedNote }) => {
+        scheduleEmbedNote({ id: savedNote.id, title: savedNote.title, content: savedNote.content });
+      }).catch(() => {});
+    }
+
+    persistNoteToIndexedDB(savedNote);
+  }, [buildCurrentNote, note, onSave, persistNoteToIndexedDB]);
+
+  const handleSave = useCallback(async () => {
+    triggerTripleHeavyHaptic();
+    if (!isReadOnlyWebClip) {
+      await commitNote({ full: true });
+    }
+  }, [commitNote, isReadOnlyWebClip]);
+
+  // Use ref to always have access to the latest save function
+  const handleSaveRef = useRef(handleSave);
+  handleSaveRef.current = handleSave;
+
+  // The actual close logic (called after sketch meta dialog if needed)
+  const performClose = useCallback(async () => {
+    // Mark as closing to prevent re-entry
+    if (!isOpenRef.current) return;
+    
+    if (!isReadOnlyWebClip) {
+      await commitNote({ full: true });
+    }
+    // Clear crash recovery since we saved successfully
+    try { localStorage.removeItem('note_crash_recovery'); } catch {}
+    
+    // Close first, then handle navigation
+    onClose();
+    
+    // Navigate back to the origin screen if provided (after a small delay to avoid race)
+    if (returnToRef.current) {
+      setTimeout(() => {
+        navigate(returnToRef.current!, { replace: true });
+      }, 10);
+    }
+  }, [commitNote, navigate, onClose, isReadOnlyWebClip]);
+
+  const handleClose = useCallback(async () => {
+    if (!isOpenRef.current) return;
+    
+    // For sketch notes, only show dialog if title or description is missing
+    if (noteType === 'sketch' && (!title.trim() || !metaDescription.trim())) {
+      setSketchMetaTitle(title);
+      setSketchMetaDesc(metaDescription);
+      setShowSketchMetaDialog(true);
+      return;
+    }
+    
+    await performClose();
+  }, [noteType, title, metaDescription, performClose]);
+
+  // Called when user confirms sketch meta dialog
+  const handleSketchMetaSave = useCallback(async () => {
+    if (!sketchMetaTitle.trim()) {
+      toast.error(t('editor.sketchTitleRequired', 'Title is required for sketch notes'));
+      return;
+    }
+    if (!sketchMetaDesc.trim()) {
+      toast.error(t('editor.sketchDescRequired', 'Description is required for sketch notes'));
+      return;
+    }
+    // Update state for UI - performClose will be called after state propagates
+    setTitle(sketchMetaTitle.trim());
+    setMetaDescription(sketchMetaDesc.trim());
+    setShowSketchMetaDialog(false);
+    // Use a flag to trigger close after state update
+    sketchMetaPendingCloseRef.current = true;
+  }, [sketchMetaTitle, sketchMetaDesc, t]);
+
+  // Effect: close after sketch meta state has propagated
+  useEffect(() => {
+    if (sketchMetaPendingCloseRef.current && title.trim() && metaDescription.trim()) {
+      sketchMetaPendingCloseRef.current = false;
+      performClose();
+    }
+  }, [title, metaDescription, performClose]);
+
+  const handleCloseRef = useRef(handleClose);
+  useEffect(() => {
+    handleCloseRef.current = handleClose;
+  }, [handleClose]);
+
+  // Auto-save as user types (debounced) - shorter debounce for sketch
+  useEffect(() => {
+    if (!isOpen || isReadOnlyWebClip) return;
+
+    const hasText = (title?.trim() || '') !== '' || (content?.trim() || '') !== '' || (codeContent?.trim() || '') !== '';
+    if (!hasText) return;
+
+    // Skip autosave when the user hasn't actually edited anything — merely
+    // opening a note must NOT bump `updatedAt`.
+    const snap = initialSnapshotRef.current;
+    if (snap && title === snap.title && content === snap.content && codeContent === snap.codeContent) {
+      return;
+    }
+
+    // For sketch notes, don't auto-save if content looks like default empty sketch
+    // (no strokes in any layer). This prevents overwriting real data on mount.
+    if (noteType === 'sketch' && content) {
+      try {
+        const parsed = JSON.parse(content);
+        const totalStrokes = (parsed.layers || []).reduce((sum: number, l: any) => 
+          sum + (l.strokes?.length || 0) + (l.textAnnotations?.length || 0) + (l.stickyNotes?.length || 0) + (l.images?.length || 0), 0);
+        if (totalStrokes === 0 && note?.content) {
+          // Empty sketch but note has existing content - skip auto-save to prevent data loss
+          return;
+        }
+      } catch {}
+    }
+
+    // Sketch data can be large; use shorter debounce to save sooner
+    const delay = noteType === 'sketch' ? 300 : 700;
+    const t = window.setTimeout(() => {
+      void commitNote({ full: false });
+    }, delay);
+
+    return () => window.clearTimeout(t);
+  }, [isOpen, title, content, codeContent, commitNote, noteType, note?.content, isReadOnlyWebClip]);
+
+  // Save immediately if tab/app is backgrounded or page is refreshed/closed
+  const buildCurrentNoteRef = useRef(buildCurrentNote);
+  buildCurrentNoteRef.current = buildCurrentNote;
+  
+  // Crash-recovery key for localStorage fallback
+  const CRASH_RECOVERY_KEY = 'note_crash_recovery';
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        if (isReadOnlyWebClip) return;
+        void commitNote({ full: false });
+        // Also write to localStorage as synchronous fallback
+        try {
+          const savedNote = buildCurrentNoteRef.current();
+          localStorage.setItem(CRASH_RECOVERY_KEY, JSON.stringify({
+            id: savedNote.id,
+            type: savedNote.type,
+            title: savedNote.title,
+            content: savedNote.content,
+            timestamp: Date.now(),
+          }));
+        } catch {}
+      }
+    };
+
+    // Force-save on page refresh/close to prevent data loss
+    // localStorage.setItem is SYNCHRONOUS and guaranteed to persist
+    const onBeforeUnload = () => {
+      try {
+        const savedNote = buildCurrentNoteRef.current();
+        // Synchronous localStorage write - guaranteed to complete before page unloads
+        localStorage.setItem(CRASH_RECOVERY_KEY, JSON.stringify({
+          id: savedNote.id,
+          type: savedNote.type,
+          title: savedNote.title,
+          content: savedNote.content,
+          codeContent: savedNote.codeContent,
+          timestamp: Date.now(),
+        }));
+        // Also fire-and-forget IndexedDB save (may or may not complete)
+        saveNoteToDBSingle(savedNote);
+      } catch (e) {
+        console.warn('beforeunload save failed:', e);
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+    };
+  }, [isOpen, commitNote, isReadOnlyWebClip]);
+
+  // Handle hardware back button on Android - save and close editor (parent keeps correct screen)
+  useHardwareBackButton({
+    onBack: handleClose,
+    enabled: isOpen && !skipHistory,
+    priority: 'sheet',
+  });
+
+  const handleRestoreVersion = (restoredContent: string, restoredTitle: string) => {
+    setContent(restoredContent);
+    setTitle(restoredTitle);
+    toast.success(t('toast.versionRestored'));
+  };
+
+  const handleInsertNoteLink = (noteTitle: string) => {
+    const linkText = insertNoteLink(noteTitle);
+    setContent(prev => prev + linkText);
+    toast.success(t('toast.linkInserted', { title: noteTitle }));
+  };
+
+  const handleExportMarkdown = () => {
+    const currentNote: Note = {
+      id: note?.id || Date.now().toString(),
+      type: noteType,
+      title,
+      content,
+      codeContent,
+      codeLanguage,
+      voiceRecordings,
+      createdAt: note?.createdAt || new Date(),
+      updatedAt: new Date(),
+    };
+    exportNoteToMarkdown(currentNote);
+    toast.success(t('toast.noteExportedMarkdown'));
+  };
+
+  const handleImageAdd = async (imageUrl: string) => {
+    try {
+      if (isCompressibleImage(imageUrl)) {
+        imageUrl = await compressImage(imageUrl, { maxWidth: 1200, maxHeight: 1200, quality: 0.8 });
+      }
+    } catch (e) {
+      console.warn('Image compression failed, using original:', e);
+    }
+    setImages([...images, imageUrl]);
+  };
+
+  const handleRecordingAdd = (recording: VoiceRecording) => {
+    setVoiceRecordings([...voiceRecordings, recording]);
+  };
+
+  const handleInsertAudioAtCursor = (audioBase64: string, recordingId: string) => {
+    // For rich text editors (sticky, lined, regular), insert audio element at cursor position
+    // We use a custom data attribute to identify and render with AudioPlayer component
+    if (['sticky', 'lined', 'regular'].includes(noteType) && editorRef.current) {
+      // Focus the editor to ensure cursor is active
+      editorRef.current.focus();
+      
+      // For lined notes, wrap in div with proper class for alignment, followed by a new paragraph for cursor
+      const audioHtml = `<div class="audio-player-container" style="margin: 12px 0; display: block; text-align: center;" data-recording-id="${recordingId}" data-audio-src="${audioBase64}"><audio controls src="${audioBase64}" style="width: 100%; max-width: 400px; height: 54px;"></audio></div><p style="text-align: center;"><br></p>`;
+      
+      // Insert at cursor position using execCommand
+      document.execCommand('insertHTML', false, audioHtml);
+      
+      // Move cursor to the new paragraph
+      const selection = window.getSelection();
+      if (selection && editorRef.current) {
+        const paragraphs = editorRef.current.querySelectorAll('p');
+        const lastP = paragraphs[paragraphs.length - 1];
+        if (lastP) {
+          const range = document.createRange();
+          range.selectNodeContents(lastP);
+          range.collapse(false);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+      }
+      
+      // Trigger content update
+      if (editorRef.current) {
+        setContent(editorRef.current.innerHTML);
+      }
+    }
+  };
+
+  const handleRecordingDelete = (id: string) => {
+    setVoiceRecordings(voiceRecordings.filter(r => r.id !== id));
+  };
+
+  // Insert AI-generated HTML (from page scan) at cursor or append to end.
+  // For code/voice/sketch notes (which don't render rich HTML), strips tags
+  // and appends plain text to the appropriate field, plus copies to clipboard
+  // so the user can paste anywhere they want.
+  const handleAiInsertHtml = (html: string, suggestedTitle?: string) => {
+    if (!html) return;
+    if (suggestedTitle && !title.trim()) {
+      setTitle(suggestedTitle);
+    }
+    if (['sticky', 'lined', 'regular', 'textformat'].includes(noteType) && editorRef.current) {
+      const editor = editorRef.current;
+      editor.focus();
+      // Ensure a valid selection exists INSIDE the editor. If the user never
+      // tapped into the note (opened dictation straight away), selection is
+      // null or outside the editor → execCommand('insertHTML') silently
+      // no-ops and the transcript is lost. Place caret at end first so
+      // insert ALWAYS lands, even without prior cursor placement.
+      try {
+        const sel = window.getSelection();
+        const needsRestore =
+          !sel ||
+          sel.rangeCount === 0 ||
+          !editor.contains(sel.getRangeAt(0).commonAncestorContainer);
+        if (needsRestore && sel) {
+          const range = document.createRange();
+          range.selectNodeContents(editor);
+          range.collapse(false); // end of editor
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      } catch {}
+      const safeHtml = sanitizeHtml(html) + '<p><br></p>';
+      let inserted = false;
+      try {
+        inserted = document.execCommand('insertHTML', false, safeHtml);
+      } catch {
+        inserted = false;
+      }
+      if (!inserted) {
+        // Fallback: direct DOM append so transcript is never lost even if
+        // execCommand is blocked/deprecated.
+        editor.insertAdjacentHTML('beforeend', safeHtml);
+      }
+      setContent(editor.innerHTML);
+    } else if (noteType === 'code') {
+      // Strip HTML → plain text, append to code buffer.
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      const plain = (tmp.textContent || '').trim();
+      if (plain) {
+        setCodeContent(prev => (prev ? prev + '\n\n' : '') + plain);
+        toast.success(t('scanNote.appendedToCode', 'Extracted text added to code'));
+      }
+    } else if (noteType === 'voice' || noteType === 'sketch') {
+      // Voice/sketch don't render HTML body — extract plain text, store in
+      // content (persists with the note) and copy to clipboard for easy paste.
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      const plain = (tmp.textContent || '').trim();
+      if (plain) {
+        setContent(prev => (prev ? prev + '\n\n' : '') + plain);
+        try { void navigator.clipboard?.writeText(plain); } catch {}
+        toast.success(t('scanNote.copiedToClipboard', 'Extracted text copied to clipboard'));
+      }
+    } else {
+      setContent(prev => (prev || '') + sanitizeHtml(html));
+    }
+  };
+
+  /**
+   * Web Clipper: fetch a URL through the fetch-article edge function, then
+   * embed the returned full-page HTML snapshot as an inline sandboxed iframe
+   * (srcdoc = the entire HTML string). This is the exact same rendering the
+   * `/dev/fetch-article` sandbox uses. Because the HTML is stored inline in
+   * the note's content, it works offline on web and Android after the first
+   * fetch — no network round-trip needed to re-read the clip.
+   */
+  const runWebClipperFetch = async () => {
+    const url = webClipUrl.trim();
+    if (!url) return;
+    setWebClipLoading(true);
+    setWebClipError(null);
+    try {
+      const normalized = normalizeClipUrl(url);
+      const online = typeof navigator === 'undefined' ? true : navigator.onLine !== false;
+
+      let rawHtml = '';
+      let status = 0;
+      let fromCache = false;
+
+      // Offline-first: if the device is offline, try the cache immediately.
+      if (!online) {
+        const cached = await getCachedClip(normalized);
+        if (cached) {
+          rawHtml = cached.rawHtml;
+          status = cached.status;
+          fromCache = true;
+        } else {
+          setWebClipError(t('webClipper.offlineNoCache', 'You are offline and this URL has not been clipped before.'));
+          return;
+        }
+      } else {
+        // Online: fetch fresh, but fall back to cache if the edge call fails.
+        try {
+          const { data, error } = await supabase.functions.invoke('fetch-article', {
+            body: { url, mode: 'fullpage' },
+          });
+          if (error) throw new Error(error.message || 'Fetch failed');
+          if (!data || (data as any).error) throw new Error((data as any)?.error || 'Empty response');
+          rawHtml = String((data as any).rawHtml || '');
+          if (!rawHtml) throw new Error('No HTML returned');
+          status = Number((data as any).status || 0);
+        } catch (fetchErr) {
+          const cached = await getCachedClip(normalized);
+          if (cached) {
+            rawHtml = cached.rawHtml;
+            status = cached.status;
+            fromCache = true;
+            toast.info(t('webClipper.usingCached', 'Fetch failed — using cached snapshot from {{date}}', {
+              date: new Date(cached.capturedAt).toLocaleString(),
+            }));
+          } else {
+            setWebClipError((fetchErr as Error).message);
+            return;
+          }
+        }
+      }
+
+      if (status >= 400 && !fromCache) {
+        toast.warning(
+          t('webClipper.originError', 'Origin returned {{status}} — snapshot may be a not-found page', { status }),
+        );
+      }
+
+      // Persist fresh fetches to the offline cache (best-effort).
+      if (!fromCache) {
+        void putCachedClip({ url: normalized, rawHtml, status, bytes: rawHtml.length });
+      }
+
+
+      let host = 'snapshot';
+      try { host = new URL(url).hostname.replace(/^www\./, ''); } catch { /* ignore */ }
+      const capturedAt = new Date().toISOString();
+
+      // Build the embed via the DOM (not string sanitize) so the iframe's
+      // `srcdoc` property receives the raw HTML unmodified. DOMPurify
+      // aggressively strips iframe attribute values that look document-like,
+      // which is why the previous string-based path rendered an empty frame.
+      // NOTE: do NOT use data-role="fullpage-snapshot" here — hydrateWebClipsIn
+      // strips any element with that role (legacy cleanup for old clips). We use
+      // a distinct marker so this embed survives every re-hydration pass.
+      // Encode the raw HTML as base64 so it survives every sanitize / innerHTML
+      // round-trip that happens when the note is saved and re-opened. On every
+      // render, `hydrateWebClipsIn` decodes this attribute and sets the iframe's
+      // `srcdoc` property from JS — the srcdoc attribute itself is never stored
+      // in the note HTML (DOMPurify + contentEditable serializers mangle large
+      // HTML-in-attribute values, which caused the blank frame after reload).
+      const encoded = (() => {
+        try {
+          // Handle unicode safely
+          const bytes = new TextEncoder().encode(rawHtml);
+          let bin = '';
+          for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+          return btoa(bin);
+        } catch {
+          return '';
+        }
+      })();
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'webclipper-embed';
+      wrapper.setAttribute('data-role', 'webclipper-embed');
+      wrapper.setAttribute('data-url', url);
+      wrapper.setAttribute('data-captured-at', capturedAt);
+      wrapper.setAttribute('data-bytes', String(rawHtml.length));
+      wrapper.setAttribute('contenteditable', 'false');
+
+      const header = document.createElement('div');
+      header.setAttribute('style', 'display:flex;align-items:center;gap:8px;font-size:12px;color:hsl(var(--muted-foreground));margin:8px 0;');
+      const clipEmoji = document.createElement('span');
+      clipEmoji.textContent = '📎';
+      const link = document.createElement('a');
+      link.href = url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.textContent = host;
+      const dot = document.createElement('span');
+      dot.textContent = '·';
+      const size = document.createElement('span');
+      size.textContent = `${Math.round(rawHtml.length / 1024)} KB · offline-ready`;
+      header.append(clipEmoji, link, dot, size);
+
+      const frame = document.createElement('iframe');
+      frame.setAttribute('sandbox', 'allow-same-origin allow-popups allow-popups-to-escape-sandbox');
+      frame.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+      frame.setAttribute('loading', 'eager');
+      frame.setAttribute('data-role', 'webclip-frame');
+      frame.setAttribute('style', 'width:100%;height:70vh;border:1px solid hsl(var(--border));border-radius:12px;background:white;display:block;');
+      if (encoded) {
+        frame.setAttribute('src', `data:text/html;charset=utf-8;base64,${encoded}`);
+      }
+
+      wrapper.append(header, frame);
+
+      const editor = editorRef.current;
+      if (['sticky', 'lined', 'regular', 'textformat'].includes(noteType) && editor) {
+        editor.focus();
+        try {
+          const sel = window.getSelection();
+          const needsRestore =
+            !sel ||
+            sel.rangeCount === 0 ||
+            !editor.contains(sel.getRangeAt(0).commonAncestorContainer);
+          if (needsRestore && sel) {
+            const range = document.createRange();
+            range.selectNodeContents(editor);
+            range.collapse(false);
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+          const sel2 = window.getSelection();
+          if (sel2 && sel2.rangeCount > 0) {
+            const range = sel2.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(wrapper);
+            // Trailing paragraph so caret can land after the embed.
+            const trailing = document.createElement('p');
+            trailing.innerHTML = '<br>';
+            wrapper.after(trailing);
+            // Move caret after the embed.
+            const after = document.createRange();
+            after.setStartAfter(trailing);
+            after.collapse(true);
+            sel2.removeAllRanges();
+            sel2.addRange(after);
+          } else {
+            editor.appendChild(wrapper);
+          }
+        } catch {
+          editor.appendChild(wrapper);
+        }
+        setContent(editor.innerHTML);
+      } else {
+        // Non-rich note types: append raw HTML to content so it still saves.
+        setContent(prev => (prev || '') + wrapper.outerHTML);
+      }
+
+
+      toast.success(t('webClipper.clipped', 'Web page clipped into note'));
+      setIsWebClipperOpen(false);
+      setWebClipUrl('');
+    } catch (e) {
+      setWebClipError((e as Error).message);
+    } finally {
+      setWebClipLoading(false);
+    }
+  };
+
+
+  const getEditorBackgroundColor = () => {
+    if (noteType === 'sticky') {
+      return STICKY_COLOR_VALUES[color];
+    }
+    // Use custom color if set for non-sticky notes
+    if (customColor && noteType !== 'voice') {
+      return customColor;
+    }
+    // Use CSS variable for regular/lined notes to match dark mode
+    return 'hsl(var(--background))';
+  };
+
+  if (!isOpen) return null;
+
+  // Insert handlers for + icon dropdown
+  const handleInsertLink = () => {
+    setIsLinkInputOpen(true);
+  };
+
+  const handleInsertLinkSave = (url: string) => {
+    if (url) {
+      const linkHtml = `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+      setContent(prev => prev + linkHtml);
+      toast.success(t('editor.linkInserted'));
+    }
+  };
+
+  const handleInsertComment = () => {
+    setIsCommentInputOpen(true);
+  };
+
+  const handleInsertCommentSave = (comment: string) => {
+    if (comment) {
+      const commentHtml = `<div style="background: hsl(var(--muted)); border-left: 3px solid hsl(var(--primary)); padding: 8px 12px; margin: 8px 0; border-radius: 4px; font-style: italic; color: hsl(var(--muted-foreground));">💬 ${comment}</div>`;
+      setContent(prev => prev + commentHtml);
+      toast.success(t('editor.commentAdded'));
+    }
+  };
+
+  const handleInsertHorizontalLine = () => {
+    // Insert solid black separator at cursor position using execCommand
+    // Use proper block display for lined notes alignment
+    const lineHtml = `<hr style="border: none; border-top: 2px solid currentColor; margin: 16px 0; display: block;" /><p><br></p>`;
+    document.execCommand('insertHTML', false, lineHtml);
+    toast.success(t('editor.separatorAdded'));
+  };
+
+  const handleInsertPageBreak = () => {
+    // MS Word/Google Docs style page break - creates a visual page separation
+    // Added display: block and proper spacing for lined notes
+    const pageBreakHtml = `
+      <div class="page-break-container" style="page-break-after: always; margin: 32px 0; position: relative; display: block;" contenteditable="false">
+        <div style="
+          border: 1px dashed #999;
+          background: linear-gradient(to bottom, hsl(var(--muted)), hsl(var(--background)));
+          min-height: 60px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+        ">
+          <span style="
+            background: hsl(var(--background));
+            border: 1px solid hsl(var(--border));
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            color: hsl(var(--muted-foreground));
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+          ">${t('editor.pageBreak')}</span>
+        </div>
+      </div>
+      <p><br></p>
+    `;
+    document.execCommand('insertHTML', false, pageBreakHtml);
+    toast.success(t('editor.pageBreakAdded'));
+  };
+
+  return (
+    <div
+      className={cn("fixed inset-0 z-50 flex flex-col")}
+      style={{ backgroundColor: getEditorBackgroundColor() }}
+    >
+      {/* Top Header */}
+      {true && (
+        <div
+          className="app-header"
+          style={{ backgroundColor: getEditorBackgroundColor(), borderColor: 'rgba(0,0,0,0.1)' }}
+        >
+          <div className="flex items-center -ml-1">
+            <Button variant="ghost" size="icon" onClick={handleClose} className={cn("app-header-btn app-header-back", noteType === 'sticky' && "text-black hover:text-black")}>
+              <ChevronLeft strokeWidth={2.25} />
+            </Button>
+            {/* Undo / Redo — grouped tight with back */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => { editorRef.current?.focus(); document.execCommand('undo'); }}
+              className={cn("app-header-btn -ml-2", noteType === 'sticky' && "text-black hover:text-black")}
+              aria-label="Undo"
+            >
+              <Undo2 strokeWidth={1.75} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => { editorRef.current?.focus(); document.execCommand('redo'); }}
+              className={cn("app-header-btn -ml-2", noteType === 'sticky' && "text-black hover:text-black")}
+              aria-label="Redo"
+            >
+              <Redo2 strokeWidth={1.75} />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {/* Copy with Formatting Button - prominent for textformat notes */}
+            {noteType === 'textformat' && (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  const editorElement = editorRef.current;
+                  copyWithFormatting(editorElement, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing);
+                }}
+                className="gap-1.5 h-8 px-3"
+              >
+                <Copy className="h-4 w-4" />
+                <span className="hidden sm:inline">{t('editor.copyAll', 'Copy All')}</span>
+              </Button>
+            )}
+          </div>
+
+
+
+          <div className="flex items-center gap-0.5 shrink-0 -mr-1">
+            {/* Table Picker moved to toolbar/options menu */}
+
+            {!isReadOnlyWebClip && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={async () => {
+                  const plain = (contentRef.current || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+                  const shareText = `${title || t('notes.untitled', 'Untitled')}${plain ? '\n\n' + plain : ''}`;
+                  try {
+                    if (typeof navigator !== 'undefined' && (navigator as any).share) {
+                      await (navigator as any).share({ title: title || 'Note', text: shareText });
+                    } else {
+                      await navigator.clipboard.writeText(shareText);
+                      toast.success(t('editor.copiedToClipboard', 'Copied to clipboard'));
+                    }
+                  } catch (e) {
+                    // user cancelled or share failed silently
+                  }
+                }}
+                className={cn("app-header-btn app-header-share", noteType === 'sticky' && "text-black hover:text-black")}
+                aria-label={t('common.share', 'Share')}
+              >
+                <Share strokeWidth={1.75} />
+              </Button>
+            )}
+
+            {!isReadOnlyWebClip && <DropdownMenu open={isOptionsMenuOpen} onOpenChange={setIsOptionsMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button data-tour="note-options-menu" variant="ghost" size="icon" className={cn("app-header-btn", noteType === 'sticky' && "text-black hover:text-black")}>
+                  <MoreHorizontal strokeWidth={2} />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-card z-50 max-h-[70vh] overflow-y-auto">
+                {/* Global Font Size Control */}
+                {['sticky', 'lined', 'regular'].includes(noteType) && (
+                  <>
+                    <div className="px-2 py-1.5 text-sm font-semibold flex items-center gap-2">
+                      <FileType className="h-4 w-4" />
+                      {t('editor.globalFontSize', 'Font Size')}
+                    </div>
+                    <div className="px-2 py-1.5 flex items-center justify-between gap-2">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          const currentSize = parseInt(fontSize) || 16;
+                          const newSize = Math.max(10, currentSize - 2);
+                          setFontSize(`${newSize}px`);
+                        }}
+                      >
+                        <Minus className="h-4 w-4 stroke-[3]" />
+                      </Button>
+                      <span className="text-sm font-semibold min-w-[48px] text-center">{fontSize}</span>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          const currentSize = parseInt(fontSize) || 16;
+                          const newSize = Math.min(48, currentSize + 2);
+                          setFontSize(`${newSize}px`);
+                        }}
+                      >
+                        <Plus className="h-4 w-4 stroke-[3]" />
+                      </Button>
+                    </div>
+                    <DropdownMenuSeparator />
+                  </>
+                )}
+                <DropdownMenuItem onClick={() => setShowStats(!showStats)}>
+                  <BarChart3 className="h-4 w-4 mr-2" />
+                  {showStats ? t('editor.hideStats') : t('editor.showStats')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  if (!isReadingMode && !requireProFeature('reading_mode')) return;
+                  setIsReadingMode(!isReadingMode);
+                }}>
+                  <BookOpen className="h-4 w-4 mr-2" />
+                  {isReadingMode ? t('editor.exitReadingMode') : t('editor.enterReadingMode')}
+                  {!isPro && !isReadingMode && <Crown className="h-3 w-3 ml-auto text-amber-500" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={toggleToc}>
+                  <ListFilter className="h-4 w-4 mr-2" />
+                  {showToc ? t('editor.hideToc', 'Hide Table of Contents') : t('editor.showToc', 'Show Table of Contents')}
+                </DropdownMenuItem>
+                {showToc && (
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>
+                      <ListFilter className="h-4 w-4 mr-2 opacity-70" />
+                      {t('editor.tocLevels', 'TOC heading levels')}
+                      <span className="ml-auto text-xs text-muted-foreground">H1–H{tocMaxLevel}</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent>
+                      {[1, 2, 3, 4, 5, 6].map((lvl) => (
+                        <DropdownMenuItem key={lvl} onClick={() => changeTocMaxLevel(lvl)}>
+                          <span className="mr-2 w-4 text-center">{tocMaxLevel === lvl ? '✓' : ''}</span>
+                          {lvl === 1 ? 'H1 only' : `H1–H${lvl}`}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                )}
+                <DropdownMenuItem onClick={() => setIsFindReplaceOpen(true)}>
+                  <Search className="h-4 w-4 mr-2" />
+                  {t('editor.findReplace')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsShortcutsSheetOpen(true)}>
+                  <Keyboard className="h-4 w-4 mr-2" />
+                  {t('editor.shortcutsCheatSheet', 'Shortcuts cheat sheet')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  // AI GUARD: never block on subscription; sign-in + daily cap only.
+                  setShowExtractTasks(true);
+                }}>
+
+                  <ListChecks className="h-4 w-4 mr-2 text-primary" />
+                  <span className="font-medium">{t('editor.extractTasks', 'Extract Tasks with AI')}</span>
+                  <Sparkles className="h-3 w-3 ml-auto text-primary" />
+                </DropdownMenuItem>
+                {/* Copy with Formatting - special for textformat notes */}
+                {noteType === 'textformat' && (
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      const editorElement = editorRef.current;
+                      copyWithFormatting(editorElement, fontFamily, fontSize, fontWeight, lineHeight, letterSpacing);
+                    }}
+                    className="bg-primary/10"
+                  >
+                    <Copy className="h-4 w-4 mr-2 text-primary" />
+                    <span className="font-medium text-primary">{t('editor.copyWithFormatting', 'Copy with Formatting')}</span>
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => setIsTitleEditOpen(true)}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  {t('editor.editTitle', 'Edit Title')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsMetaDescInputOpen(true)}>
+                  <FileText className="h-4 w-4 mr-2" />
+                  {metaDescription ? t('editor.editMetaDescription') : t('editor.addMetaDescription')}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsWebClipperOpen(true)}>
+                  <Globe className="h-4 w-4 mr-2 text-primary" />
+                  <span className="font-medium">{t('editor.webClipper', 'Web Clipper')}</span>
+                </DropdownMenuItem>
+
+
+
+
+
+
+
+
+                {/* Note Reminder */}
+                <div className="px-2 py-1.5 text-sm font-semibold flex items-center gap-2">
+                  <Bell className="h-4 w-4" />
+                  {t('editor.reminder', 'Reminder')}
+                </div>
+                <div className="px-2 py-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">{t('editor.enableReminder', 'Enable')}</span>
+                    <Switch
+                      checked={reminderEnabled}
+                      onCheckedChange={setReminderEnabled}
+                    />
+                  </div>
+                  {reminderEnabled && (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <Input
+                          type="time"
+                          value={reminderTime}
+                          onChange={(e) => setReminderTime(e.target.value)}
+                          className="flex-1 h-8 text-sm"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Repeat className="h-4 w-4 text-muted-foreground" />
+                        <select
+                          value={reminderRecurring}
+                          onChange={(e) => setReminderRecurring(e.target.value as 'none' | 'daily' | 'weekly' | 'monthly')}
+                          className="flex-1 h-8 text-sm rounded-md border bg-background px-2"
+                        >
+                          <option value="none">{t('reminder.once', 'Once')}</option>
+                          <option value="daily">{t('reminder.daily', 'Daily')}</option>
+                          <option value="weekly">{t('reminder.weekly', 'Weekly')}</option>
+                          <option value="monthly">{t('reminder.monthly', 'Monthly')}</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                </div>
+                <DropdownMenuSeparator />
+                
+                {/* Created & Modified Dates - Premium */}
+                <div 
+                  className={cn("px-2 py-1.5 text-xs text-muted-foreground flex flex-col gap-1", !isPro && "select-none cursor-pointer")}
+                  onClick={() => { if (!isPro) requireFeature('time_tracking'); }}
+                >
+                  <div className="flex items-center gap-1">
+                    <CalendarIcon className="h-3 w-3" />
+                    <span>{t('editor.created')}:</span>
+                    {isPro ? (
+                      <span>{format(note?.createdAt || createdAt, 'MMM dd, yyyy • h:mm a')}</span>
+                    ) : (
+                      <span className="blur-[6px] select-none">Jan 1, 2025 • 12:00 PM</span>
+                    )}
+                  </div>
+                  {note && (
+                    <div className="flex items-center gap-1">
+                      <span>{t('editor.modified')}:</span>
+                      {isPro ? (
+                        <span>{format(new Date(note.updatedAt), 'MMM dd, yyyy • h:mm a')}</span>
+                      ) : (
+                        <span className="blur-[6px] select-none">Jan 5, 2025 • 3:45 PM</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <DropdownMenuSeparator />
+                
+                {/* Folder Selection */}
+                <div className="px-2 py-1.5 text-sm font-semibold flex items-center gap-2">
+                  <FolderIcon className="h-4 w-4" />
+                  {t('editor.moveToFolder')}
+                </div>
+                {folders.map((folder) => (
+                  <DropdownMenuItem
+                    key={folder.id}
+                    onClick={() => {
+                      setSelectedFolderId(folder.id);
+                      toast.success(t('toast.movedToFolder', { folder: folder.name }));
+                      // Persist immediately
+                      setTimeout(() => handleSaveRef.current?.(), 100);
+                    }}
+                    className={cn(selectedFolderId === folder.id && "bg-accent", "pl-6")}
+                  >
+                    <span 
+                      className="h-3 w-3 rounded-full mr-2 flex-shrink-0" 
+                      style={{ backgroundColor: folder.color || '#db252d' }} 
+                    />
+                    {folder.name}
+                  </DropdownMenuItem>
+                ))}
+                <DropdownMenuItem onClick={() => setIsNewFolderDialogOpen(true)} className="pl-6">
+                  <Plus className="h-4 w-4 mr-2" />
+                  {t('notes.newFolder')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                {/* Tags */}
+                <DropdownMenuItem onClick={() => setShowTagSheet(true)}>
+                  <TagIcon className="h-4 w-4 mr-2" />
+                  Tags ({noteTagIds.length})
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <div data-tour="note-extract-group">
+                {/* Email Extractor with inline sub-options - Premium */}
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full"
+                      onClick={(e) => { e.stopPropagation(); if (!isPro) { e.preventDefault(); setIsOptionsMenuOpen(false); requireFeature('extract_features'); } }}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      {t('editor.extractEmails', 'Extract Emails')}
+                      {!isPro && <Crown className="h-3 w-3 ml-1.5 text-amber-500" fill="#FFD700" />}
+                      <ChevronDown className="h-3 w-3 ml-auto transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 bg-muted/30 rounded-sm mx-1">
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+                        const emails = plainText.match(emailRegex);
+                        if (emails && emails.length > 0) {
+                          const uniqueEmails = [...new Set(emails)];
+                          const emailContent = uniqueEmails.map(email => `<p>${email}</p>`).join('');
+                          setContent(emailContent);
+                          toast.success(t('editor.emailsExtracted', { count: uniqueEmails.length }) || `${uniqueEmails.length} emails extracted`);
+                        } else {
+                          toast.error(t('editor.noEmailsFound') || 'No emails found in content');
+                        }
+                      }}
+                    >
+                      <Replace className="h-4 w-4 mr-2" />
+                      {t('editor.replaceContent', 'Replace Content')}
+                    </div>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+                        const emails = plainText.match(emailRegex);
+                        if (emails && emails.length > 0) {
+                          const uniqueEmails = [...new Set(emails)];
+                          await navigator.clipboard.writeText(uniqueEmails.join('\n'));
+                          toast.success(t('editor.emailsCopied', { count: uniqueEmails.length }) || `${uniqueEmails.length} emails copied to clipboard`);
+                        } else {
+                          toast.error(t('editor.noEmailsFound') || 'No emails found in content');
+                        }
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      {t('editor.copyToClipboard', 'Copy to Clipboard')}
+                    </div>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+                        const emails = plainText.match(emailRegex);
+                        if (emails && emails.length > 0) {
+                          const uniqueEmails = [...new Set(emails)];
+                          const duplicatesRemoved = emails.length - uniqueEmails.length;
+                          if (duplicatesRemoved > 0) {
+                            const emailContent = uniqueEmails.map(email => `<p>${email}</p>`).join('');
+                            setContent(emailContent);
+                            toast.success(t('editor.duplicatesRemoved', { count: duplicatesRemoved }) || `${duplicatesRemoved} duplicate email(s) removed, ${uniqueEmails.length} unique emails kept`);
+                          } else {
+                            toast.info(t('editor.noDuplicates') || 'No duplicate emails found');
+                          }
+                        } else {
+                          toast.error(t('editor.noEmailsFound') || 'No emails found in content');
+                        }
+                      }}
+                    >
+                      <ListFilter className="h-4 w-4 mr-2" />
+                      {t('editor.removeDuplicate', 'Remove Duplicate')}
+                    </div>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+                        const emails = plainText.match(emailRegex);
+                        if (emails && emails.length > 0) {
+                          const lowercaseEmails = emails.map(email => email.toLowerCase());
+                          const uniqueEmails = [...new Set(lowercaseEmails)];
+                          const emailContent = uniqueEmails.map(email => `<p>${email}</p>`).join('');
+                          setContent(emailContent);
+                          toast.success(t('editor.emailsLowercased', { count: uniqueEmails.length }) || `${uniqueEmails.length} email(s) converted to lowercase`);
+                        } else {
+                          toast.error(t('editor.noEmailsFound') || 'No emails found in content');
+                        }
+                      }}
+                    >
+                      <CaseLower className="h-4 w-4 mr-2" />
+                      {t('editor.convertToLowercase', 'Convert to Lowercase')}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+
+                {/* Phone Extractor with inline sub-options - Premium */}
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full"
+                      onClick={(e) => { e.stopPropagation(); if (!isPro) { e.preventDefault(); setIsOptionsMenuOpen(false); requireFeature('extract_features'); } }}
+                    >
+                      <Phone className="h-4 w-4 mr-2" />
+                      {t('editor.extractPhones', 'Extract Phone Numbers')}
+                      {!isPro && <Crown className="h-3 w-3 ml-1.5 text-amber-500" fill="#FFD700" />}
+                      <ChevronDown className="h-3 w-3 ml-auto transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 bg-muted/30 rounded-sm mx-1">
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const phoneRegex = /(?:\+?\d{1,4}[\s.-]?)?(?:\(?\d{1,4}\)?[\s.-]?)?\d{1,4}[\s.-]?\d{1,4}[\s.-]?\d{1,9}/g;
+                        const phones = plainText.match(phoneRegex);
+                        if (phones && phones.length > 0) {
+                          const validPhones = phones.filter(phone => {
+                            const digitsOnly = phone.replace(/\D/g, '');
+                            return digitsOnly.length >= 7 && digitsOnly.length <= 15;
+                          });
+                          if (validPhones.length > 0) {
+                            const uniquePhones = [...new Set(validPhones.map(p => p.trim()))];
+                            const phoneContent = uniquePhones.map(phone => `<p>${phone}</p>`).join('');
+                            setContent(phoneContent);
+                            toast.success(t('editor.phonesExtracted', { count: uniquePhones.length }) || `${uniquePhones.length} phone numbers extracted`);
+                          } else {
+                            toast.error(t('editor.noPhonesFound') || 'No phone numbers found in content');
+                          }
+                        } else {
+                          toast.error(t('editor.noPhonesFound') || 'No phone numbers found in content');
+                        }
+                      }}
+                    >
+                      <Replace className="h-4 w-4 mr-2" />
+                      {t('editor.replaceContent', 'Replace Content')}
+                    </div>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const phoneRegex = /(?:\+?\d{1,4}[\s.-]?)?(?:\(?\d{1,4}\)?[\s.-]?)?\d{1,4}[\s.-]?\d{1,4}[\s.-]?\d{1,9}/g;
+                        const phones = plainText.match(phoneRegex);
+                        if (phones && phones.length > 0) {
+                          const validPhones = phones.filter(phone => {
+                            const digitsOnly = phone.replace(/\D/g, '');
+                            return digitsOnly.length >= 7 && digitsOnly.length <= 15;
+                          });
+                          if (validPhones.length > 0) {
+                            const uniquePhones = [...new Set(validPhones.map(p => p.trim()))];
+                            await navigator.clipboard.writeText(uniquePhones.join('\n'));
+                            toast.success(t('editor.phonesCopied', { count: uniquePhones.length }) || `${uniquePhones.length} phone numbers copied to clipboard`);
+                          } else {
+                            toast.error(t('editor.noPhonesFound') || 'No phone numbers found in content');
+                          }
+                        } else {
+                          toast.error(t('editor.noPhonesFound') || 'No phone numbers found in content');
+                        }
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      {t('editor.copyToClipboard', 'Copy to Clipboard')}
+                    </div>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const phoneRegex = /(?:\+?\d{1,4}[\s.-]?)?(?:\(?\d{1,4}\)?[\s.-]?)?\d{1,4}[\s.-]?\d{1,4}[\s.-]?\d{1,9}/g;
+                        const phones = plainText.match(phoneRegex);
+                        if (phones && phones.length > 0) {
+                          const validPhones = phones.filter(phone => {
+                            const digitsOnly = phone.replace(/\D/g, '');
+                            return digitsOnly.length >= 7 && digitsOnly.length <= 15;
+                          });
+                          if (validPhones.length > 0) {
+                            const trimmed = validPhones.map(p => p.trim());
+                            const uniquePhones = [...new Set(trimmed)];
+                            const duplicatesRemoved = trimmed.length - uniquePhones.length;
+                            if (duplicatesRemoved > 0) {
+                              const phoneContent = uniquePhones.map(phone => `<p>${phone}</p>`).join('');
+                              setContent(phoneContent);
+                              toast.success(t('editor.duplicatesRemoved', { count: duplicatesRemoved }) || `${duplicatesRemoved} duplicate phone number(s) removed, ${uniquePhones.length} unique kept`);
+                            } else {
+                              toast.info(t('editor.noDuplicates') || 'No duplicate phone numbers found');
+                            }
+                          } else {
+                            toast.error(t('editor.noPhonesFound') || 'No phone numbers found in content');
+                          }
+                        } else {
+                          toast.error(t('editor.noPhonesFound') || 'No phone numbers found in content');
+                        }
+                      }}
+                    >
+                      <ListFilter className="h-4 w-4 mr-2" />
+                      {t('editor.removeDuplicate', 'Remove Duplicate')}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+
+                {/* URL Extractor with inline sub-options - Premium */}
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full"
+                      onClick={(e) => { e.stopPropagation(); if (!isPro) { e.preventDefault(); setIsOptionsMenuOpen(false); requireFeature('extract_features'); } }}
+                    >
+                      <LinkIcon className="h-4 w-4 mr-2" />
+                      {t('editor.extractUrls', 'Extract URLs')}
+                      {!isPro && <Crown className="h-3 w-3 ml-1.5 text-amber-500" fill="#FFD700" />}
+                      <ChevronDown className="h-3 w-3 ml-auto transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 bg-muted/30 rounded-sm mx-1">
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const hrefRegex = /href=["']([^"']+)["']/gi;
+                        const hrefMatches = [...content.matchAll(hrefRegex)].map(m => m[1]);
+                        const urlRegex = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/gi;
+                        const urls = plainText.match(urlRegex) || [];
+                        const allUrls = [...urls, ...hrefMatches];
+                        
+                        if (allUrls.length > 0) {
+                          const uniqueUrls = [...new Set(allUrls.map(url => url.trim().replace(/[.,;:!?)]+$/, '')))];
+                          const urlContent = uniqueUrls.map(url => `<p><a href="${url}" target="_blank">${url}</a></p>`).join('');
+                          setContent(urlContent);
+                          toast.success(t('editor.urlsExtracted', { count: uniqueUrls.length }) || `${uniqueUrls.length} URLs extracted`);
+                        } else {
+                          toast.error(t('editor.noUrlsFound') || 'No URLs found in content');
+                        }
+                      }}
+                    >
+                      <Replace className="h-4 w-4 mr-2" />
+                      {t('editor.replaceContent', 'Replace Content')}
+                    </div>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const hrefRegex = /href=["']([^"']+)["']/gi;
+                        const hrefMatches = [...content.matchAll(hrefRegex)].map(m => m[1]);
+                        const urlRegex = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/gi;
+                        const urls = plainText.match(urlRegex) || [];
+                        const allUrls = [...urls, ...hrefMatches];
+                        
+                        if (allUrls.length > 0) {
+                          const uniqueUrls = [...new Set(allUrls.map(url => url.trim().replace(/[.,;:!?)]+$/, '')))];
+                          await navigator.clipboard.writeText(uniqueUrls.join('\n'));
+                          toast.success(t('editor.urlsCopied', { count: uniqueUrls.length }) || `${uniqueUrls.length} URLs copied to clipboard`);
+                        } else {
+                          toast.error(t('editor.noUrlsFound') || 'No URLs found in content');
+                        }
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      {t('editor.copyToClipboard', 'Copy to Clipboard')}
+                    </div>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const hrefRegex = /href=["']([^"']+)["']/gi;
+                        const hrefMatches = [...content.matchAll(hrefRegex)].map(m => m[1]);
+                        const urlRegex = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/gi;
+                        const urls = plainText.match(urlRegex) || [];
+                        const allUrls = [...urls, ...hrefMatches].map(url => url.trim().replace(/[.,;:!?)]+$/, ''));
+                        
+                        if (allUrls.length > 0) {
+                          const uniqueUrls = [...new Set(allUrls)];
+                          const duplicatesRemoved = allUrls.length - uniqueUrls.length;
+                          if (duplicatesRemoved > 0) {
+                            const urlContent = uniqueUrls.map(url => `<p><a href="${url}" target="_blank">${url}</a></p>`).join('');
+                            setContent(urlContent);
+                            toast.success(t('editor.duplicatesRemoved', { count: duplicatesRemoved }) || `${duplicatesRemoved} duplicate URL(s) removed, ${uniqueUrls.length} unique kept`);
+                          } else {
+                            toast.info(t('editor.noDuplicates') || 'No duplicate URLs found');
+                          }
+                        } else {
+                          toast.error(t('editor.noUrlsFound') || 'No URLs found in content');
+                        }
+                      }}
+                    >
+                      <ListFilter className="h-4 w-4 mr-2" />
+                      {t('editor.removeDuplicate', 'Remove Duplicate')}
+                    </div>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const hrefRegex = /href=["']([^"']+)["']/gi;
+                        const hrefMatches = [...content.matchAll(hrefRegex)].map(m => m[1]);
+                        const urlRegex = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/gi;
+                        const urls = plainText.match(urlRegex) || [];
+                        const allUrls = [...urls, ...hrefMatches].map(url => url.trim().replace(/[.,;:!?)]+$/, ''));
+                        if (allUrls.length > 0) {
+                          const lowercaseUrls = allUrls.map(url => url.toLowerCase());
+                          const uniqueUrls = [...new Set(lowercaseUrls)];
+                          const urlContent = uniqueUrls.map(url => `<p><a href="${url}" target="_blank">${url}</a></p>`).join('');
+                          setContent(urlContent);
+                          toast.success(t('editor.urlsLowercased', { count: uniqueUrls.length }) || `${uniqueUrls.length} URL(s) converted to lowercase`);
+                        } else {
+                          toast.error(t('editor.noUrlsFound') || 'No URLs found in content');
+                        }
+                      }}
+                    >
+                      <CaseLower className="h-4 w-4 mr-2" />
+                      {t('editor.convertToLowercase', 'Convert to Lowercase')}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+
+                {/* Hashtag Extractor with inline sub-options - Premium */}
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground w-full"
+                      onClick={(e) => { e.stopPropagation(); if (!isPro) { e.preventDefault(); setIsOptionsMenuOpen(false); requireFeature('extract_features'); } }}
+                    >
+                      <Hash className="h-4 w-4 mr-2" />
+                      {t('editor.extractHashtags', 'Extract Hashtags')}
+                      {!isPro && <Crown className="h-3 w-3 ml-1.5 text-amber-500" fill="#FFD700" />}
+                      <ChevronDown className="h-3 w-3 ml-auto transition-transform duration-200 [[data-state=open]>&]:rotate-180" />
+                    </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="pl-4 bg-muted/30 rounded-sm mx-1">
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const hashtagRegex = /#[\p{L}\p{N}_]+/gu;
+                        const hashtags = plainText.match(hashtagRegex);
+                        if (hashtags && hashtags.length > 0) {
+                          const uniqueHashtags = [...new Set(hashtags.map(h => h.trim()))];
+                          const hashtagContent = uniqueHashtags.map(tag => `<p>${tag}</p>`).join('');
+                          setContent(hashtagContent);
+                          toast.success(t('editor.hashtagsExtracted', { count: uniqueHashtags.length }) || `${uniqueHashtags.length} hashtags extracted`);
+                        } else {
+                          toast.error(t('editor.noHashtagsFound') || 'No hashtags found in content');
+                        }
+                      }}
+                    >
+                      <Replace className="h-4 w-4 mr-2" />
+                      {t('editor.replaceContent', 'Replace Content')}
+                    </div>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const hashtagRegex = /#[\p{L}\p{N}_]+/gu;
+                        const hashtags = plainText.match(hashtagRegex);
+                        if (hashtags && hashtags.length > 0) {
+                          const uniqueHashtags = [...new Set(hashtags.map(h => h.trim()))];
+                          await navigator.clipboard.writeText(uniqueHashtags.join('\n'));
+                          toast.success(t('editor.hashtagsCopied', { count: uniqueHashtags.length }) || `${uniqueHashtags.length} hashtags copied to clipboard`);
+                        } else {
+                          toast.error(t('editor.noHashtagsFound') || 'No hashtags found in content');
+                        }
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      {t('editor.copyToClipboard', 'Copy to Clipboard')}
+                    </div>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const hashtagRegex = /#[\p{L}\p{N}_]+/gu;
+                        const hashtags = plainText.match(hashtagRegex);
+                        if (hashtags && hashtags.length > 0) {
+                          const trimmed = hashtags.map(h => h.trim());
+                          const uniqueHashtags = [...new Set(trimmed)];
+                          const duplicatesRemoved = trimmed.length - uniqueHashtags.length;
+                          if (duplicatesRemoved > 0) {
+                            const hashtagContent = uniqueHashtags.map(tag => `<p>${tag}</p>`).join('');
+                            setContent(hashtagContent);
+                            toast.success(t('editor.duplicatesRemoved', { count: duplicatesRemoved }) || `${duplicatesRemoved} duplicate hashtag(s) removed, ${uniqueHashtags.length} unique kept`);
+                          } else {
+                            toast.info(t('editor.noDuplicates') || 'No duplicate hashtags found');
+                          }
+                        } else {
+                          toast.error(t('editor.noHashtagsFound') || 'No hashtags found in content');
+                        }
+                      }}
+                    >
+                      <ListFilter className="h-4 w-4 mr-2" />
+                      {t('editor.removeDuplicate', 'Remove Duplicate')}
+                    </div>
+                    <div 
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const plainText = content.replace(/<[^>]*>/g, ' ');
+                        const hashtagRegex = /#[\p{L}\p{N}_]+/gu;
+                        const hashtags = plainText.match(hashtagRegex);
+                        if (hashtags && hashtags.length > 0) {
+                          const lowercaseHashtags = hashtags.map(h => h.toLowerCase());
+                          const uniqueHashtags = [...new Set(lowercaseHashtags)];
+                          const hashtagContent = uniqueHashtags.map(tag => `<p>${tag}</p>`).join('');
+                          setContent(hashtagContent);
+                          toast.success(t('editor.hashtagsLowercased', { count: uniqueHashtags.length }) || `${uniqueHashtags.length} hashtag(s) converted to lowercase`);
+                        } else {
+                          toast.error(t('editor.noHashtagsFound') || 'No hashtags found in content');
+                        }
+                      }}
+                    >
+                      <CaseLower className="h-4 w-4 mr-2" />
+                      {t('editor.convertToLowercase', 'Convert to Lowercase')}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+                </div>
+                {note && (
+                  <>
+                    <DropdownMenuItem onClick={() => setIsVersionHistoryOpen(true)}>
+                      <History className="h-4 w-4 mr-2" />
+                      {t('editor.versionHistory')}
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>}
+            {isReadOnlyWebClip && readOnlySnapshotHtml && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("h-9 w-9", noteType === 'sticky' && "text-black hover:text-black")}
+                onClick={() => triggerReadOnlyHtmlDownload(`${(title || 'web-clip').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || 'web-clip'}.html`, readOnlySnapshotHtml)}
+                aria-label={t('webClipper.downloadFullHtml', 'Download full HTML page')}
+                title={t('webClipper.downloadFullHtml', 'Download full HTML page')}
+              >
+                <FileDown className="h-5 w-5" />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Inline Find & Replace - appears below header when active */}
+      <InlineFindReplace
+        isOpen={!isReadOnlyWebClip && isFindReplaceOpen}
+        onClose={() => setIsFindReplaceOpen(false)}
+        editorRef={editorRef}
+        onContentChange={setContent}
+        content={content}
+      />
+
+      {/* Shortcuts cheat sheet */}
+      <ShortcutsCheatSheet
+        isOpen={isShortcutsSheetOpen}
+        onClose={() => setIsShortcutsSheetOpen(false)}
+      />
+
+      {/* Word Count Stats Bar with Page Indicator - only shows when enabled */}
+      {!isReadOnlyWebClip && showStats && (
+        <div className="px-4 py-2 border-b bg-muted/50 flex items-center justify-between text-xs text-muted-foreground" style={{ borderColor: 'rgba(0,0,0,0.1)' }}>
+          <div className="flex items-center gap-2">
+            {getPageBreakCount(content) > 1 && (
+              <span className="bg-primary/10 text-primary px-2 py-0.5 rounded font-medium">
+                {t('editor.pagesCount', { count: getPageBreakCount(content) })}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <span>{t('editor.wordsCount', { count: noteStats.wordCount })}</span>
+            <span>•</span>
+            <span>{t('editor.charsCount', { count: noteStats.characterCount })}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Sticky note color picker */}
+      {noteType === 'sticky' && !isReadingMode && !isReadOnlyWebClip && (
+        <div className="px-4 py-2 border-b bg-background">
+          <div className="flex items-center gap-2">
+            {STICKY_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-label={`Set sticky color ${c}`}
+                onClick={() => setColor(c)}
+                className={cn("h-7 w-7 rounded-full border", c === color && "ring-2 ring-ring")}
+                style={{ backgroundColor: STICKY_COLOR_VALUES[c] }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Full Page Content Editor */}
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col relative">
+        <ErrorBoundary>
+          {noteType === 'voice' ? (
+            <div className="h-full flex flex-col overflow-y-auto">
+              {/* Title input for voice note */}
+              <div className="px-4 pt-4 pb-2">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder={t('notes.untitled', 'Untitled Voice Note')}
+                  className="w-full text-xl font-semibold bg-transparent border-none outline-none placeholder:text-muted-foreground"
+                />
+              </div>
+              
+              {/* Voice recordings list */}
+              {voiceRecordings.length > 0 ? (
+                <div className="flex-1 px-4 pb-4 space-y-3 overflow-y-auto">
+                  {voiceRecordings.map((recording) => (
+                    <NoteVoicePlayer
+                      key={recording.id}
+                      audioUrl={recording.audioUrl}
+                      duration={recording.duration}
+                      onDelete={() => {
+                        setVoiceRecordings(prev => prev.filter(r => r.id !== recording.id));
+                        URL.revokeObjectURL(recording.audioUrl);
+                      }}
+                    />
+                  ))}
+                  
+                  {/* Add more recordings button */}
+                  <Button
+                    variant="outline"
+                    className="w-full mt-4"
+                    onClick={() => setShowVoiceRecorder(true)}
+                  >
+                    <Mic className="h-4 w-4 mr-2" />
+                    {t('voice.addRecording', 'Add Recording')}
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
+                  <p className="text-muted-foreground text-center">
+                    {t('voice.noRecordings', 'No recordings yet')}
+                  </p>
+                  <Button
+                    onClick={() => setShowVoiceRecorder(true)}
+                    className="gap-2"
+                  >
+                    <Mic className="h-4 w-4" />
+                    {t('voice.startRecording', 'Start Recording')}
+                  </Button>
+                </div>
+              )}
+              
+              {/* Voice Recording Sheet */}
+              <VoiceRecordingSheet
+                isOpen={showVoiceRecorder}
+                onClose={() => setShowVoiceRecorder(false)}
+                onRecordingComplete={(blob, url, duration) => {
+                  handleVoiceRecordingComplete(blob, url, duration);
+                  setShowVoiceRecorder(false);
+                }}
+              />
+            </div>
+          ) : noteType === 'sketch' ? (
+            <div className="flex flex-col h-full relative">
+              <div className="flex-1 relative">
+                <Suspense fallback={<div className="flex-1 flex items-center justify-center h-full bg-background" />}>
+                  <SketchEditor
+                    initialData={content}
+                    onChange={setContent}
+                    onImageExport={(png) => {
+                      setImages(prev => [...prev, png]);
+                      toast.success(t('toast.sketchExported', 'Sketch exported as image'));
+                    }}
+                  />
+                </Suspense>
+              </div>
+            </div>
+          ) : noteType === 'code' ? (
+            <VirtualizedCodeEditor
+              code={codeContent}
+              onChange={setCodeContent}
+              language={codeLanguage}
+              onLanguageChange={setCodeLanguage}
+              title={title}
+              onTitleChange={setTitle}
+              onClose={handleClose}
+            />
+          ) : noteType === 'linkedin' ? (
+            <div className="flex flex-col h-full">
+              <div className="flex-shrink-0 p-4 border-b">
+                <Input
+                  type="text"
+                  placeholder={t('notes.untitled')}
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="text-xl font-semibold border-0 px-0 focus-visible:ring-0 bg-transparent"
+                />
+              </div>
+              <div className="flex-1 overflow-hidden p-4">
+                <LinkedInTextFormatter
+                  initialContent={content}
+                  onContentChange={setContent}
+                  placeholder={t('notes.writeHerePlaceholder', 'Start writing')}
+                  className="h-full"
+                />
+              </div>
+            </div>
+          ) : isReadOnlyWebClip ? (
+            <div
+              className="h-full overflow-y-auto overscroll-contain bg-background"
+              style={{ WebkitOverflowScrolling: 'touch', minHeight: 0 }}
+            >
+              <div className="p-4 pb-20">
+                {title && (
+                  <h1 className="text-2xl font-bold mb-4" style={{ fontFamily }}>
+                    {title}
+                  </h1>
+                )}
+                {note?.fullPageSnapshot && (
+                  <div className="mb-3 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground flex items-center justify-between gap-3">
+                    <span>{t('webClipper.readOnlySnapshot', 'Read-only full HTML snapshot')} · {formatBytesShort(note.fullPageSnapshot.bytes)}</span>
+                    {readOnlySnapshotHtml && (
+                      <button
+                        type="button"
+                        className="font-medium text-primary underline underline-offset-2"
+                        onClick={() => triggerReadOnlyHtmlDownload(`${(title || 'web-clip').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 80) || 'web-clip'}.html`, readOnlySnapshotHtml)}
+                      >
+                        {t('webClipper.downloadFullHtml', 'Download full HTML page')}
+                      </button>
+                    )}
+                  </div>
+                )}
+                <div
+                  className="prose prose-sm max-w-none dark:prose-invert select-text"
+                  aria-readonly="true"
+                  style={{ fontFamily, fontSize, fontWeight, lineHeight }}
+                  dangerouslySetInnerHTML={{ __html: displayContentHtml }}
+                  ref={(el) => {
+                    readOnlyContentRef.current = el;
+                    if (el) {
+                      el.querySelectorAll<HTMLElement>('[contenteditable], input, textarea, select, button').forEach((node) => {
+                        node.setAttribute('contenteditable', 'false');
+                        if ('disabled' in node) (node as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | HTMLButtonElement).disabled = true;
+                      });
+                      renderMathIn(el);
+                      hydrateSyncedIn(el, { editable: false });
+                      hydrateWebClipsIn(el);
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          ) : isReadingMode ? (
+            <div 
+              className="h-full overflow-y-auto overscroll-contain"
+              style={{ 
+                WebkitOverflowScrolling: 'touch',
+                minHeight: 0,
+              }}
+            >
+              <div className="p-4 pb-20">
+                {title && (
+                  <h1 
+                    className="text-2xl font-bold mb-4"
+                    style={{ fontFamily }}
+                  >
+                    {title}
+                  </h1>
+                )}
+                <div 
+                  className="prose prose-sm max-w-none dark:prose-invert"
+                  style={{ fontFamily, fontSize, fontWeight, lineHeight }}
+                  dangerouslySetInnerHTML={{ __html: displayContentHtml }}
+                  ref={(el) => { if (el) { renderMathIn(el); hydrateSyncedIn(el, { editable: false }); hydrateWebClipsIn(el); } }}
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="relative flex-1 min-h-0 flex flex-col">
+              {/* Notebook + Tag meta row (above title) */}
+              {!isReadOnlyWebClip && (
+                <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-1 text-sm text-muted-foreground">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1.5 min-w-0 hover:text-foreground transition-colors"
+                        aria-label="Select notebook"
+                      >
+                        <NotebookText className="h-4 w-4 shrink-0" />
+                        <span className="truncate">
+                          {folders.find((f) => f.id === selectedFolderId)?.name || t('editor.selectNotebook', 'Select Notebook')}
+                        </span>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-56 bg-card z-50 max-h-[60vh] overflow-y-auto">
+                      {folders.map((folder) => (
+                        <DropdownMenuItem
+                          key={folder.id}
+                          onClick={() => {
+                            setSelectedFolderId(folder.id);
+                            setTimeout(() => handleSaveRef.current?.(), 100);
+                          }}
+                          className={cn(selectedFolderId === folder.id && "bg-accent")}
+                        >
+                          <span
+                            className="h-3 w-3 rounded-full mr-2 flex-shrink-0"
+                            style={{ backgroundColor: folder.color || '#db252d' }}
+                          />
+                          <span className="truncate">{folder.name}</span>
+                        </DropdownMenuItem>
+                      ))}
+                      <DropdownMenuItem onClick={() => setIsNewFolderDialogOpen(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        {t('notes.newFolder', 'New notebook')}
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowTagSheet(true)}
+                    className="inline-flex items-center gap-1.5 shrink-0 hover:text-foreground transition-colors"
+                    aria-label="Add tag"
+                  >
+                    <TagIcon className="h-4 w-4" />
+                    <span>
+                      {noteTagIds.length > 0
+                        ? t('editor.tagsCount', { count: noteTagIds.length, defaultValue: `${noteTagIds.length} tag${noteTagIds.length === 1 ? '' : 's'}` })
+                        : t('editor.addTag', 'Add tag')}
+                    </span>
+                  </button>
+                </div>
+              )}
+              <RichTextEditor
+                content={content}
+                onChange={setContent}
+                onImageAdd={handleImageAdd}
+                allowImages={noteType !== 'lined'}
+                showTable={noteType !== 'lined'}
+                className={cn(
+                  noteType === 'lined' && 'lined-note',
+                  noteType === 'sticky' && 'sticky-note-editor',
+                  noteType === 'textformat' && 'textformat-note'
+                )}
+                toolbarPosition="bottom"
+                title={title}
+                onTitleChange={setTitle}
+                showTitle={true}
+                fontFamily={fontFamily}
+                onFontFamilyChange={setFontFamily}
+                fontSize={fontSize}
+                onFontSizeChange={setFontSize}
+                fontWeight={fontWeight}
+                onFontWeightChange={setFontWeight}
+                letterSpacing={letterSpacing}
+                onLetterSpacingChange={setLetterSpacing}
+                isItalic={isItalic}
+                onItalicChange={setIsItalic}
+                lineHeight={lineHeight}
+                onLineHeightChange={setLineHeight}
+                onInsertNoteLink={() => setIsNoteLinkingOpen(true)}
+                onVoiceRecord={() => setShowVoiceRecorder(true)}
+                onScan={() => { if (showScanNote) return; setShowScanNote(true); /* AI GUARD: no subscription gate */ }}
+                externalEditorRef={editorRef}
+                isFindReplaceOpen={isFindReplaceOpen}
+                onFloatingImageUpload={(noteType === 'regular' || noteType === 'sticky' || noteType === 'textformat') ? () => floatingImageRef.current?.triggerAdd() : undefined}
+                headerSlot={showToc ? (
+                  <TableOfContents content={content} editorRef={editorRef} maxLevel={tocMaxLevel} />
+                ) : undefined}
+                metaSlot={undefined}
+                footerSlot={(() => {
+                  const plain = (content || '').replace(/<[^>]+>/g, ' ');
+                  const matches = plain.match(/#[\p{L}\p{N}_]+/gu);
+                  if (!matches || matches.length === 0) return null;
+                  const unique = [...new Set(matches.map(h => h.trim()))].slice(0, 12);
+                  return (
+                    <div className="note-hashtag-pills">
+                      {unique.map((tag) => (
+                        <span key={tag} className="note-hashtag">{tag}</span>
+                      ))}
+                    </div>
+                  );
+                })()}
+              />
+              {/* Location input sheet */}
+              <InputSheetPage
+                isOpen={isLocationInputOpen}
+                onClose={() => setIsLocationInputOpen(false)}
+                onSave={(val) => setLocation(val.trim())}
+                title={t('editor.location', 'Location')}
+                placeholder={t('editor.locationPlaceholder', 'e.g. Kyoto, Japan')}
+                defaultValue={location}
+                maxLength={80}
+              />
+              {/* Floating images layer for regular/sticky/lined notes */}
+              {(noteType === 'regular' || noteType === 'sticky' || noteType === 'textformat') && (
+                <FloatingImageLayer
+                  ref={floatingImageRef}
+                  images={floatingImages}
+                  onChange={setFloatingImages}
+                />
+              )}
+
+            </div>
+          )}
+        </ErrorBoundary>
+
+        {/* Floating AI mini-toolbar for voice/code/sketch notes (Pro). The
+            rich-editor branch above renders its own toolbar inside the editor
+            container; this one overlays the alternate editors so every note
+            type can dictate (Mic) and scan images to text (Camera). */}
+        {(noteType === 'voice' || noteType === 'code') && (
+          <div className="absolute bottom-20 right-3 z-30 flex flex-col gap-2 items-end pointer-events-auto">
+            <button
+              type="button"
+              disabled={showScanNote}
+              onClick={() => {
+                if (showScanNote) return;
+                // AI GUARD: never block on subscription; sign-in + daily cap only.
+                setShowScanNote(true);
+              }}
+              className="group relative h-14 pl-4 pr-5 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/30 flex items-center gap-2 hover:scale-105 active:scale-95 transition-transform ring-2 ring-primary/20 disabled:opacity-60 disabled:cursor-wait"
+              aria-label={t('scanNote.tooltip', 'Scan a handwritten or printed page — AI converts it into a formatted note')}
+              aria-busy={showScanNote}
+              title={t('scanNote.tooltip', 'Scan a handwritten or printed page — AI converts it into a formatted note')}
+            >
+              <span className="absolute inset-0 rounded-full bg-primary/40 animate-ping opacity-60 pointer-events-none" />
+              <Camera className="h-5 w-5 relative z-10" />
+              <span className="text-sm font-semibold relative z-10">{t('scanNote.scan', 'Scan')}</span>
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Attachments & Backlinks sections removed — they were sitting behind the
+          bottom formatting toolbar and were never accessible. */}
+
+      {/* AI page scan → formatted HTML into note */}
+      <SafeComponent fallback={null}>
+        <ScanNoteSheet
+          isOpen={showScanNote}
+          onClose={() => setShowScanNote(false)}
+          onInsertHtml={handleAiInsertHtml}
+        />
+      </SafeComponent>
+
+
+
+
+
+      {/* AI extract tasks from this note's content */}
+      <SafeComponent fallback={null}>
+        <TextTaskExtractorSheet
+          isOpen={showExtractTasks}
+          onClose={() => setShowExtractTasks(false)}
+          folders={folders.filter((f) => (f as any).type !== 'notes')}
+          sections={[]}
+          currentFolderId={null}
+          currentSectionId={null}
+          initialMode="text"
+          initialText={extractTasksInitialText}
+          titleOverride={t('editor.extractTasksTitle', 'Extract tasks from this note')}
+          onAddTasks={async (newTasks) => {
+            try {
+              const existing = await loadTasksFromDB();
+              const now = new Date();
+              const toAdd: TodoItem[] = newTasks.map((tk) => ({
+                ...tk,
+                id: genId(),
+                completed: false,
+                createdAt: now,
+                modifiedAt: now,
+              } as TodoItem));
+              await saveTasksToDB([...existing, ...toAdd]);
+              window.dispatchEvent(new Event('tasksUpdated'));
+              toast.success(t('editor.tasksAddedFromNote', '{{count}} tasks added to your task list', { count: toAdd.length }));
+            } catch (e) {
+              console.error('[NoteEditor] add extracted tasks failed', e);
+              toast.error(t('editor.tasksAddFailed', 'Could not add tasks'));
+            }
+          }}
+        />
+      </SafeComponent>
+
+
+
+      {/* New Folder Dialog */}
+      <Dialog open={isNewFolderDialogOpen} onOpenChange={setIsNewFolderDialogOpen}>
+        <DialogContent className="bg-background">
+          <DialogHeader>
+            <DialogTitle>{t('editor.createNewFolder')}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <Input
+              placeholder={t('editor.folderNamePlaceholder')}
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+            />
+            <div className="space-y-2">
+              <label className="text-sm font-medium">{t('editor.folderColor')}</label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  '#EF4444', '#F97316', '#F59E0B', '#EAB308', '#84CC16',
+                  '#22C55E', '#10B981', '#14B8A6', '#06B6D4', '#0EA5E9',
+                  '#db252d', '#6366F1', '#8B5CF6', '#A855F7', '#D946EF',
+                  '#EC4899', '#F43F5E', '#78716C', '#6B7280', '#64748B'
+                ].map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setNewFolderColor(c)}
+                    className={`h-8 w-8 rounded-full border-2 transition-all ${newFolderColor === c ? 'ring-2 ring-ring ring-offset-2' : 'border-transparent'}`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+              </div>
+            </div>
+            <Button onClick={handleCreateFolder} className="w-full">
+              {t('editor.createFolder')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Version History Sheet */}
+      {note && (
+        <NoteVersionHistorySheet
+          isOpen={isVersionHistoryOpen}
+          onClose={() => setIsVersionHistoryOpen(false)}
+          noteId={note.id}
+          onRestore={handleRestoreVersion}
+        />
+      )}
+
+      {/* Note Linking Sheet */}
+      <NoteLinkingSheet
+        isOpen={isNoteLinkingOpen}
+        onClose={() => setIsNoteLinkingOpen(false)}
+        notes={allNotes}
+        currentNoteId={note?.id}
+        onSelectNote={handleInsertNoteLink}
+      />
+
+      {/* Inline Find & Replace - removed, now rendered inline in header */}
+
+      {/* Input Sheet Pages - Replace window.prompt */}
+      <InputSheetPage
+        isOpen={isLinkInputOpen}
+        onClose={() => setIsLinkInputOpen(false)}
+        onSave={handleInsertLinkSave}
+        title={t('editor.insertLinkTitle')}
+        placeholder={t('editor.insertLinkPlaceholder')}
+      />
+
+      <InputSheetPage
+        isOpen={isCommentInputOpen}
+        onClose={() => setIsCommentInputOpen(false)}
+        onSave={handleInsertCommentSave}
+        title={t('editor.addCommentTitle')}
+        placeholder={t('editor.addCommentPlaceholder')}
+        multiline
+      />
+
+      <InputSheetPage
+        isOpen={isTitleEditOpen}
+        onClose={() => setIsTitleEditOpen(false)}
+        onSave={(newTitle) => {
+          setTitle(newTitle);
+          toast.success(t('editor.titleUpdated', 'Title updated'));
+        }}
+        title={t('editor.editTitle', 'Edit Title')}
+        placeholder={t('editor.titlePlaceholder', 'Enter title...')}
+        defaultValue={title}
+        maxLength={200}
+      />
+
+      <InputSheetPage
+        isOpen={isMetaDescInputOpen}
+        onClose={() => setIsMetaDescInputOpen(false)}
+        onSave={(desc) => {
+          setMetaDescription(desc);
+          toast.success(t('editor.metaDescUpdated'));
+        }}
+        title={t('editor.metaDescription')}
+        placeholder={t('editor.metaDescPlaceholder')}
+        defaultValue={metaDescription}
+        maxLength={160}
+        multiline
+      />
+
+      {/* Web Clipper dialog — paste URL, fetch, embed full-page snapshot. */}
+      <Dialog open={isWebClipperOpen} onOpenChange={(open) => {
+        if (!webClipLoading) {
+          setIsWebClipperOpen(open);
+          if (!open) { setWebClipError(null); }
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Globe className="h-4 w-4 text-primary" />
+              {t('editor.webClipper', 'Web Clipper')}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground">
+              {t('webClipper.hint', 'Paste any URL. The full page is fetched, sanitized, and pasted into this note as an offline-ready snapshot.')}
+            </p>
+            <Input
+              type="url"
+              value={webClipUrl}
+              onChange={(e) => setWebClipUrl(e.target.value)}
+              placeholder="https://example.com/article"
+              autoFocus
+              disabled={webClipLoading}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && webClipUrl.trim() && !webClipLoading) {
+                  e.preventDefault();
+                  void runWebClipperFetch();
+                }
+              }}
+            />
+            {webClipError && (
+              <div className="p-2 rounded-md border border-destructive/40 bg-destructive/10 text-destructive text-xs whitespace-pre-wrap">
+                {webClipError}
+              </div>
+            )}
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                variant="ghost"
+                onClick={() => setIsWebClipperOpen(false)}
+                disabled={webClipLoading}
+              >
+                {t('common.cancel', 'Cancel')}
+              </Button>
+              <Button
+                onClick={() => void runWebClipperFetch()}
+                disabled={webClipLoading || !webClipUrl.trim()}
+              >
+                {webClipLoading ? t('webClipper.fetching', 'Fetching…') : t('webClipper.fetch', 'Fetch')}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
+
+      {/* Global Voice Recording Sheet (for non-voice note types) */}
+      {noteType !== 'voice' && (
+        <VoiceRecordingSheet
+          isOpen={showVoiceRecorder}
+          onClose={() => setShowVoiceRecorder(false)}
+          onRecordingComplete={(blob, url, duration) => {
+            handleVoiceRecordingComplete(blob, url, duration);
+            setShowVoiceRecorder(false);
+            toast.success(t('voice.recordingAdded', 'Voice recording added'));
+          }}
+        />
+      )}
+
+      {/* PDF Export Options Sheet */}
+      <PdfExportOptionsSheet
+        isOpen={showPdfOptionsSheet}
+        onClose={() => setShowPdfOptionsSheet(false)}
+        noteTitle={title || t('notes.untitled')}
+        isExporting={isExportingPdf}
+        noteType={noteType}
+        stickyColor={noteType === 'sticky' ? color : undefined}
+        customColor={note?.customColor}
+        onExport={async (settings: PdfExportSettings) => {
+          setIsExportingPdf(true);
+          toast.loading(t('toast.generatingPdf'), { id: 'pdf-export' });
+          try {
+            const filename = `${title || 'note'}.pdf`;
+            const result = await exportNoteToPdf(content, {
+              title: settings.includeTitle ? (title || t('notes.untitled')) : undefined,
+              filename,
+              pageSize: settings.pageSize,
+              orientation: settings.orientation,
+              marginTop: settings.marginTop,
+              marginBottom: settings.marginBottom,
+              marginLeft: settings.marginLeft,
+              marginRight: settings.marginRight,
+              includeTitle: settings.includeTitle,
+              includeDate: settings.includeDate,
+              includePageNumbers: settings.includePageNumbers,
+              headerText: settings.headerText,
+              footerText: settings.footerText,
+              fontSize: settings.fontSize,
+              headingScale: settings.headingScale,
+              preserveStyles: true,
+              // Note-specific styling
+              noteType: settings.preserveNoteStyle ? noteType : undefined,
+              stickyColor: settings.preserveNoteStyle && noteType === 'sticky' ? color : undefined,
+              customColor: settings.preserveNoteStyle ? note?.customColor : undefined,
+              preserveNoteStyle: settings.preserveNoteStyle,
+            });
+            toast.dismiss('pdf-export');
+            setShowPdfOptionsSheet(false);
+            
+            if (result.success && result.base64Data) {
+              setPdfExportResult({
+                filename: result.filename,
+                base64Data: result.base64Data,
+              });
+            } else {
+              toast.success(t('toast.pdfExported'), { id: 'pdf-export' });
+            }
+          } catch (error) {
+            console.error('PDF export failed:', error);
+            toast.error(t('toast.pdfExportFailed'), { id: 'pdf-export' });
+          } finally {
+            setIsExportingPdf(false);
+          }
+        }}
+      />
+
+      {/* PDF Export Success Dialog */}
+      <PdfExportSuccessDialog
+        isOpen={!!pdfExportResult}
+        onClose={() => setPdfExportResult(null)}
+        filename={pdfExportResult?.filename || ''}
+        base64Data={pdfExportResult?.base64Data || ''}
+      />
+
+
+      {/* Tag Assignment Sheet */}
+      <TagManagementSheet
+        open={showTagSheet}
+        onOpenChange={setShowTagSheet}
+        selectionMode
+        selectedTagIds={noteTagIds}
+        onSelectionChange={(ids) => {
+          setNoteTagIds(ids);
+          // Auto-save after tag change
+          setTimeout(() => handleSaveRef.current?.(), 100);
+        }}
+      />
+
+      {/* Publish to Web Sheet */}
+      <PublishNoteSheet
+        open={showPublishSheet}
+        onOpenChange={setShowPublishSheet}
+        note={buildCurrentNote()}
+      />
+
+
+      {/* Sketch Note Title + Meta Description Dialog */}
+      {showSketchMetaDialog && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 p-4" style={{ zIndex: document.body.classList.contains('onboarding-active') ? 400 : 100 }}>
+          <div className="w-full max-w-sm bg-background rounded-2xl shadow-xl border border-border p-6 space-y-4">
+            <h2 className="text-lg font-bold text-foreground">{t('editor.sketchDetails', 'Sketch Details')}</h2>
+            <p className="text-sm text-muted-foreground">{t('editor.sketchDetailsDesc', 'Add a title and description for your sketch note.')}</p>
+            
+            <div className="space-y-2">
+              <Label htmlFor="sketch-title" className="text-sm font-medium">{t('editor.title', 'Title')} *</Label>
+              <Input
+                id="sketch-title"
+                value={sketchMetaTitle}
+                onChange={(e) => setSketchMetaTitle(e.target.value)}
+                placeholder={t('editor.sketchTitlePlaceholder', 'e.g., Meeting Notes Diagram')}
+                className="bg-muted/50"
+                autoFocus
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="sketch-desc" className="text-sm font-medium">{t('editor.description', 'Description')} *</Label>
+              <textarea
+                id="sketch-desc"
+                value={sketchMetaDesc}
+                onChange={(e) => setSketchMetaDesc(e.target.value)}
+                placeholder={t('editor.sketchDescPlaceholder', 'Briefly describe what this sketch is about...')}
+                rows={3}
+                className="w-full rounded-md border border-input bg-muted/50 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring resize-none"
+              />
+            </div>
+            
+            <div className="flex gap-3 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowSketchMetaDialog(false)}
+              >
+                {t('common.cancel', 'Cancel')}
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleSketchMetaSave}
+                disabled={!sketchMetaTitle.trim() || !sketchMetaDesc.trim()}
+              >
+                {t('common.saveClose', 'Save & Close')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
