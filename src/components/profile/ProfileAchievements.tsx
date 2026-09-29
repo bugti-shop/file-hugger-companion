@@ -4,7 +4,7 @@ import { m as motion, AnimatePresence } from 'framer-motion';
 import { Eye, Sparkles, Trophy, Award } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ALL_ACHIEVEMENTS, loadAchievementsData } from '@/utils/gamificationStorage';
-import { loadTodoItems } from '@/utils/todoItemsStorage';
+import { countCompletedTasksInDB } from '@/utils/taskStorage';
 import { loadNotesMetadataFromDB } from '@/utils/noteStorage';
 import { loadStreakData } from '@/utils/streakStorage';
 import { getJourneyBadges, loadJourneyData, JourneyBadge, RARITY_CONFIG } from '@/utils/virtualJourneyStorage';
@@ -27,9 +27,9 @@ export const ProfileAchievements = ({ onViewCertificate }: { onViewCertificate?:
 
   useEffect(() => {
     const load = async () => {
-      const [achievements, tasks, notes, streak] = await Promise.all([
+      const [achievements, completed, notes, streak] = await Promise.all([
         loadAchievementsData(),
-        loadTodoItems(),
+        countCompletedTasksInDB(),
         loadNotesMetadataFromDB(),
         loadStreakData('flowist_streak'),
       ]);
@@ -45,7 +45,6 @@ export const ProfileAchievements = ({ onViewCertificate }: { onViewCertificate?:
       setJourneyBadges(jBadges.filter(b => b.type === 'milestone'));
 
       // Only unlocked certificates
-      const completed = tasks.filter(t => t.completed).length;
       const allCerts: CertMilestone[] = [
         { id: 'beginner', title: t('cert.beginner', 'Beginner'), description: t('cert.beginnerDesc', 'Complete 10 tasks & create 5 notes'), icon: '🌱', unlocked: completed >= 10 && notes.length >= 5 },
         { id: 'intermediate', title: t('cert.intermediate', 'Intermediate'), description: t('cert.intermediateDesc', 'Complete 50 tasks & 7-day streak'), icon: '⭐', unlocked: completed >= 50 && streak.longestStreak >= 7 },

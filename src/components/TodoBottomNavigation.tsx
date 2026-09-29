@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Home, Calendar, Settings, BarChart3, User, ListChecks, LayoutGrid, Hourglass } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -82,9 +82,19 @@ export const TodoBottomNavigation = () => {
   const allNavItems = useTodoNavigation();
   const visibleItems = allNavItems.filter(item => item.visible);
   const [countdownBadge, setCountdownBadge] = useState(0);
+  const pendingPathRef = useRef<string | null>(null);
 
   // Prefetch all lazy routes on idle so tab switches are instant
   useEffect(() => { prefetchAllOnIdle(); }, []);
+
+  // Warm the two heavier primary tabs as soon as To-Do navigation is visible.
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      void prefetchRoute('/todo/progress');
+      void prefetchRoute('/profile');
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,10 +124,15 @@ export const TodoBottomNavigation = () => {
   };
 
   const handleNavigation = useCallback((path: string) => {
-    if (path === location.pathname) return;
+    if (path === location.pathname || pendingPathRef.current === path) return;
+    pendingPathRef.current = path;
     void prefetchRoute(path);
     navigate(path, { state: { from: location.pathname } });
   }, [navigate, location.pathname]);
+
+  useEffect(() => {
+    pendingPathRef.current = null;
+  }, [location.pathname]);
 
 
   const gridCols = visibleItems.length <= 3 ? 'grid-cols-3' 
@@ -146,12 +161,11 @@ export const TodoBottomNavigation = () => {
               data-tour={`todo-${item.id}-link`}
               onPointerDown={(e) => {
                 if (e.pointerType === 'mouse' && e.button !== 0) return;
-                prefetchRoute(item.path);
-                handleNavigation(item.path);
+                void prefetchRoute(item.path);
               }}
-              onClick={(e) => e.preventDefault()}
-              onPointerEnter={() => prefetchRoute(item.path)}
-              onTouchStart={() => prefetchRoute(item.path)}
+              onClick={() => handleNavigation(item.path)}
+              onPointerEnter={() => void prefetchRoute(item.path)}
+              onTouchStart={() => void prefetchRoute(item.path)}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 min-w-0 px-1 touch-manipulation select-none rounded-lg",
                 "min-h-[52px] min-w-[52px]",
