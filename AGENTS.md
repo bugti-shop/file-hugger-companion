@@ -10,3 +10,4 @@
 - Run Android alarm audio and vibration independently; denied full-screen access falls back to a notification, not a background launch.
 - Use the same Flowist icon for Android local, push, focus, and alarm notifications; the local plugin otherwise falls back to a generic info icon.
 - iOS has no alarm code (no alarm plugin, extension, sound, or alarm permissions); reminders use plain local notifications — user removed alarms from iOS.
+- Build Android with JDK 21 in Codemagic and Android Studio because Capacitor 8 compiles its Android sources for Java 21.

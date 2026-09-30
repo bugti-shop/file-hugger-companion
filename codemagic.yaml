@@ -5,7 +5,8 @@ workflows:
 
     environment:
       node: 22.11.0
-      java: 17
+      # Capacitor 8 compiles Android sources with Java 21.
+      java: 21
 
     triggering:
       events:
@@ -31,6 +32,8 @@ workflows:
         script: |
           cd android
           chmod +x gradlew
+          echo "Using Java runtime:"
+          java -version
           set +e
           set -o pipefail
           ./gradlew assembleDebug --no-daemon --console=plain --stacktrace 2>&1 | tee gradle-build.log
