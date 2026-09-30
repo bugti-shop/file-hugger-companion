@@ -151,7 +151,8 @@ export const scheduleSmartNudges = async (): Promise<void> => {
           : `Start your day strong! Your daily average is ${Math.round(avgDaily)} tasks.`,
         schedule: { at: morning, allowWhileIdle: true },
         channelId: NUDGE_CHANNEL,
-        smallIcon: 'flowist_notification_2026',
+        smallIcon: 'flowist_notification_2028',
+        largeIcon: 'flowist_notification_logo_2028',
         iconColor: '#db252d',
         sound: 'default',
       });
@@ -170,7 +171,8 @@ export const scheduleSmartNudges = async (): Promise<void> => {
           : `Halfway through the day — keep the momentum going!`,
         schedule: { at: midday, allowWhileIdle: true },
         channelId: NUDGE_CHANNEL,
-        smallIcon: 'flowist_notification_2026',
+        smallIcon: 'flowist_notification_2028',
+        largeIcon: 'flowist_notification_logo_2028',
         iconColor: '#8B5CF6',
         sound: 'default',
       });
@@ -186,7 +188,8 @@ export const scheduleSmartNudges = async (): Promise<void> => {
         body: `Your daily average is ${Math.round(avgDaily)} tasks. Finish strong before evening!`,
         schedule: { at: afternoon, allowWhileIdle: true },
         channelId: NUDGE_CHANNEL,
-        smallIcon: 'flowist_notification_2026',
+        smallIcon: 'flowist_notification_2028',
+        largeIcon: 'flowist_notification_logo_2028',
         iconColor: '#F97316',
         sound: 'default',
       });

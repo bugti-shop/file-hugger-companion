@@ -100,7 +100,8 @@ export const scheduleStreakRiskNotifications = async (): Promise<void> => {
         body: 'Complete one task to keep it alive. Don\'t let your progress slip!',
         schedule: { at: eightPm, allowWhileIdle: true },
         channelId: CHANNEL_ID,
-        smallIcon: 'flowist_notification_2026',
+        smallIcon: 'flowist_notification_2028',
+        largeIcon: 'flowist_notification_logo_2028',
         iconColor: '#F97316',
         sound: 'default',
       });
@@ -116,7 +117,8 @@ export const scheduleStreakRiskNotifications = async (): Promise<void> => {
         body: `${streak} days of consistency — don't break it now! Open Flowist and complete one task.`,
         schedule: { at: tenPm, allowWhileIdle: true },
         channelId: CHANNEL_ID,
-        smallIcon: 'flowist_notification_2026',
+        smallIcon: 'flowist_notification_2028',
+        largeIcon: 'flowist_notification_logo_2028',
         iconColor: '#EF4444',
         sound: 'default',
       });
@@ -133,7 +135,8 @@ export const scheduleStreakRiskNotifications = async (): Promise<void> => {
         body: `You have 24 hours left! Your streak days & task numbers will reset if you don't come back. Open Flowist now!`,
         schedule: { at: nextDayNoon, allowWhileIdle: true },
         channelId: CHANNEL_ID,
-        smallIcon: 'flowist_notification_2026',
+        smallIcon: 'flowist_notification_2028',
+        largeIcon: 'flowist_notification_logo_2028',
         iconColor: '#F97316',
         sound: 'default',
       });
@@ -150,7 +153,8 @@ export const scheduleStreakRiskNotifications = async (): Promise<void> => {
         body: `Your certificate days & tasks will reset to zero! This is your last chance — complete one task NOW to save everything! 💪`,
         schedule: { at: nextDay8pm, allowWhileIdle: true },
         channelId: CHANNEL_ID,
-        smallIcon: 'flowist_notification_2026',
+        smallIcon: 'flowist_notification_2028',
+        largeIcon: 'flowist_notification_logo_2028',
         iconColor: '#DC2626',
         sound: 'default',
       });

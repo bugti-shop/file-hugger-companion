@@ -7,6 +7,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.content.Context;
+import android.graphics.BitmapFactory;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -47,10 +48,12 @@ public class FlowistAlarmService extends Service {
         Intent stop = new Intent(this, FlowistAlarmReceiver.class).setAction(FlowistAlarm.ACTION_DISMISS).putExtra("key", key);
         PendingIntent dismiss = PendingIntent.getBroadcast(this, key.hashCode(), stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification notification = new NotificationCompat.Builder(this, FlowistAlarm.CHANNEL)
-            .setSmallIcon(R.drawable.flowist_notification_2026).setContentTitle(title).setContentText("Priority: " + priority)
+            .setSmallIcon(R.drawable.flowist_notification_2028)
+            .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.flowist_notification_logo_2028))
+            .setContentTitle(title).setContentText("Priority: " + priority)
             .setCategory(NotificationCompat.CATEGORY_ALARM).setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setOngoing(true).setContentIntent(full)
-            .setFullScreenIntent(full, true).addAction(R.drawable.flowist_notification_2026, "Dismiss", dismiss).build();
+            .setFullScreenIntent(full, true).addAction(R.drawable.flowist_notification_2028, "Dismiss", dismiss).build();
         if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
         else startForeground(NOTIFICATION_ID, notification);
         // When full-screen access is denied, Android shows this notification

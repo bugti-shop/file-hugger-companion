@@ -125,6 +125,8 @@ export const scheduleCountdownReminders = async (
           : `In ${offset} days`;
       return {
         id: reminderKey(event.id, offset),
+        smallIcon: 'flowist_notification_2028',
+        largeIcon: 'flowist_notification_logo_2028',
         title: `⏳ ${event.name}`,
         body: label,
         schedule: { at, allowWhileIdle: true },

@@ -138,6 +138,8 @@ export const scheduleTaskReminder = async (
 
     const notificationConfig: any = {
       id: notifId,
+      smallIcon: 'flowist_notification_2028',
+      largeIcon: 'flowist_notification_logo_2028',
       title: isUrgent ? '🚨 URGENT Task Reminder' : '📋 Task Reminder',
       body: taskText,
       schedule: { at: reminderTime, allowWhileIdle: true },
@@ -205,6 +207,8 @@ export const scheduleNoteReminder = async (
     await LocalNotifications.schedule({
       notifications: [{
         id: notifId,
+        smallIcon: 'flowist_notification_2028',
+        largeIcon: 'flowist_notification_logo_2028',
         title: '📝 Note Reminder',
         body: noteTitle || 'You have a note reminder',
         schedule: { at: reminderTime, allowWhileIdle: true },
@@ -417,6 +421,8 @@ export const scheduleExtraReminder = async (
     await LocalNotifications.schedule({
       notifications: [{
         id: notifId,
+        smallIcon: 'flowist_notification_2028',
+        largeIcon: 'flowist_notification_logo_2028',
         title: '⏰ Extra Reminder',
         body: taskText,
         schedule: { at: next, allowWhileIdle: true },
@@ -502,6 +508,8 @@ export const scheduleExtraRemindersList = async (
         await LocalNotifications.schedule({
           notifications: [{
             id: notifId,
+            smallIcon: 'flowist_notification_2028',
+            largeIcon: 'flowist_notification_logo_2028',
             title: '⏰ Extra Reminder',
             body: taskText,
             schedule: { at: first, allowWhileIdle: true },

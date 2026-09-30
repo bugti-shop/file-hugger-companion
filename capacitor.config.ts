@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   },
   plugins: {
     LocalNotifications: {
-      smallIcon: 'flowist_notification_2026',
+      smallIcon: 'flowist_notification_2028',
     },
     // Cold-start branded splash only. iOS/Android natively skip the splash
     // for warm resumes (background → foreground), matching WhatsApp behavior.
