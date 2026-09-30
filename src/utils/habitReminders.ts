@@ -121,6 +121,8 @@ export const scheduleHabitReminder = async (habit: Habit): Promise<void> => {
       const id = hashStringToId(`habit-${habit.id}-${idx}-${d}`);
       notifications.push({
         id,
+        smallIcon: 'flowist_notification_2028',
+        largeIcon: 'flowist_notification_logo_2028',
         title: `${habit.emoji || '✅'} Habit Reminder`,
         body: habit.name,
         schedule: {
@@ -183,6 +185,8 @@ export const testHabitReminder = async (
     await LocalNotifications.schedule({
       notifications: [{
         id: hashStringToId(`habit-test-${Date.now()}`),
+        smallIcon: 'flowist_notification_2028',
+        largeIcon: 'flowist_notification_logo_2028',
         title: `${fakeHabit.emoji} Test Reminder`,
         body: habitName,
         schedule: { at: new Date(Date.now() + delayMs), allowWhileIdle: true },
