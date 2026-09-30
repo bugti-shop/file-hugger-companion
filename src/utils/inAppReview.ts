@@ -5,7 +5,8 @@
  *
  * Eligible when: installed >= 2 days, >= 2 sessions (first session finished),
  * >= 3 meaningful interactions, >= 60s into the current session, and
- * >= 90 days since our last request (max 3 requests ever).
+ * >= 14 days since our last request (max 6 requests ever).
+ * Note: the store still enforces its own quota, so 2 weeks is our ask, not a guarantee.
  */
 import { Capacitor } from '@capacitor/core';
 import { getSetting, setSetting } from './settingsStorage';
@@ -45,8 +46,8 @@ const isEligible = (s: ReviewState) => {
   const now = Date.now();
   if (!Capacitor.isNativePlatform()) return false;
   if (document.visibilityState !== 'visible') return false;
-  if (s.requestCount >= 3) return false;
-  if (s.lastRequestAt && now - s.lastRequestAt < 90 * DAY) return false;
+  if (s.requestCount >= 6) return false;
+  if (s.lastRequestAt && now - s.lastRequestAt < 14 * DAY) return false;
   if (now - s.installedAt < 2 * DAY) return false;
   if (s.sessions < 2 || s.interactions < 3) return false;
   if (now - sessionStartedAt < 60_000) return false;
