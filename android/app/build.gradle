@@ -1,6 +1,10 @@
 apply plugin: 'com.android.application'
 
-def codemagicBuildNumber = System.getenv("CM_BUILD_NUMBER")
+// Codemagic exposes the incrementing build number as CM_BUILD_NUMBER; keep
+// fallbacks in case the variable name differs on some machines/plans.
+def codemagicBuildNumber = System.getenv("CM_BUILD_NUMBER") ?:
+        System.getenv("BUILD_NUMBER") ?:
+        System.getenv("CI_BUILD_NUMBER")
 def releaseKeystorePath = System.getenv("CM_KEYSTORE_PATH")
 def hasReleaseSigning = releaseKeystorePath &&
         System.getenv("CM_KEYSTORE_PASSWORD") &&

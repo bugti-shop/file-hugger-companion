@@ -34,12 +34,16 @@ workflows:
 
       - name: Show app version
         script: |
-          set -e
-          # CM_BUILD_NUMBER always increments and is never reused by Codemagic,
-          # so every AAB gets a fresh, higher versionCode automatically.
-          echo "Codemagic build number : $CM_BUILD_NUMBER"
-          echo "App versionName        : 1.0.$CM_BUILD_NUMBER"
-          echo "App versionCode        : $((10000 + CM_BUILD_NUMBER))"
+          # Diagnose which build-number variable Codemagic actually exports.
+          env | grep -iE "build.?number|CM_BUILD" | sort || true
+          BN="${CM_BUILD_NUMBER:-${BUILD_NUMBER:-$CI_BUILD_NUMBER}}"
+          if [ -z "$BN" ]; then
+            echo "ERROR: no build number variable found (CM_BUILD_NUMBER / BUILD_NUMBER / CI_BUILD_NUMBER all empty)."
+            exit 1
+          fi
+          echo "Build number : $BN"
+          echo "versionName  : 1.0.$BN"
+          echo "versionCode  : $((10000 + BN))"
 
       - name: Build signed AAB + APK
         script: |
