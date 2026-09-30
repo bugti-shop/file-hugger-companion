@@ -10,13 +10,6 @@ workflows:
       android_signing:
         - flowist_keystore
 
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-
     scripts:
       - name: Install Node dependencies
         script: |
