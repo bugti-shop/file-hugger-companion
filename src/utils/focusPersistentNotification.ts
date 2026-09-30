@@ -117,7 +117,7 @@ export const showFocusOngoing = async (opts: FocusOngoingOpts) => {
         id: ONGOING_ID,
         title,
         body,
-        smallIcon: 'npd_notification_icon',
+        smallIcon: 'flowist_notification_2026',
         ongoing: true,
         autoCancel: false,
         // Fire immediately
@@ -136,7 +136,7 @@ export const showFocusOngoing = async (opts: FocusOngoingOpts) => {
             id: COMPLETE_ID,
             title: '✅ Focus complete',
             body: `Great work!${opts.taskTitle ? ` · ${opts.taskTitle}` : ''}`,
-            smallIcon: 'npd_notification_icon',
+            smallIcon: 'flowist_notification_2026',
             schedule: { at: new Date(opts.endAtMs) },
           }],
         });
