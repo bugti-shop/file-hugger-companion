@@ -401,3 +401,6 @@ if (!__IS_QUICK_ADD_BOOT_MAIN__) {
   try { performance.mark('quick-add:boot-main'); } catch {}
 }
 
+
+// Count app sessions for the in-app review eligibility (never triggers a prompt).
+setTimeout(() => { import("@/utils/inAppReview").then(m => m.recordAppSession()).catch(() => {}); }, 5000);

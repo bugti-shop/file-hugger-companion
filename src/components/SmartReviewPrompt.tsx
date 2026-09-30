@@ -127,7 +127,7 @@ export const SmartReviewPrompt = () => {
                 size="lg"
               >
                 <Star className="h-4 w-4" />
-                Rate on Play Store
+                Rate Flowist
               </Button>
 
               <button
