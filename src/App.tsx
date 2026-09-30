@@ -897,6 +897,7 @@ const AppContent = () => {
           <Suspense fallback={<BrandedFallback />}>
             <Routes>
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/delete-account" element={<DeleteAccount />} />
               <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/premium-unlock" element={<PremiumUnlock />} />
