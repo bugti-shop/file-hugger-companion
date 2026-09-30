@@ -674,6 +674,7 @@ export const useTodayActions = (props: UseTodayActionsProps) => {
 
     if (isNewCompletion) {
       queueCompletionStats();
+      import('@/utils/inAppReview').then(m => m.recordMeaningfulInteraction()).catch(() => {});
       toast.success(t('todayPage.taskCompleted'), {
         id: 'task-completed',
         action: {
