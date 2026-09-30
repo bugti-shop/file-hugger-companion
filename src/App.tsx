@@ -533,6 +533,8 @@ const AppRoutes = () => {
             <Route path="/todo/journey-history" element={<JourneyHistory />} />
             <Route path="/todo/journey-badges" element={<JourneyBadges />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/delete-account" element={<DeleteAccount />} />
+
             
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/contact" element={<Contact />} />
