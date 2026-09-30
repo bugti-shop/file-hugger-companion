@@ -25,17 +25,30 @@ final class FlowistAlarm {
             .putExtra("key", key).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
     }
 
+    static Intent broadcastIntent(Context ctx, String key) {
+        return new Intent(ctx, FlowistAlarmReceiver.class).setAction(ACTION_FIRE)
+            .setData(android.net.Uri.parse("flowist-alarm://alarm/" + android.net.Uri.encode(key)))
+            .putExtra("key", key);
+    }
+
     static void schedule(Context ctx, JSONObject data) throws Exception {
         String key = data.getString("key");
         long when = data.getLong("when");
         if (when <= System.currentTimeMillis()) return;
         AlarmManager manager = (AlarmManager) ctx.getSystemService(Context.ALARM_SERVICE);
         if (manager == null) throw new IllegalStateException("Alarm service unavailable");
+        if (android.os.Build.VERSION.SDK_INT >= 31 && !manager.canScheduleExactAlarms()) throw new SecurityException("Exact alarm permission missing");
         // setAlarmClock is a user-visible alarm and is allowed through Doze.
         Intent show = new Intent(ctx, MainActivity.class);
         PendingIntent showIntent = PendingIntent.getActivity(ctx, key.hashCode(), show, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        Intent fire = alarmIntent(ctx, key).putExtra("title", data.optString("title", "Reminder")).putExtra("scheduledAt", when);
-        PendingIntent operation = PendingIntent.getActivity(ctx, 0, fire, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        // Fire into our receiver: setAlarmClock lets it start the ringing foreground
+        // service, whose full-screen notification opens the alarm screen. A direct
+        // Activity PendingIntent is silently blocked on Android 14+ background launches.
+        Intent fire = broadcastIntent(ctx, key).putExtra("title", data.optString("title", "Reminder")).putExtra("scheduledAt", when);
+        PendingIntent operation = PendingIntent.getBroadcast(ctx, 0, fire, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        // Remove any Activity-based alarm left by an older app version.
+        PendingIntent legacy = PendingIntent.getActivity(ctx, 0, alarmIntent(ctx, key), PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
+        if (legacy != null) { manager.cancel(legacy); legacy.cancel(); }
         manager.setAlarmClock(new AlarmManager.AlarmClockInfo(when, showIntent), operation);
         ctx.getSharedPreferences(STORE, Context.MODE_PRIVATE).edit().putString(key, data.toString()).apply();
     }
@@ -55,8 +68,7 @@ final class FlowistAlarm {
             operation.cancel();
         }
         // Cancel alarms registered by older app versions using a broadcast trigger.
-        Intent old = new Intent(ctx, FlowistAlarmReceiver.class).setAction(ACTION_FIRE)
-            .setData(android.net.Uri.parse("flowist-alarm://alarm/" + android.net.Uri.encode(key)));
+        Intent old = broadcastIntent(ctx, key);
         PendingIntent previous = PendingIntent.getBroadcast(ctx, 0, old, PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE);
         if (previous != null) {
             if (manager != null) manager.cancel(previous);
