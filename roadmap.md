@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Replace Android launcher green grid with white and use the original opaque logo at a smaller mask-safe fit.
+
 - [x] Replace iOS App Store and Android launcher icons with the supplied white-background Flowist logo; keep native icon backgrounds opaque.
 - [x] Enlarge the visible logo to a balanced fit inside the iOS and Android app icons without clipping it.
 - [x] Smooth Home and Progress tab switches by removing duplicate chart work and rendering Timeline rows incrementally without changing task actions.

@@ -1,5 +1,6 @@
 # Architecture rules
 
+- Keep Android launcher layers opaque white and the original logo within the adaptive mask to avoid green backgrounds and clipping.
 - Both Notes and To-Do bottom tabs navigate on pointer-down (keyboard via click) with a pending-path guard, so both dashboards feel equally instant.
 - Source native subscription totals from the matching store product or offering and disable purchase until a localized price arrives; never substitute a USD estimate in the iOS paywall.
 - Use Capacitor SystemBars' measured Android bottom inset together with WebView safe-area inset for `--safe-bottom`; different navigation modes and WebView versions need device-reported spacing rather than fixed heights.
