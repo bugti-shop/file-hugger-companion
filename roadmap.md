@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Replace iOS App Store and Android launcher icons with the supplied white-background Flowist logo; keep native icon backgrounds opaque.
 - [x] Smooth Home and Progress tab switches by removing duplicate chart work and rendering Timeline rows incrementally without changing task actions.
 - [x] Make To-Do bottom navigation use Notes-style immediate pointer-down navigation, retaining keyboard activation and Profile origin.
 - [x] Keep Progress statistics warm and live across tab switches while deferring secondary work to prevent scroll stalls.
