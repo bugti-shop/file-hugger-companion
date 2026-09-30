@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Add a securely signed Codemagic AAB workflow with automatic increasing Android version codes.
+- [x] Shrink the Android launcher mark again and use a fresh opaque-white resource name to defeat stale green icon caching.
 - [x] Force Android push/reminder cards to refresh from the corrected white-background launcher icon and a fresh monochrome notification resource.
 - [x] Make the Android launcher logo smaller again while keeping its white background and mask-safe fit.
 - [x] Replace Android launcher green grid with white and use the original opaque logo at a smaller mask-safe fit.
