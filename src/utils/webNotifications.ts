@@ -47,8 +47,8 @@ export const sendWebNotification = (
   try {
     const notification = new Notification(title, {
       body: options.body,
-      icon: options.icon || '/launcher-icon.webp',
-       badge: options.badge || '/npd_notification_icon.png',
+      icon: options.icon || '/flowist-notification-logo-2028.png',
+      badge: options.badge || '/flowist-notification-badge-2028.png',
       tag: options.tag,
       requireInteraction: options.requireInteraction ?? false,
       data: options.data,
@@ -68,8 +68,8 @@ export const sendWebNotification = (
       navigator.serviceWorker.ready.then((registration) => {
         registration.showNotification(title, {
           body: options.body,
-          icon: options.icon || '/launcher-icon.webp',
-           badge: options.badge || '/npd_notification_icon.png',
+          icon: options.icon || '/flowist-notification-logo-2028.png',
+          badge: options.badge || '/flowist-notification-badge-2028.png',
           tag: options.tag,
         });
       }).catch(console.error);

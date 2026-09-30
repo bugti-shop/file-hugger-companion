@@ -15,6 +15,7 @@ import {
 } from '@/utils/pomodoroStorage';
 import { toast } from 'sonner';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { sendWebNotification } from '@/utils/webNotifications';
 
 interface PomodoroTimerProps {
   open: boolean;
@@ -52,11 +53,7 @@ const playBeep = () => {
 };
 
 const notify = (title: string, body: string) => {
-  try {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, { body });
-    }
-  } catch {}
+  sendWebNotification(title, { body });
 };
 
 export const PomodoroTimer = ({ open, onClose, taskId, taskTitle }: PomodoroTimerProps) => {

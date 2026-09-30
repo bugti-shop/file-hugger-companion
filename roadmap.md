@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Audit notification and launcher references; replace cached legacy web notification images with versioned white-background logo and monochrome badge.
 - [x] Refresh Android notification resources and show the current white-background Flowist logo on reminder, focus, and alarm cards without changing launcher artwork.
 - [x] Add a securely signed Codemagic AAB workflow with automatic increasing Android version codes.
 - [x] Reduce the Android launcher mark further, move it to a fresh 2028 resource, and clean native builds to exclude stale icons.
