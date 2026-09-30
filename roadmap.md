@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Force Android push/reminder cards to refresh from the corrected white-background launcher icon and a fresh monochrome notification resource.
 - [x] Make the Android launcher logo smaller again while keeping its white background and mask-safe fit.
 - [x] Replace Android launcher green grid with white and use the original opaque logo at a smaller mask-safe fit.
 

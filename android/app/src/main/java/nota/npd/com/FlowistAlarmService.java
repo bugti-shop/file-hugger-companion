@@ -47,10 +47,10 @@ public class FlowistAlarmService extends Service {
         Intent stop = new Intent(this, FlowistAlarmReceiver.class).setAction(FlowistAlarm.ACTION_DISMISS).putExtra("key", key);
         PendingIntent dismiss = PendingIntent.getBroadcast(this, key.hashCode(), stop, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification notification = new NotificationCompat.Builder(this, FlowistAlarm.CHANNEL)
-            .setSmallIcon(R.drawable.npd_notification_icon).setContentTitle(title).setContentText("Priority: " + priority)
+            .setSmallIcon(R.drawable.flowist_notification_2026).setContentTitle(title).setContentText("Priority: " + priority)
             .setCategory(NotificationCompat.CATEGORY_ALARM).setPriority(NotificationCompat.PRIORITY_MAX)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC).setOngoing(true).setContentIntent(full)
-            .setFullScreenIntent(full, true).addAction(R.drawable.npd_notification_icon, "Dismiss", dismiss).build();
+            .setFullScreenIntent(full, true).addAction(R.drawable.flowist_notification_2026, "Dismiss", dismiss).build();
         if (Build.VERSION.SDK_INT >= 29) startForeground(NOTIFICATION_ID, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK);
         else startForeground(NOTIFICATION_ID, notification);
         // When full-screen access is denied, Android shows this notification
