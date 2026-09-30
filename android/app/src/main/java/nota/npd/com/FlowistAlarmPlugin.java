@@ -17,7 +17,8 @@ public class FlowistAlarmPlugin extends Plugin {
             data.put("title", call.getString("title", "Reminder"));
             data.put("priority", call.getString("priority", "None"));
             data.put("when", call.getLong("when", 0L));
-            data.put("repeatDays", call.getInteger("repeatDays", 0));
+            Integer repeatDays = call.getInt("repeatDays");
+            data.put("repeatDays", repeatDays != null ? repeatDays : 0);
             FlowistAlarm.schedule(getContext(), data);
             call.resolve();
         } catch (Exception e) { call.reject("Could not schedule alarm", e); }
