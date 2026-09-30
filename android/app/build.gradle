@@ -1,5 +1,12 @@
 apply plugin: 'com.android.application'
 
+def codemagicBuildNumber = System.getenv("CM_BUILD_NUMBER")
+def releaseKeystorePath = System.getenv("CM_KEYSTORE_PATH")
+def hasReleaseSigning = releaseKeystorePath &&
+        System.getenv("CM_KEYSTORE_PASSWORD") &&
+        System.getenv("CM_KEY_ALIAS") &&
+        System.getenv("CM_KEY_PASSWORD")
+
 android {
     namespace = "nota.npd.com"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +14,10 @@ android {
         applicationId "nota.npd.com"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 2
-        versionName "1.0.1"
+        // Codemagic build numbers always increase. The offset keeps new store
+        // uploads ahead of the early manually-versioned APK builds.
+        versionCode codemagicBuildNumber ? 10000 + codemagicBuildNumber.toInteger() : 3
+        versionName codemagicBuildNumber ? "1.0.${codemagicBuildNumber}" : "1.0.2"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,11 +25,24 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(releaseKeystorePath)
+                storePassword System.getenv("CM_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("CM_KEY_ALIAS")
+                keyPassword System.getenv("CM_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
     packagingOptions {
