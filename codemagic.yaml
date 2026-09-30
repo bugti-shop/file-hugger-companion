@@ -50,7 +50,8 @@ workflows:
           cd android
           chmod +x gradlew
           java -version
-          ./gradlew bundleRelease assembleRelease --no-daemon --console=plain --stacktrace
+          # Clean first so no launcher resources from an earlier build can survive.
+          ./gradlew clean bundleRelease assembleRelease --no-daemon --console=plain --stacktrace
 
     artifacts:
       - android/app/build/outputs/bundle/release/*.aab
@@ -102,7 +103,7 @@ workflows:
           java -version
           set +e
           set -o pipefail
-          ./gradlew assembleDebug --no-daemon --console=plain --stacktrace 2>&1 | tee gradle-build.log
+          ./gradlew clean assembleDebug --no-daemon --console=plain --stacktrace 2>&1 | tee gradle-build.log
           GRADLE_STATUS=${PIPESTATUS[0]}
           set -e
 
