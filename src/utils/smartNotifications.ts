@@ -212,7 +212,7 @@ export const scheduleSmartNotifications = async (): Promise<void> => {
           schedule: { at: urgentTime, allowWhileIdle: true },
           channelId: CHANNEL_URGENT,
           smallIcon: 'flowist_notification_2028',
-        largeIcon: 'flowist_notification_logo_2028',
+          largeIcon: 'flowist_notification_logo_2028',
           iconColor: '#F97316',
           sound: 'default',
         });
@@ -231,7 +231,7 @@ export const scheduleSmartNotifications = async (): Promise<void> => {
           schedule: { at: lastChanceTime, allowWhileIdle: true },
           channelId: CHANNEL_URGENT,
           smallIcon: 'flowist_notification_2028',
-        largeIcon: 'flowist_notification_logo_2028',
+          largeIcon: 'flowist_notification_logo_2028',
           iconColor: '#EF4444',
           sound: 'default',
         });

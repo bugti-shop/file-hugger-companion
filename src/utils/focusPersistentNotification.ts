@@ -138,7 +138,7 @@ export const showFocusOngoing = async (opts: FocusOngoingOpts) => {
             title: '✅ Focus complete',
             body: `Great work!${opts.taskTitle ? ` · ${opts.taskTitle}` : ''}`,
             smallIcon: 'flowist_notification_2028',
-        largeIcon: 'flowist_notification_logo_2028',
+            largeIcon: 'flowist_notification_logo_2028',
             schedule: { at: new Date(opts.endAtMs) },
           }],
         });

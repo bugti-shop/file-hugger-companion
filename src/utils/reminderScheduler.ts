@@ -508,6 +508,8 @@ export const scheduleExtraRemindersList = async (
         await LocalNotifications.schedule({
           notifications: [{
             id: notifId,
+            smallIcon: 'flowist_notification_2028',
+            largeIcon: 'flowist_notification_logo_2028',
             title: '⏰ Extra Reminder',
             body: taskText,
             schedule: { at: first, allowWhileIdle: true },
