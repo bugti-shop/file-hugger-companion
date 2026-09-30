@@ -101,6 +101,11 @@ export const openPlayStoreReview = async () => {
   
   if (Capacitor.isNativePlatform()) {
     try {
+      const { InAppReview } = await import('@capacitor-community/in-app-review');
+      await InAppReview.requestReview();
+      return;
+    } catch { /* fall back to store page */ }
+    try {
       const { Browser } = await import('@capacitor/browser');
       await Browser.open({
         url: `https://flowist.me/download`,

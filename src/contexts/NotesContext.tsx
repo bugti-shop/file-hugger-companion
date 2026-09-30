@@ -289,6 +289,7 @@ export const NotesProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     try {
       await saveNoteToDBSingle(note);
+      if (!isExisting) import('@/utils/inAppReview').then(m => m.recordMeaningfulInteraction()).catch(() => {});
     } catch (error) {
       console.error('[NotesContext] Error saving single note:', error);
     }
