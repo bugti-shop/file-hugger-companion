@@ -32,6 +32,15 @@ workflows:
           test -n "$CM_KEY_PASSWORD"
           echo "Android signing identity is available."
 
+      - name: Show app version
+        script: |
+          set -e
+          # CM_BUILD_NUMBER always increments and is never reused by Codemagic,
+          # so every AAB gets a fresh, higher versionCode automatically.
+          echo "Codemagic build number : $CM_BUILD_NUMBER"
+          echo "App versionName        : 1.0.$CM_BUILD_NUMBER"
+          echo "App versionCode        : $((10000 + CM_BUILD_NUMBER))"
+
       - name: Build signed AAB
         script: |
           cd android

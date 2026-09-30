@@ -14,10 +14,17 @@ android {
         applicationId "nota.npd.com"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        // Codemagic build numbers always increase. The offset keeps new store
-        // uploads ahead of the early manually-versioned APK builds.
+        // Codemagic's CM_BUILD_NUMBER increases with every build and is never
+        // reused, so each AAB/APK always gets a fresh, higher versionCode.
+        // The 10000 offset keeps uploads ahead of early manual APK builds.
+        // Release builds REQUIRE the build number — never fall back to a
+        // static value that could collide with an already-uploaded version.
+        if (codemagicBuildNumber == null && gradle.startParameter.taskNames.any { it.toLowerCase().contains("release") || it.toLowerCase().contains("bundle") }) {
+            throw new GradleException("CM_BUILD_NUMBER is not set. Release builds must run on Codemagic so the version always increments.")
+        }
         versionCode codemagicBuildNumber ? 10000 + codemagicBuildNumber.toInteger() : 3
         versionName codemagicBuildNumber ? "1.0.${codemagicBuildNumber}" : "1.0.2"
+        println "Flowist version: ${android.defaultConfig.versionName} (versionCode ${android.defaultConfig.versionCode})"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
