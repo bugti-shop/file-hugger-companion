@@ -21,6 +21,16 @@ public class FlowistAlarmPlugin extends Plugin {
             data.put("repeatDays", repeatDays != null ? repeatDays : 0);
             FlowistAlarm.schedule(getContext(), data);
             call.resolve();
+        } catch (SecurityException e) {
+            // Android 12+: user must allow "Alarms & reminders" once for exact alarms.
+            try {
+                if (android.os.Build.VERSION.SDK_INT >= 31) {
+                    android.content.Intent i = new android.content.Intent(android.provider.Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                        android.net.Uri.parse("package:" + getContext().getPackageName())).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                    getContext().startActivity(i);
+                }
+            } catch (Exception ignored) { }
+            call.reject("Exact alarm permission missing", e);
         } catch (Exception e) { call.reject("Could not schedule alarm", e); }
     }
 
