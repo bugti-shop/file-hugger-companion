@@ -1,5 +1,6 @@
 # Roadmap
 
+- [x] Make the Android launcher logo smaller again while keeping its white background and mask-safe fit.
 - [x] Replace Android launcher green grid with white and use the original opaque logo at a smaller mask-safe fit.
 
 - [x] Replace iOS App Store and Android launcher icons with the supplied white-background Flowist logo; keep native icon backgrounds opaque.
