@@ -86,6 +86,7 @@ const Profile = lazy(() => import("./pages/Profile"));
 const Settings = lazy(() => import("./pages/Settings"));
 const SyncDiagnostics = lazy(() => import("./pages/SyncDiagnostics"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const DeleteAccount = lazy(() => import("./pages/DeleteAccount"));
 const TermsAndConditions = lazy(() => import("./pages/TermsAndConditions"));
 const Contact = lazy(() => import("./pages/Contact"));
 const Progress = lazy(() => import("./pages/todo/Progress"));
@@ -533,6 +534,8 @@ const AppRoutes = () => {
             <Route path="/todo/journey-history" element={<JourneyHistory />} />
             <Route path="/todo/journey-badges" element={<JourneyBadges />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/delete-account" element={<DeleteAccount />} />
+
             
             <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
             <Route path="/contact" element={<Contact />} />
@@ -894,6 +897,7 @@ const AppContent = () => {
           <Suspense fallback={<BrandedFallback />}>
             <Routes>
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/delete-account" element={<DeleteAccount />} />
               <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
               <Route path="/contact" element={<Contact />} />
               <Route path="/premium-unlock" element={<PremiumUnlock />} />
