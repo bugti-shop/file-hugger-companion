@@ -40,7 +40,7 @@ export function NotesVirtualGrid({
 }: NotesVirtualGridProps) {
   const [virtualizationSettings] = useVirtualizationSettings();
   const parentRef = useRef<HTMLDivElement>(null);
-  const resolvedRowHeight = estimatedRowHeight ?? 100;
+  const resolvedRowHeight = estimatedRowHeight ?? 108;
   const resolvedOverscan = getAdaptiveOverscan(virtualizationSettings.notes.overscan, notes.length, 'notes');
   const resolvedWindowing = useWindowing ?? virtualizationSettings.notes.windowing;
 

@@ -827,11 +827,9 @@ const Notes = () => {
                       </Button>
                     )}
                   </div>
-                  {note.title && (
-                     <h2 className="font-semibold text-base text-card-foreground pr-10 line-clamp-1">
-                      {sanitizeDisplayName(note.title)}
-                    </h2>
-                  )}
+                   <h2 className="font-semibold text-base text-card-foreground pr-10 line-clamp-1">
+                     {sanitizeDisplayName(note.title || t('notes.untitled'))}
+                   </h2>
                    <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mt-2">
                     <span>
                       {new Date(note.updatedAt).toLocaleDateString('en-US', {

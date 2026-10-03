@@ -412,9 +412,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
                 {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
               </div>
             )}
-          {note.title && (
-              <h3 className="font-semibold text-base line-clamp-1 text-card-foreground flex-1">{sanitizeDisplayName(note.title)}</h3>
-            )}
+            <h3 className="font-semibold text-base line-clamp-1 text-card-foreground flex-1">{sanitizeDisplayName(note.title || t('notes.untitled'))}</h3>
             {note.isPinned && (
               <Pin className="h-4 w-4 text-warning fill-warning shrink-0" />
             )}
