@@ -4,10 +4,10 @@ import { getNotesDateGroup } from '@/components/notes/NotesVirtualGrid';
 describe('Notes date group headings', () => {
   const now = new Date(2026, 9, 15, 12);
 
-  it('places recent notes into Today, Yesterday and This Week', () => {
+  it('places recent notes into Today, Yesterday and This week', () => {
     expect(getNotesDateGroup(new Date(2026, 9, 15, 8), now).label).toBe('Today');
     expect(getNotesDateGroup(new Date(2026, 9, 14, 22), now).label).toBe('Yesterday');
-    expect(getNotesDateGroup(new Date(2026, 9, 12, 10), now).label).toBe('This Week');
+    expect(getNotesDateGroup(new Date(2026, 9, 12, 10), now).label).toBe('This week');
   });
 
   it('names other months and adds the year to older notes', () => {
