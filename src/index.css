@@ -125,7 +125,7 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
     --header-icon-size: clamp(20px, 5.6vw, 24px);
     --header-title-size: clamp(15px, 4.4vw, 17px);
     --background: 0 0% 100%;
-    --dashboard-glass-surface: 0 0% 100%;
+    --dashboard-glass-surface: 215 16% 87%;
     --dashboard-glass-stroke: 215 18% 75%;
     --dashboard-glass-highlight: 0 0% 100%;
     --dashboard-glass-shadow: 220 20% 30%;
@@ -276,7 +276,7 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
   .graphite,
   .onyx,
     .charcoal {
-    --dashboard-glass-surface: 0 0% 72%;
+    --dashboard-glass-surface: 0 0% 25%;
     --dashboard-glass-stroke: 0 0% 84%;
     --dashboard-glass-highlight: 0 0% 100%;
     --dashboard-glass-shadow: 0 0% 0%;
