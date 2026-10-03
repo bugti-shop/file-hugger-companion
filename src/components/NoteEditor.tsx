@@ -171,10 +171,6 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
   // Autosave is skipped until the user actually edits something so that
   // simply opening a note does not bump `updatedAt`.
   const initialSnapshotRef = useRef<{ title: string; content: string; codeContent: string } | null>(null);
-  const hasTextChanges = useCallback(() => {
-    const snapshot = initialSnapshotRef.current;
-    return !snapshot || title !== snapshot.title || contentRef.current !== snapshot.content || codeContent !== snapshot.codeContent;
-  }, [title, codeContent]);
   const setContent = useCallback((val: React.SetStateAction<string>) => {
     setContentState(prev => {
       const next = typeof val === 'function' ? val(prev) : val;
@@ -218,6 +214,10 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
 
   // Code note state
   const [codeContent, setCodeContent] = useState<string>('');
+  const hasTextChanges = useCallback(() => {
+    const snapshot = initialSnapshotRef.current;
+    return !snapshot || title !== snapshot.title || contentRef.current !== snapshot.content || codeContent !== snapshot.codeContent;
+  }, [title, codeContent]);
   const [codeLanguage, setCodeLanguage] = useState<string>('auto');
 
 
