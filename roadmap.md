@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Compact grouped Notes rows and headings, show a one-line content preview beside the date, tighten card typography, and preserve timestamps when a note is only opened.
+- [x] Compact grouped Notes rows and headings, show a one-line content preview beside the date, tighten card typography, and preserve timestamps when a note is only opened.
 
 - [x] Restyle all Notes cards as quiet white, rounded date-grouped rows with date and optional tags; use the reference's geometric font in cards and note content without changing surrounding controls.
 
