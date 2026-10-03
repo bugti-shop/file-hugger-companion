@@ -11,7 +11,6 @@ import { getNoteProtection, NoteProtection } from '@/utils/noteProtection';
 import { getSetting } from '@/utils/settingsStorage';
 import { logActivity } from '@/utils/activityLogger';
 import { sanitizeDisplayName } from '@/utils/duplicateName';
-import { getTextPreviewFromHtml } from '@/utils/contentPreview';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   DropdownMenu,
