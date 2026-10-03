@@ -2733,7 +2733,7 @@ export const RichTextEditor = ({
               }
             }
           }}
-          style={{ fontFamily, color: isStickyNote ? '#000000' : undefined }}
+          style={{ fontFamily: fontFamily.includes('Montserrat') ? 'var(--notes-font)' : fontFamily, color: isStickyNote ? '#000000' : undefined }}
         />
       )}
 
@@ -2806,7 +2806,9 @@ export const RichTextEditor = ({
         )}
         style={{
           paddingBottom: isAndroidNativeEditor ? '8rem' : 'calc(8rem + var(--keyboard-inset, 0px))',
-          fontFamily: notesSettings.normalText.fontFamily !== 'System Default' ? notesSettings.normalText.fontFamily : fontFamily,
+          fontFamily: (notesSettings.normalText.fontFamily !== 'System Default' && notesSettings.normalText.fontFamily !== 'Montserrat')
+            ? notesSettings.normalText.fontFamily
+            : fontFamily.includes('Montserrat') ? 'var(--notes-font)' : fontFamily,
           fontSize: notesSettings.normalText.fontSize ? `${notesSettings.normalText.fontSize}px` : fontSize,
           color: notesSettings.normalText.fontColor && notesSettings.normalText.fontColor !== '#000000' ? notesSettings.normalText.fontColor : undefined,
           fontWeight: notesSettings.normalText.isBold ? '700' : fontWeight,
