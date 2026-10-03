@@ -484,9 +484,10 @@ const Notes = () => {
   };
 
   return (
-    <div className="min-h-screen min-h-screen-dynamic bg-background pb-14 md:pb-0">
+    <div className="min-h-screen min-h-screen-dynamic bg-notes-bg pb-14 md:pb-0">
+
       <div className="flex-1 min-w-0 flex flex-col">
-      <header className="bg-background sticky top-0 z-10" style={{ paddingTop: 'var(--safe-top, 0px)', paddingLeft: 'var(--safe-left, 0px)', paddingRight: 'var(--safe-right, 0px)' }}>
+      <header className="bg-notes-bg sticky top-0 z-10" style={{ paddingTop: 'var(--safe-top, 0px)', paddingLeft: 'var(--safe-left, 0px)', paddingRight: 'var(--safe-right, 0px)' }}>
          <div className="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1400px] mx-auto px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 pt-3 pb-2">
           <div className="flex items-center justify-between gap-1 xs:gap-2">
             <div className="flex items-center gap-1.5 xs:gap-2 min-w-0 flex-shrink-0 md:hidden">
@@ -827,7 +828,7 @@ const Notes = () => {
                       </Button>
                     )}
                   </div>
-                   <h2 className="font-semibold text-sm leading-5 text-card-foreground pr-10 truncate">
+                   <h2 className="font-extrabold text-[15px] leading-5 text-card-foreground pr-10 truncate">
                      {sanitizeDisplayName(note.title || t('notes.untitled'))}
                    </h2>
                    <div className="flex items-center gap-2 text-[11px] leading-4 text-muted-foreground min-w-0">

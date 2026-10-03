@@ -57,6 +57,7 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
     --header-icon-size: clamp(20px, 5.6vw, 24px);
     --header-title-size: clamp(15px, 4.4vw, 17px);
     --background: 0 0% 100%;
+    --notes-page-bg: #f1f4f9;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -201,7 +202,8 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
   .obsidian,
   .graphite,
   .onyx,
-  .charcoal {
+    .charcoal {
+    --notes-page-bg: hsl(var(--background));
     --background: 140 30% 12%;
     --foreground: 0 0% 100%;
     --card: 140 30% 12%;

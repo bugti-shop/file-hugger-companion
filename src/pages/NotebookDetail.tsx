@@ -136,9 +136,10 @@ const NotebookDetail = () => {
   const accent = folder?.color || '#db252d';
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-notes-bg pb-24">
+
       <header
-        className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b"
+        className="sticky top-0 z-30 bg-notes-bg/95 backdrop-blur border-b"
         style={{ paddingTop: 'var(--safe-top, 0px)', paddingLeft: 'var(--safe-left, 0px)', paddingRight: 'var(--safe-right, 0px)' }}
       >
         <div className="flex items-center gap-2 px-4 py-3">

@@ -1096,10 +1096,10 @@ const Index = () => {
   const hasAnyVisibleNotes = filteredNotes.length > 0;
 
   return (
-    <div className="min-h-screen min-h-screen-dynamic bg-background pb-14 md:pb-0">
+    <div className="min-h-screen min-h-screen-dynamic bg-notes-bg pb-14 md:pb-0">
       <div className="flex-1 min-w-0 flex flex-col">
       <header 
-        className="sticky top-0 bg-background z-10"
+        className="sticky top-0 bg-notes-bg z-10"
         style={{
           WebkitTransform: 'translateZ(0)',
           transform: 'translateZ(0)',
