@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Separate the To-Do Inbox chip from the search bar visibly and add the feature tutorial to Settings.
+- [x] Separate the To-Do Inbox chip from the search bar visibly and add the feature tutorial to Settings.
 
 - [x] Remove the Notes selection-format strip and dashboard theme/help icons; tighten header and Inbox spacing, shrink the add glyph, and animate task entry.
 
