@@ -1,6 +1,6 @@
 import { useState, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Folder as FolderIcon, Plus, Edit2, Trash2, FolderOpen, FolderPlus, FolderMinus, MoreVertical, Star, ArrowUpDown, Clock, FileText, StickyNote, CheckSquare, Filter, Code, Palette, Receipt, Archive, LayoutGrid, List, PenTool, Upload, Download } from 'lucide-react';
+import { Folder as FolderIcon, Plus, Edit2, Trash2, FolderOpen, FolderPlus, FolderMinus, MoreHorizontal, Star, ArrowUpDown, Clock, FileText, StickyNote, CheckSquare, Filter, Code, Palette, Receipt, Archive, LayoutGrid, List, PenTool, Upload, Download } from 'lucide-react';
 import { ImportDataSheet } from '@/components/ImportDataSheet';
 import { toast } from 'sonner';
 import { loadNotesFromDB } from '@/utils/noteStorage';
@@ -229,8 +229,8 @@ export const FolderManager = ({
       <HeaderActionsPortal targetId="notes-header-options">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
-              <MoreVertical className="w-4 h-4" />
+            <Button size="icon" variant="ghost" className="dashboard-glass-action" title={t('common.moreOptions', 'More options')} aria-label={t('common.moreOptions', 'More options')}>
+              <MoreHorizontal className="dashboard-glass-icon" strokeWidth={2.1} />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent 

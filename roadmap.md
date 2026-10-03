@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Put Notes and To-Do dashboard navigation and horizontal options dots in a matching right-aligned frosted glass capsule.
+
 - [x] Match Notes section headings to the Flowist header typeface and sentence case; enlarge only note preview text within fixed-height strips and remove note-type icons.
 
 - [x] Compact grouped Notes rows and headings, show a one-line content preview beside the date, tighten card typography, and preserve timestamps when a note is only opened.

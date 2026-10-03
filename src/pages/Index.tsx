@@ -25,6 +25,7 @@ import { getVisibleFeatures } from '@/utils/noteTypeVisibility';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
+import { DashboardGlassActions } from '@/components/DashboardGlassActions';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, StickyNote, FileText, FileEdit, Pen, ListTodo, Bell, Clock, Repeat, FileCode, GitBranch, Receipt, Star, ArrowUpDown, MoreVertical, FolderPlus, CheckSquare, Trash2, Archive, X, RotateCcw, Copy, Folder as FolderIcon, Eye, EyeOff, Mic, Type, LayoutTemplate, Crown, PenTool } from 'lucide-react';
@@ -1112,9 +1113,9 @@ const Index = () => {
               <AppLogo />
               <h1 className="text-base xs:text-lg sm:text-xl font-bold">Flowist</h1>
             </div>
-            <div className="flex items-center gap-0.5 flex-shrink-0">
-              <div id="notes-header-options" />
+            <div className="flex items-center flex-shrink-0">
               <FeatureGuideButton className="hidden" />
+              <DashboardGlassActions targetId="notes-header-options">
               <Button
                 size="icon"
                 variant="ghost"
@@ -1125,12 +1126,13 @@ const Index = () => {
                     navigate('/todo/today');
                   });
                 }}
-                className="h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 hover:bg-transparent active:bg-transparent touch-target"
+                className="dashboard-glass-action"
                 title={t('common.switchToTodo')}
                 data-tour="switch-to-todo"
               >
-                <ListTodo className="h-4 w-4 xs:h-5 xs:w-5 sm:h-6 sm:w-6" />
+                <ListTodo className="dashboard-glass-icon" strokeWidth={2.1} />
               </Button>
+              </DashboardGlassActions>
             </div>
           </div>
 
