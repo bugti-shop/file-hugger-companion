@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Restore separate left checklist/pen and right edit controls, enlarge their icons, and make legacy note titles and checklist text consistent in reading mode.
+
 - [x] Compact and lower Notes reading capsules, enlarge their icons and slightly enlarge checklist text; add backend-verified private Pro link redemption for signed-in users and guests without a login screen.
 
 - [x] Match reference checklist alignment, circle/text density and bottom icon size; fix completion toggles in reading and editing modes.

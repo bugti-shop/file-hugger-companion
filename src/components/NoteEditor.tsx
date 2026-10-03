@@ -454,6 +454,11 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     () => (isReadOnlyWebClip || isReadingMode ? sanitizeForDisplay(visibleReadOnlyContent) : ''),
     [visibleReadOnlyContent, isReadOnlyWebClip, isReadingMode],
   );
+  // Notes saved with the former default font should use the current Notes typeface.
+  // Keep deliberate non-default font choices intact.
+  const displayFontFamily = fontFamily === 'System Default' || fontFamily.includes('Montserrat')
+    ? 'var(--notes-font)'
+    : fontFamily;
 
   const enableEditing = useCallback((focus: 'body' | 'title' | number | 'new-checklist' = 'body') => {
     pendingEditorFocusRef.current = focus;
@@ -2475,8 +2480,8 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
                <div className="px-4 pt-1 pb-24">
                  {title ? (
                   <h1 
-                     className="text-2xl font-bold mb-2 cursor-text notes-editor-font"
-                    style={{ fontFamily }}
+                     className="notes-reading-title font-bold mb-2 cursor-text notes-editor-font"
+                    style={{ fontFamily: displayFontFamily }}
                      onClick={() => enableEditing('title')}
                   >
                     {title}
@@ -2484,7 +2489,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
                  ) : <Button variant="ghost" className="px-0 text-muted-foreground" onClick={() => enableEditing('title')}>{t('editor.titlePlaceholder', 'Title')}</Button>}
                 <div 
                    className="prose prose-sm max-w-none dark:prose-invert notes-reading-content notes-editor-font"
-                  style={{ fontFamily, fontSize, fontWeight, lineHeight }}
+                  style={{ fontFamily: displayFontFamily, fontSize, fontWeight, lineHeight }}
                   dangerouslySetInnerHTML={{ __html: displayContentHtml }}
                    onClick={handleReadingContentClick}
                    onChange={handleReadingChecklistChange}
@@ -2578,6 +2583,8 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
               <Button variant="ghost" size="icon" aria-label="Edit note" title="Edit note" onClick={() => enableEditing()}>
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2 5.6 11.3a2.4 2.4 0 0 0-.3 2.1L6.8 17h10.4l1.5-3.6a2.4 2.4 0 0 0-.3-2.1L12 2Z"/><line x1="12" y1="2" x2="12" y2="8.8"/><circle cx="12" cy="11" r="1.8"/><rect x="6.5" y="19.2" width="11" height="2.8" rx="1"/></svg>
               </Button>
+            </div>
+            <div className="notes-reading-capsule notes-reading-capsule-edit">
               <Button variant="ghost" size="icon" aria-label="Start editing" title="Start editing" onClick={() => enableEditing()}>
                 <SquarePen strokeWidth={1.8} />
               </Button>
