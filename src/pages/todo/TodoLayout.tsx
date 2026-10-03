@@ -7,6 +7,7 @@ import { FileText, Search, X, Crown } from 'lucide-react';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { FeatureGuideButton } from '@/components/tours/FeatureGuideModal';
 import { TodoBottomNavigation } from '@/components/TodoBottomNavigation';
+import { DashboardGlassActions } from '@/components/DashboardGlassActions';
 
 import { AppLogo } from '@/components/AppLogo';
 import { triggerHaptic } from '@/utils/haptics';
@@ -44,9 +45,9 @@ export const TodoLayout = ({ children, title, searchValue, onSearchChange }: Tod
               </div>
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold truncate md:hidden">{title}</h1>
             </div>
-            <div className="flex items-center gap-0.5 flex-shrink-0">
-              <div id="todo-header-options" />
+            <div className="flex items-center flex-shrink-0">
               <FeatureGuideButton className="hidden" />
+              <DashboardGlassActions targetId="todo-header-options">
 
               <Button
                 size="icon"
@@ -63,12 +64,13 @@ export const TodoLayout = ({ children, title, searchValue, onSearchChange }: Tod
                     triggerHaptic('heavy').catch(() => {});
                   });
                 }}
-                className="h-8 w-8 sm:h-9 sm:w-9 hover:bg-transparent active:bg-transparent"
+                className="dashboard-glass-action"
                 title={t('common.switchToNotes')}
                 data-tour="switch-to-notes"
               >
-                <FileText className="h-5 w-5 sm:h-6 sm:w-6" />
+                <FileText className="dashboard-glass-icon" strokeWidth={2.1} />
               </Button>
+              </DashboardGlassActions>
             </div>
           </div>
 

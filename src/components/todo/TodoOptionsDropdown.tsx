@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Sparkles, Flame, Clock, Calendar as CalendarIcon2, Upload, Download } from 'lucide-react';
-import { MoreVertical, Eye, EyeOff, Filter, Copy, MousePointer2, Settings, LayoutList, LayoutGrid, ListPlus, ArrowUpDown, Columns3, GitBranch, Flag, ChevronRight, ChevronDown, ChevronsUpDown, Trash2, ListChecks, Crown } from 'lucide-react';
+import { MoreHorizontal, Eye, EyeOff, Filter, Copy, MousePointer2, Settings, LayoutList, LayoutGrid, ListPlus, ArrowUpDown, Columns3, GitBranch, Flag, ChevronRight, ChevronDown, ChevronsUpDown, Trash2, ListChecks, Crown } from 'lucide-react';
 import { Plus as PlusIcon, FolderIcon, ArrowDownAZ } from 'lucide-react';
 import { toast } from 'sonner';
 import { loadCustomSmartViews, deleteCustomSmartView } from '@/utils/customSmartViews';
@@ -103,7 +103,7 @@ export const TodoOptionsDropdown = ({
     <>
     <DropdownMenu onOpenChange={(open) => { if (!open) setDropdownView('main'); }}>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9" data-tour="todo-options-menu"><MoreVertical className="h-5 w-5" /></Button>
+        <Button variant="ghost" size="icon" className="dashboard-glass-action" title={t('common.moreOptions', 'More options')} aria-label={t('common.moreOptions', 'More options')} data-tour="todo-options-menu"><MoreHorizontal className="dashboard-glass-icon" strokeWidth={2.1} /></Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" className="w-56 max-h-[70vh] overflow-y-auto bg-popover border shadow-lg z-50">
         {/* Main menu */}
