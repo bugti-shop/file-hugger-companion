@@ -511,28 +511,31 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
   const handleReadingContentClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
-    const checkbox = target.closest<HTMLInputElement>('input.checklist-checkbox');
-    if (checkbox) {
-      const checkboxes = readingContentRef.current?.querySelectorAll('input.checklist-checkbox');
-      const index = checkboxes ? Array.from(checkboxes).indexOf(checkbox) : -1;
-      if (index < 0) return;
-      const source = document.createElement('div');
-      source.innerHTML = contentRef.current;
-      const sourceCheckbox = source.querySelectorAll<HTMLInputElement>('input.checklist-checkbox')[index];
-      if (!sourceCheckbox) return;
-      const checked = checkbox.checked;
-      sourceCheckbox.toggleAttribute('checked', checked);
-      sourceCheckbox.closest('.checklist-item')?.classList.toggle('checked', checked);
-      setContent(source.innerHTML);
-      return;
-    }
+    if (target.closest('input.checklist-checkbox')) return;
     const taskTitle = target.closest('.checklist-item .checklist-text');
     if (taskTitle) {
       const items = readingContentRef.current?.querySelectorAll('.checklist-item .checklist-text');
       const index = items ? Array.from(items).indexOf(taskTitle) : -1;
       enableEditing(index >= 0 ? index : 'body');
     }
-  }, [enableEditing, setContent]);
+  }, [enableEditing]);
+
+  const handleReadingChecklistChange = useCallback((event: React.ChangeEvent<HTMLDivElement>) => {
+    const checkbox = event.target;
+    if (!(checkbox instanceof HTMLInputElement) || !checkbox.matches('.checklist-checkbox')) return;
+    const checkboxes = readingContentRef.current?.querySelectorAll('input.checklist-checkbox');
+    const index = checkboxes ? Array.from(checkboxes).indexOf(checkbox) : -1;
+    if (index < 0) return;
+    const source = document.createElement('div');
+    source.innerHTML = contentRef.current;
+    const sourceCheckbox = source.querySelectorAll<HTMLInputElement>('input.checklist-checkbox')[index];
+    if (!sourceCheckbox) return;
+    sourceCheckbox.checked = checkbox.checked;
+    sourceCheckbox.toggleAttribute('checked', checkbox.checked);
+    sourceCheckbox.closest('.checklist-item')?.classList.toggle('checked', checkbox.checked);
+    checkbox.closest('.checklist-item')?.classList.toggle('checked', checkbox.checked);
+    setContent(source.innerHTML);
+  }, [setContent]);
 
   useEffect(() => {
     if (!isReadOnlyWebClip || !readOnlySnapshotHtml || !readOnlyContentRef.current) return;
@@ -2484,6 +2487,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
                   style={{ fontFamily, fontSize, fontWeight, lineHeight }}
                   dangerouslySetInnerHTML={{ __html: displayContentHtml }}
                    onClick={handleReadingContentClick}
+                   onChange={handleReadingChecklistChange}
                    ref={(el) => { readingContentRef.current = el; if (el) { renderMathIn(el); hydrateSyncedIn(el, { editable: false }); hydrateWebClipsIn(el); } }}
                 />
               </div>

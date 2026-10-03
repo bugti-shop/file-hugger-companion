@@ -578,16 +578,16 @@ export const RichTextEditor = ({
       
       // Check if clicked on a checklist checkbox
       if (target.classList.contains('checklist-checkbox')) {
-        e.preventDefault();
         e.stopPropagation();
         const checkbox = target as HTMLInputElement;
         const listItem = checkbox.closest('.checklist-item');
         if (listItem) {
-          if (checkbox.checked) {
-            listItem.classList.add('checked');
-          } else {
-            listItem.classList.remove('checked');
-          }
+          // Native click toggles the property after capture listeners. Persist
+          // the intended next state explicitly before notifying the editor.
+          const nextChecked = !checkbox.checked;
+          checkbox.checked = nextChecked;
+          checkbox.toggleAttribute('checked', nextChecked);
+          listItem.classList.toggle('checked', nextChecked);
           // Trigger change
           if (editorRef.current) {
             const event = new Event('input', { bubbles: true });
