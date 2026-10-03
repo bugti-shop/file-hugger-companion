@@ -444,7 +444,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
         onDragLeave={onDragLeave}
         className={cn(
           'notes-card group relative overflow-hidden cursor-pointer',
-          'w-full h-full bg-card text-card-foreground',
+          'w-full h-full border-0 rounded-none shadow-none bg-card text-card-foreground',
           isSwiping ? '' : 'transition-transform duration-200',
           isSelected && 'ring-2 ring-primary ring-offset-2'
         )}
@@ -481,27 +481,19 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
             )}
           </div>
 
-          {/* Show metaDescription if available, otherwise show content preview */}
-          {note.type === 'sketch' ? (
-            note.metaDescription ? (
-              <p className="text-sm text-muted-foreground line-clamp-1">
-                {note.metaDescription}
-              </p>
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground italic">
-                <Pen className="h-4 w-4" />
-                <span>{t('notes.sketchDrawing')}</span>
-              </div>
-            )
-          ) : previewText && (
-            <p className="text-sm text-muted-foreground line-clamp-1 transition-all duration-300">
-              {previewText}
-            </p>
-          )}
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mt-2">
+            <span>
+              {updatedAtDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+            <div className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <BadgeIcon className="h-3 w-3" />
+              <span>{badge.label}</span>
+            </div>
+          </div>
 
-          {/* Tags display */}
+          {/* Tags display beneath the date */}
           {noteTags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-auto">
+            <div className="flex flex-wrap gap-1 mt-1">
               {noteTags.slice(0, 3).map((tag) => (
                 <span
                   key={tag.id}
@@ -517,22 +509,6 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mt-auto">
-            <span>
-              {updatedAtDate.toLocaleDateString('en-US', {
-                month: 'short',
-                 day: 'numeric', year: 'numeric'
-              })} • {updatedAtDate.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-              })}
-            </span>
-            <div className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <BadgeIcon className="h-3 w-3" />
-              <span>{badge.label}</span>
-            </div>
-          </div>
         </div>
       </Card>
 

@@ -875,27 +875,18 @@ const Notes = () => {
                       {sanitizeDisplayName(note.title)}
                     </h2>
                   )}
-                  {previewText && (
-                     <p className="text-sm text-muted-foreground line-clamp-1">
-                      {previewText}
-                    </p>
-                  )}
-                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mt-auto">
+                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mt-2">
                     <span>
                       {new Date(note.updatedAt).toLocaleDateString('en-US', {
                         month: 'short',
                          day: 'numeric', year: 'numeric'
-                      })} • {new Date(note.updatedAt).toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true
                       })}
                     </span>
-                     {note.tagIds?.length ? <span className="truncate">{allTags.filter(tag => note.tagIds?.includes(tag.id)).map(tag => `#${tag.name}`).join(' · ')}</span> : null}
                     {note.isDeleted && note.deletedAt && (
                       <div className="inline-block px-2 py-1 rounded-full bg-destructive/20 text-xs text-destructive font-medium">
                         {t('notes.daysRemaining', { days: getDaysRemaining(note.deletedAt) })}
                       </div>
+                   {note.tagIds?.length ? <span className="mt-1 text-xs text-muted-foreground truncate">{allTags.filter(tag => note.tagIds?.includes(tag.id)).map(tag => `#${tag.name}`).join(' · ')}</span> : null}
                     )}
                   </div>
                 </div>

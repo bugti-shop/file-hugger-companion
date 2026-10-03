@@ -50,7 +50,7 @@ export function NotesVirtualGrid({
 }: NotesVirtualGridProps) {
   const [virtualizationSettings] = useVirtualizationSettings();
   const parentRef = useRef<HTMLDivElement>(null);
-  const resolvedRowHeight = estimatedRowHeight ?? 116;
+  const resolvedRowHeight = estimatedRowHeight ?? 100;
   const resolvedOverscan = getAdaptiveOverscan(virtualizationSettings.notes.overscan, notes.length, 'notes');
   const resolvedWindowing = useWindowing ?? virtualizationSettings.notes.windowing;
 
@@ -171,7 +171,7 @@ export function NotesVirtualGrid({
               {row.kind === 'heading' ? (
                 <h2 className="notes-date-heading flex h-full items-center rounded-t-lg border-x border-t border-border bg-card px-5 text-xs font-medium uppercase text-muted-foreground">{row.label}</h2>
               ) : (
-                <div className={`notes-date-row h-full min-w-0 border-x border-border bg-card px-5 ${row.last ? 'rounded-b-lg border-b' : ''}`}>
+                <div className={`notes-date-row relative h-full min-w-0 border-x border-border bg-card px-5 ${row.last ? 'rounded-b-lg border-b' : ''}`}>
                   {renderCard(row.note)}
                 </div>
               )}
