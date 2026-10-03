@@ -33,6 +33,7 @@ import { format, isToday, isTomorrow, differenceInDays } from 'date-fns';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AppLogo } from '@/components/AppLogo';
 import { NotificationCenter } from '@/components/NotificationCenter';
+import { FeatureGuideButton } from '@/components/tours/FeatureGuideModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -1115,6 +1116,7 @@ const Index = () => {
             </div>
             <div className="flex items-center gap-0.5 flex-shrink-0">
               <div id="notes-header-options" />
+              <FeatureGuideButton className="hidden" />
               <Button
                 size="icon"
                 variant="ghost"

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FileText, Search, X, Crown } from 'lucide-react';
 import { NotificationCenter } from '@/components/NotificationCenter';
+import { FeatureGuideButton } from '@/components/tours/FeatureGuideModal';
 import { TodoBottomNavigation } from '@/components/TodoBottomNavigation';
 
 import { AppLogo } from '@/components/AppLogo';
@@ -45,6 +46,7 @@ export const TodoLayout = ({ children, title, searchValue, onSearchChange }: Tod
             </div>
             <div className="flex items-center gap-0.5 flex-shrink-0">
               <div id="todo-header-options" />
+              <FeatureGuideButton className="hidden" />
 
               <Button
                 size="icon"
