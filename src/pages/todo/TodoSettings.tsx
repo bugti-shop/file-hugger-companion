@@ -563,7 +563,7 @@ const TodoSettings = () => {
             <div className="space-y-1">
               {themes.map((theme) => (
                 (() => {
-                  const isLocked = theme.id !== 'light' && theme.id !== 'dark' && !isPro;
+                  const isLocked = theme.id !== 'light' && theme.id !== 'dark' && theme.id !== 'obsidian' && !isPro;
                   return <button
                     key={theme.id}
                     onClick={() => {

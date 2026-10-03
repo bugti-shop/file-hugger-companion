@@ -511,7 +511,7 @@ const Notes = () => {
                 size="icon"
                 variant="ghost"
                 onClick={() => {
-                  if (!isPro && currentTheme !== 'light' && currentTheme !== 'dark') {
+                  if (!isPro && currentTheme !== 'light' && currentTheme !== 'dark' && currentTheme !== 'obsidian') {
                     requireFeature('dark_mode');
                     return;
                   }

@@ -1,5 +1,9 @@
 # Roadmap
 
+- [ ] Make Obsidian the free default dark palette and correct dark surfaces on task, notes, settings, habits, and matrix screens.
+- [ ] Fix Notes bottom icon sizing and fit approximately one more six-letter word per line.
+- [ ] Rotate native Focus fullscreen horizontally and stop ambient audio on Stop or exit.
+
 - [x] Restore separate left checklist/pen and right edit controls, enlarge their icons, and make legacy note titles and checklist text consistent in reading mode.
 
 - [x] Compact and lower Notes reading capsules, enlarge their icons and slightly enlarge checklist text; add backend-verified private Pro link redemption for signed-in users and guests without a login screen.

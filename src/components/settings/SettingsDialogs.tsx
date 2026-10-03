@@ -241,7 +241,7 @@ export const SettingsDialogs = (props: SettingsDialogsProps) => {
           <ScrollArea className="h-[60vh] pr-4">
             <div className="grid grid-cols-2 gap-3">
               {themes.map((theme) => {
-                const isLocked = theme.id !== 'light' && theme.id !== 'dark' && !props.isProSub;
+                const isLocked = theme.id !== 'light' && theme.id !== 'dark' && theme.id !== 'obsidian' && !props.isProSub;
                 const isActive = props.currentTheme === theme.id;
                 return (
                   <button

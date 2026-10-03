@@ -114,8 +114,10 @@
   padding: 0;
 }
 .notes-reading-toolbar button:hover { background: hsl(var(--note-reader-control-ink) / 0.12); }
-.notes-reading-toolbar svg { width: 27px; height: 27px; }
+.notes-reading-toolbar .notes-reading-capsule > button > svg { width: 29px !important; height: 29px !important; }
 .notes-reading-title { font-size: 1.625rem; line-height: 1.25; letter-spacing: 0; }
+.notes-editor-screen .notes-reading-content,
+.notes-editor-screen .rich-text-editor { font-size: 0.94em !important; }
 .notes-editor-screen .notes-reading-content [style*="Montserrat"],
 .notes-editor-screen .rich-text-editor [style*="Montserrat"] { font-family: var(--notes-font) !important; }
 .notes-editor-screen .notes-reading-content ul.checklist,

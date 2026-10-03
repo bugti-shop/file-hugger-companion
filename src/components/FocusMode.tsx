@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
+import { Capacitor } from '@capacitor/core';
+import { ScreenOrientation } from '@capacitor/screen-orientation';
 import { ChevronDown, MoreHorizontal, X, ShieldAlert, Timer as TimerIcon, Maximize2, Music2, Check, Volume2, VolumeX, Bell, BellOff, ArrowDownToLine, Play, Pause, Square } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -155,8 +157,10 @@ const useFocusAudio = () => {
   const srcRef = useRef<AudioBufferSourceNode | null>(null);
   const gainRef = useRef<GainNode | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const generationRef = useRef(0);
 
   const stop = useCallback(() => {
+    generationRef.current += 1;
     try { srcRef.current?.stop(); srcRef.current?.disconnect(); gainRef.current?.disconnect(); } catch {}
     srcRef.current = null;
     gainRef.current = null;
@@ -205,21 +209,23 @@ const useFocusAudio = () => {
       // Anti-interrupt: if playback ends unexpectedly (some browsers ignore loop
       // near track end, or network stalls) restart from 0. On error, reload the
       // source. Keeps ambient sound gapless even during long sessions.
+      const generation = generationRef.current;
+      const canResume = () => audioRef.current === a && generationRef.current === generation;
       a.addEventListener('ended', () => {
-        try { a.currentTime = 0; void a.play(); } catch {}
+        if (canResume()) { try { a.currentTime = 0; void a.play(); } catch {} }
       });
       a.addEventListener('pause', () => {
         // Only auto-resume if we didn't intentionally stop (element still mounted)
-        if (audioRef.current === a && !a.ended) {
-          setTimeout(() => { try { void a.play(); } catch {} }, 250);
+        if (canResume() && !a.ended) {
+          setTimeout(() => { if (canResume()) { try { void a.play(); } catch {} } }, 250);
         }
       });
       a.addEventListener('error', () => {
-        try { a.src = url; a.load(); void a.play(); } catch {}
+        if (canResume()) { try { a.src = url; a.load(); void a.play(); } catch {} }
       });
-      a.addEventListener('stalled', () => { try { void a.play(); } catch {} });
-      a.play().catch(() => { toast.message('Audio blocked — tap Play again'); });
       audioRef.current = a;
+      a.addEventListener('stalled', () => { if (canResume()) { try { void a.play(); } catch {} } });
+      a.play().catch(() => { if (canResume()) toast.message('Audio blocked — tap Play again'); });
     } catch {}
   }, []);
 
@@ -258,6 +264,7 @@ export const FocusMode = ({ open, onClose, taskId, taskTitle, onComplete }: Focu
   const bg = useMemo(() => BACKGROUNDS[Math.floor(Math.random() * BACKGROUNDS.length)], [open]);
   const noise = useFocusAudio();
   const currentTrack = prefs.soundTrackId ? findTrack(prefs.soundTrackId) ?? null : null;
+  const native = Capacitor.isNativePlatform();
 
   const updatePrefs = useCallback((patch: Partial<FocusPrefs>) => {
     setPrefs(prev => {
@@ -345,13 +352,13 @@ export const FocusMode = ({ open, onClose, taskId, taskTitle, onComplete }: Focu
 
   // ---- Audio side effects ------------------------------------------------
   useEffect(() => {
-    if (prefs.whiteNoise && running && !prefs.whiteNoiseMuted) {
+    if (open && !backgrounded && prefs.whiteNoise && running && !prefs.whiteNoiseMuted && !native) {
       noise.start(currentTrack, prefs.whiteNoiseVolume);
     } else {
       noise.stop();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [prefs.whiteNoise, prefs.whiteNoiseMuted, running, prefs.soundTrackId]);
+  }, [open, backgrounded, prefs.whiteNoise, prefs.whiteNoiseMuted, running, prefs.soundTrackId, native]);
 
   useEffect(() => {
     if (noise.isRunning()) noise.setVolume(prefs.whiteNoiseMuted ? 0 : prefs.whiteNoiseVolume);
@@ -478,6 +485,16 @@ export const FocusMode = ({ open, onClose, taskId, taskTitle, onComplete }: Focu
 
   // ---- Fullscreen ---------------------------------------------------------
   const toggleFullscreen = useCallback(async () => {
+    if (native) {
+      if (prefs.fullScreen) {
+        try { await ScreenOrientation.unlock(); } catch {}
+        updatePrefs({ fullScreen: false });
+      } else {
+        try { await ScreenOrientation.lock({ orientation: 'landscape' }); } catch { toast.error('Landscape rotation unavailable'); return; }
+        updatePrefs({ fullScreen: true });
+      }
+      return;
+    }
     try {
       if (!document.fullscreenElement) {
         await document.documentElement.requestFullscreen();
@@ -489,17 +506,22 @@ export const FocusMode = ({ open, onClose, taskId, taskTitle, onComplete }: Focu
         updatePrefs({ fullScreen: false });
       }
     } catch {}
-  }, [updatePrefs]);
+  }, [native, prefs.fullScreen, updatePrefs]);
 
   // Apply saved fullscreen preference on open
   useEffect(() => {
+    if (native) {
+      if (open && prefs.fullScreen) void ScreenOrientation.lock({ orientation: 'landscape' }).catch(() => {});
+      if (!open) void ScreenOrientation.unlock().catch(() => {});
+      return;
+    }
     if (open && prefs.fullScreen && !document.fullscreenElement) {
       document.documentElement.requestFullscreen().then(() => {
         try { (screen.orientation as any)?.lock?.('landscape'); } catch {}
       }).catch(() => {});
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, [open, native]);
 
   // ---- Background mode bridge: publish state, listen for bar commands ---
   // The native foreground service is kept alive for the ENTIRE session
@@ -592,13 +614,7 @@ export const FocusMode = ({ open, onClose, taskId, taskTitle, onComplete }: Focu
 
   const attemptClose = () => {
     if (prefs.strict && running) { setConfirmExit(true); return; }
-    // If a session is active, auto-move to background so timer + sound
-    // keep running via the native foreground service. User can exit from
-    // the notification shade or the on-screen background bar.
-    if (sessionRef.current && (running || (sessionRef.current.remainingSec ?? 0) > 0)) {
-      continueInBackground();
-      return;
-    }
+    discardSession(true);
     noise.stop();
     clearFocusBgState();
     onClose();
@@ -607,6 +623,7 @@ export const FocusMode = ({ open, onClose, taskId, taskTitle, onComplete }: Focu
   const continueInBackground = () => {
     setShowBackgroundPrompt(false);
     setBackgrounded(true);
+    noise.stop();
     // Post the native foreground-service notification immediately BEFORE the
     // React sheet unmounts, otherwise closing TaskDetail can kill the JS timer
     // before the effect gets a chance to publish it.
@@ -617,7 +634,7 @@ export const FocusMode = ({ open, onClose, taskId, taskTitle, onComplete }: Focu
         : remaining,
       endAtMs: sessionRef.current?.endAt,
       running,
-      soundUrl: prefs.whiteNoise && !prefs.whiteNoiseMuted && currentTrack ? currentTrack.url : undefined,
+      soundUrl: undefined,
       soundVolume: prefs.whiteNoiseMuted ? 0 : prefs.whiteNoiseVolume,
     });
     onClose(); // hides the host sheet/page wrapper; native service keeps running
@@ -625,7 +642,7 @@ export const FocusMode = ({ open, onClose, taskId, taskTitle, onComplete }: Focu
 
   const exitFully = () => {
     setShowBackgroundPrompt(false);
-    if (sessionRef.current && running) pauseSession();
+    discardSession(true);
     noise.stop();
     clearFocusBgState();
     setBackgrounded(false);
@@ -910,7 +927,7 @@ export const FocusMode = ({ open, onClose, taskId, taskTitle, onComplete }: Focu
         onClose={() => setShowSoundLib(false)}
         selectedId={prefs.soundTrackId}
         onSelect={(t) => {
-          updatePrefs({ soundTrackId: t ? t.id : null, whiteNoise: true });
+          updatePrefs({ soundTrackId: t ? t.id : null, whiteNoise: !!t });
         }}
         volume={prefs.whiteNoiseVolume}
         muted={prefs.whiteNoiseMuted}
