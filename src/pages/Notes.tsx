@@ -882,13 +882,13 @@ const Notes = () => {
                          day: 'numeric', year: 'numeric'
                       })}
                     </span>
-                    {note.isDeleted && note.deletedAt && (
+                     {note.isDeleted && note.deletedAt && (
                       <div className="inline-block px-2 py-1 rounded-full bg-destructive/20 text-xs text-destructive font-medium">
                         {t('notes.daysRemaining', { days: getDaysRemaining(note.deletedAt) })}
                       </div>
-                   {note.tagIds?.length ? <span className="mt-1 text-xs text-muted-foreground truncate">{allTags.filter(tag => note.tagIds?.includes(tag.id)).map(tag => `#${tag.name}`).join(' · ')}</span> : null}
                     )}
                   </div>
+                   {note.tagIds?.length ? <span className="mt-1 text-xs text-muted-foreground truncate">{allTags.filter(tag => note.tagIds?.includes(tag.id)).map(tag => `#${tag.name}`).join(' · ')}</span> : null}
                 </div>
               </div>
             )}}
