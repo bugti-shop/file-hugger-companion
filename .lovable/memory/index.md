@@ -15,3 +15,4 @@ No-argument slash shortcuts in notes editor should auto-run when complete, espec
 - [Slash shortcuts auto-run](mem://preferences/slash-shortcuts-auto-run) — RichTextEditor slash commands should not require extra Space/Enter when complete
 - [Flowist red brand system](mem://design-brand-refresh) — Red primary, pen-check logo, transparent placements, white native splash screens
 - [Free Timeline and selected navigation](mem://features/free-timeline-navigation) — Timeline is free/default; active bottom tabs use a soft red pill
+- [Apple Notes concept reference](mem://preferences/apple-notes-concept-reference) — For the ten screenshot concepts, improve the uploaded Apple Notes UI itself, not Flowist
