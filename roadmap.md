@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Open every rich-text note in reading mode; add the reference bottom checklist/edit controls, editable checklist titles, red checked circles without strike-through, and restore the existing toolbar on edit.
+- [x] Open every rich-text note in reading mode; add the reference bottom checklist/edit controls, editable checklist titles, red checked circles without strike-through, and restore the existing toolbar on edit.
 
 - [x] Brighten the glass capsules with a faint shadow; compact the Notes editor header, move undo beside share/options, remove redo and the metadata row, and raise title/body.
 

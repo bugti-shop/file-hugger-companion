@@ -480,7 +480,14 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
         selection?.addRange(range);
         document.execCommand('insertHTML', false, '<ul class="checklist"><li class="checklist-item"><input type="checkbox" class="checklist-checkbox" /><span class="checklist-text">&nbsp;</span></li></ul>');
         setContent(editor.innerHTML);
-        editor.querySelector<HTMLElement>('.checklist-item:last-child .checklist-text')?.focus();
+        const newItem = editor.querySelector<HTMLElement>('.checklist-item:last-child .checklist-text');
+        if (newItem) {
+          const caret = document.createRange();
+          caret.selectNodeContents(newItem);
+          caret.collapse(false);
+          selection?.removeAllRanges();
+          selection?.addRange(caret);
+        }
       } else if (typeof focus === 'number') {
         const text = editor.querySelectorAll<HTMLElement>('.checklist-item .checklist-text')[focus];
         if (text) {
@@ -501,11 +508,17 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     if (!(target instanceof Element)) return;
     const checkbox = target.closest<HTMLInputElement>('input.checklist-checkbox');
     if (checkbox) {
-      const item = checkbox.closest('.checklist-item');
-      item?.classList.toggle('checked', checkbox.checked);
-      if (checkbox.checked) checkbox.setAttribute('checked', '');
-      else checkbox.removeAttribute('checked');
-      if (readingContentRef.current) setContent(readingContentRef.current.innerHTML);
+      const checkboxes = readingContentRef.current?.querySelectorAll('input.checklist-checkbox');
+      const index = checkboxes ? Array.from(checkboxes).indexOf(checkbox) : -1;
+      if (index < 0) return;
+      const source = document.createElement('div');
+      source.innerHTML = contentRef.current;
+      const sourceCheckbox = source.querySelectorAll<HTMLInputElement>('input.checklist-checkbox')[index];
+      if (!sourceCheckbox) return;
+      const checked = checkbox.checked;
+      sourceCheckbox.toggleAttribute('checked', checked);
+      sourceCheckbox.closest('.checklist-item')?.classList.toggle('checked', checked);
+      setContent(source.innerHTML);
       return;
     }
     const taskTitle = target.closest('.checklist-item .checklist-text');
