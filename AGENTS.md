@@ -2,7 +2,7 @@
 
 - Reuse the shared floating add control and header-action portal on Notes/Tasks/Notebooks so web and native WebViews retain identical layouts and safe-area spacing; task composer motion belongs to the shared add control and sheet styles so both task views transition alike.
 - Keep the Notes and To-Do dashboard switcher and portaled options menu inside one shared glass action group; a common structure keeps icon order and spacing identical across both headers.
-- Keep the Notes editor share and options controls in one borderless capsule, with back and undo as individual circular actions; this preserves consistent header alignment on web and native views.
+- Keep the Notes editor share and options controls in one compact borderless capsule, with back at left and undo beside the capsule; this preserves consistent header alignment on web and native views.
 - Use one date-grouped Notes list renderer across Notes dashboards and notebook views; shared grouping prevents inconsistent calendar headings and keeps virtualized rows fast for large libraries.
 
 - Keep Android launcher layers opaque white and the original logo within the adaptive mask to avoid green backgrounds and clipping.

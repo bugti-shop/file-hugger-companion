@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Brighten the glass capsules with a faint shadow; compact the Notes editor header, move undo beside share/options, remove redo and the metadata row, and raise title/body.
+
 - [x] Match the Notes editor header to the circular back/undo controls and borderless share/options capsule in the reference; make dashboard capsules smaller and remove their outlines.
 
 - [x] Match the screenshot's native sans-serif type in the Notes editor without rewriting saved notes; use black glass-capsule icons in light mode and white in dark mode.

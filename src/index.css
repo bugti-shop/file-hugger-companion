@@ -25,9 +25,9 @@
   padding: 2px 5px;
   flex-shrink: 0;
   border-radius: 9999px;
-  background: hsl(var(--dashboard-glass-surface) / 0.52);
+  background: hsl(var(--dashboard-glass-surface) / var(--dashboard-glass-opacity));
   border: 0;
-  box-shadow: none;
+  box-shadow: 0 2px 9px hsl(var(--dashboard-glass-shadow) / 0.07), inset 0 1px 0 hsl(var(--dashboard-glass-highlight) / 0.8);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
   backdrop-filter: blur(16px) saturate(150%);
 }
@@ -45,31 +45,32 @@
 .dashboard-glass-actions .dashboard-glass-action:hover { background: hsl(var(--dashboard-glass-stroke) / 0.26); }
 .dashboard-glass-actions .dashboard-glass-action:active { opacity: 0.58; transform: scale(0.92); }
 .dashboard-glass-actions .dashboard-glass-action svg { width: 19px; height: 19px; stroke-linecap: round; stroke-linejoin: round; }
-/* Notes editor controls: two individual discs and one borderless share/options capsule. */
+/* Notes editor controls: compact individual back/undo discs and a share/options capsule. */
 .notes-editor-header .editor-header-circle,
 .notes-editor-header .editor-header-capsule {
-  background: hsl(var(--dashboard-glass-surface) / 0.52);
+  background: hsl(var(--dashboard-glass-surface) / var(--dashboard-glass-opacity));
   -webkit-backdrop-filter: blur(16px) saturate(150%);
   backdrop-filter: blur(16px) saturate(150%);
   color: hsl(var(--dashboard-glass-ink));
   border: 0;
-  box-shadow: none;
+  box-shadow: 0 2px 9px hsl(var(--dashboard-glass-shadow) / 0.07), inset 0 1px 0 hsl(var(--dashboard-glass-highlight) / 0.8);
 }
+.notes-editor-header { padding-top: calc(var(--safe-top, 0px) + 8px); padding-bottom: 8px; }
 .notes-editor-header .editor-header-circle {
-  width: 44px !important;
-  height: 44px !important;
+  width: 36px !important;
+  height: 36px !important;
   border-radius: 9999px;
 }
 .notes-editor-header .editor-header-capsule {
   display: flex;
   align-items: center;
-  gap: 4px;
-  padding: 2px 4px;
+  gap: 0;
+  padding: 2px 3px;
   border-radius: 9999px;
 }
 .notes-editor-header .editor-header-pill-action {
-  width: 44px !important;
-  height: 40px !important;
+  width: 34px !important;
+  height: 32px !important;
   padding: 0;
   border-radius: 9999px;
   color: inherit;
@@ -79,7 +80,10 @@
 .notes-editor-header .editor-header-circle:active,
 .notes-editor-header .editor-header-pill-action:active { opacity: 0.6; transform: scale(0.94); }
 .notes-editor-header .editor-header-circle > svg,
-.notes-editor-header .editor-header-pill-action > svg { width: 24px !important; height: 24px !important; stroke-linecap: round; stroke-linejoin: round; }
+  .notes-editor-header .editor-header-pill-action > svg { width: 19px !important; height: 19px !important; stroke-linecap: round; stroke-linejoin: round; }
+.notes-editor-header + .relative .title-input { padding-top: 4px; padding-bottom: 2px; }
+.notes-editor-header + .relative .rich-text-editor { padding-top: 4px; }
+.notes-editor-header + .relative .rich-text-editor::before { top: 4px; }
 @media (prefers-reduced-motion: reduce) {
   .dashboard-glass-actions .dashboard-glass-action { transition: none; }
   .dashboard-glass-actions .dashboard-glass-action:active { transform: none; }
@@ -125,7 +129,8 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
     --header-icon-size: clamp(20px, 5.6vw, 24px);
     --header-title-size: clamp(15px, 4.4vw, 17px);
     --background: 0 0% 100%;
-    --dashboard-glass-surface: 215 16% 87%;
+    --dashboard-glass-surface: 0 0% 100%;
+    --dashboard-glass-opacity: 0.94;
     --dashboard-glass-stroke: 215 18% 75%;
     --dashboard-glass-highlight: 0 0% 100%;
     --dashboard-glass-shadow: 220 20% 30%;
@@ -277,6 +282,7 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
   .onyx,
     .charcoal {
     --dashboard-glass-surface: 0 0% 25%;
+    --dashboard-glass-opacity: 0.78;
     --dashboard-glass-stroke: 0 0% 84%;
     --dashboard-glass-highlight: 0 0% 100%;
     --dashboard-glass-shadow: 0 0% 0%;
