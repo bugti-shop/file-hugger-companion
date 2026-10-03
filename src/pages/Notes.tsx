@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 
 import { exportNoteToMarkdown } from '@/utils/markdownExport';
 import { sanitizeDisplayName } from '@/utils/duplicateName';
+import { getTextPreviewFromHtml } from '@/utils/contentPreview';
 import { toast } from 'sonner';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AppLogo } from '@/components/AppLogo';
@@ -715,7 +716,7 @@ const Notes = () => {
                 )}
                 onClick={() => !note.isDeleted && handleEditNote(note)}
               >
-                <div className="py-3 h-full flex flex-col">
+                <div className="py-1 h-full flex flex-col justify-center min-w-0">
                   <div className="absolute top-2 right-2 flex gap-1">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -826,23 +827,24 @@ const Notes = () => {
                       </Button>
                     )}
                   </div>
-                   <h2 className="font-semibold text-base text-card-foreground pr-10 line-clamp-1">
+                   <h2 className="font-semibold text-sm leading-5 text-card-foreground pr-10 truncate">
                      {sanitizeDisplayName(note.title || t('notes.untitled'))}
                    </h2>
-                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mt-2">
-                    <span>
+                   <div className="flex items-center gap-2 text-[11px] leading-4 text-muted-foreground min-w-0">
+                    <span className="shrink-0">
                       {new Date(note.updatedAt).toLocaleDateString('en-US', {
                         month: 'short',
                          day: 'numeric', year: 'numeric'
                       })}
                     </span>
+                     {((note as any).__contentPreview || note.content) && <span className="truncate min-w-0">{(note as any).__contentPreview || getTextPreviewFromHtml(note.content, 120)}</span>}
                      {note.isDeleted && note.deletedAt && (
                       <div className="inline-block px-2 py-1 rounded-full bg-destructive/20 text-xs text-destructive font-medium">
                         {t('notes.daysRemaining', { days: getDaysRemaining(note.deletedAt) })}
                       </div>
                     )}
                   </div>
-                   {note.tagIds?.length ? <span className="mt-1 text-xs text-muted-foreground truncate">{allTags.filter(tag => note.tagIds?.includes(tag.id)).map(tag => `#${tag.name}`).join(' · ')}</span> : null}
+                   {note.tagIds?.length ? <span className="text-[10px] leading-3 text-muted-foreground truncate">{allTags.filter(tag => note.tagIds?.includes(tag.id)).map(tag => `#${tag.name}`).join(' · ')}</span> : null}
                 </div>
               </div>
             )}}

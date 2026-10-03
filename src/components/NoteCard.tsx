@@ -11,6 +11,7 @@ import { getNoteProtection, NoteProtection } from '@/utils/noteProtection';
 import { getSetting } from '@/utils/settingsStorage';
 import { logActivity } from '@/utils/activityLogger';
 import { sanitizeDisplayName } from '@/utils/duplicateName';
+import { getTextPreviewFromHtml } from '@/utils/contentPreview';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   DropdownMenu,
@@ -319,6 +320,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
     const ms = note.updatedAt instanceof Date ? note.updatedAt.getTime() : new Date(note.updatedAt as any).getTime();
     return new Date(Number.isFinite(ms) ? ms : Date.now());
   }, [note.updatedAt]);
+  const contentPreview = useMemo(() => (note as any).__contentPreview || getTextPreviewFromHtml(note.content || '', 120), [note.content, (note as any).__contentPreview]);
 
   return (
     <div className="relative overflow-hidden perf-contain-item h-full w-full flex">
@@ -395,7 +397,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
         )}
         style={{ transform: `translateX(${swipeOffset}px)` }}
       >
-        <div className="px-0 py-3 h-full flex flex-col">
+        <div className="py-1 h-full flex flex-col justify-center min-w-0">
           <div className="flex items-start justify-between gap-2">
             {/* Selection checkbox */}
             {isSelectionMode && (
@@ -412,7 +414,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
                 {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
               </div>
             )}
-            <h3 className="font-semibold text-base line-clamp-1 text-card-foreground flex-1">{sanitizeDisplayName(note.title || t('notes.untitled'))}</h3>
+            <h3 className="font-semibold text-sm leading-5 truncate text-card-foreground flex-1 min-w-0">{sanitizeDisplayName(note.title || t('notes.untitled'))}</h3>
             {note.isPinned && (
               <Pin className="h-4 w-4 text-warning fill-warning shrink-0" />
             )}
@@ -424,19 +426,17 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
             )}
           </div>
 
-          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mt-2">
-            <span>
+          <div className="flex items-center gap-2 text-[11px] leading-4 text-muted-foreground min-w-0">
+            <span className="shrink-0">
               {updatedAtDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
-            {note.type !== 'regular' && <div className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <BadgeIcon className="h-3 w-3" />
-              <span>{badge.label}</span>
-            </div>}
+            {contentPreview && !(noteProtection.hasPassword || noteProtection.useBiometric) && <span className="min-w-0 truncate">{contentPreview}</span>}
+            {note.type !== 'regular' && <BadgeIcon className="h-3 w-3 shrink-0 ml-auto" aria-label={badge.label} />}
           </div>
 
           {/* Tags display beneath the date */}
           {noteTags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1">
+            <div className="flex gap-1 text-[10px] leading-3 truncate">
               {noteTags.slice(0, 3).map((tag) => (
                 <span
                   key={tag.id}

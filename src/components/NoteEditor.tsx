@@ -214,6 +214,10 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
 
   // Code note state
   const [codeContent, setCodeContent] = useState<string>('');
+  const hasTextChanges = useCallback(() => {
+    const snapshot = initialSnapshotRef.current;
+    return !snapshot || title !== snapshot.title || contentRef.current !== snapshot.content || codeContent !== snapshot.codeContent;
+  }, [title, codeContent]);
   const [codeLanguage, setCodeLanguage] = useState<string>('auto');
 
 
@@ -512,7 +516,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
         : recoveredContent;
       setContent(fastOfflineContent);
       if (fastOfflineContent !== recoveredContent) {
-        saveNoteToDBSingle({ ...note, content: fastOfflineContent, updatedAt: new Date() })
+        saveNoteToDBSingle({ ...note, content: fastOfflineContent })
           .catch((e) => console.warn('[NoteEditor] could not upgrade web clip for fast offline open', e));
       }
       setIsReadingMode(!!(note.fullPageSnapshot || WEB_CLIP_RE.test(note.content || '')));
@@ -817,7 +821,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     // Mark as closing to prevent re-entry
     if (!isOpenRef.current) return;
     
-    if (!isReadOnlyWebClip) {
+    if (!isReadOnlyWebClip && (!note || hasTextChanges() || selectedFolderId !== note.folderId || noteTagIds.join(',') !== (note.tagIds || []).join(',') || reminderEnabled !== !!note.reminderEnabled || color !== (note.color || 'yellow') || customColor !== note.customColor || metaDescription !== (note.metaDescription || '') || location !== (note.location || ''))) {
       await commitNote({ full: true });
     }
     // Clear crash recovery since we saved successfully
@@ -832,7 +836,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
         navigate(returnToRef.current!, { replace: true });
       }, 10);
     }
-  }, [commitNote, navigate, onClose, isReadOnlyWebClip]);
+  }, [commitNote, navigate, onClose, isReadOnlyWebClip, note, hasTextChanges, selectedFolderId, noteTagIds, reminderEnabled, color, customColor, metaDescription, location]);
 
   const handleClose = useCallback(async () => {
     if (!isOpenRef.current) return;
@@ -929,8 +933,9 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         if (isReadOnlyWebClip) return;
-        void commitNote({ full: false });
+        if (hasTextChanges()) void commitNote({ full: false });
         // Also write to localStorage as synchronous fallback
+        if (!hasTextChanges()) return;
         try {
           const savedNote = buildCurrentNoteRef.current();
           localStorage.setItem(CRASH_RECOVERY_KEY, JSON.stringify({
@@ -947,6 +952,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     // Force-save on page refresh/close to prevent data loss
     // localStorage.setItem is SYNCHRONOUS and guaranteed to persist
     const onBeforeUnload = () => {
+      if (!hasTextChanges()) return;
       try {
         const savedNote = buildCurrentNoteRef.current();
         // Synchronous localStorage write - guaranteed to complete before page unloads
@@ -971,7 +977,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
-  }, [isOpen, commitNote, isReadOnlyWebClip]);
+  }, [isOpen, commitNote, hasTextChanges, isReadOnlyWebClip]);
 
   // Handle hardware back button on Android - save and close editor (parent keeps correct screen)
   useHardwareBackButton({
