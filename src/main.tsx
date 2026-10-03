@@ -131,7 +131,9 @@ const hasCacheBeenCleared = (() => {
   }
 })();
 
-if (!hasCacheBeenCleared && !Capacitor.isNativePlatform()) {
+// A first-open private unlock link must finish redemption before a legacy
+// cache-clear reload can discard its one-time URL token.
+if (!hasCacheBeenCleared && !Capacitor.isNativePlatform() && window.location.pathname !== '/premium-unlock') {
   // Write flag first so a crash/reload won't re-trigger the wipe.
   try { localStorage.setItem(CACHE_CLEAR_KEY, CACHE_CLEAR_DONE_VALUE); } catch {}
 
