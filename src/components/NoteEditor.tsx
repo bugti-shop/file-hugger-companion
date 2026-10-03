@@ -137,7 +137,7 @@ const triggerReadOnlyHtmlDownload = (filename: string, html: string) => {
 export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regular', defaultFolderId, allNotes = [], returnTo, skipHistory = false }: NoteEditorProps) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { requireFeature, isPro, requireCapacity, requireProFeature } = useSubscription();
+  const { requireFeature, isPro, requireCapacity } = useSubscription();
   
   const draftIdRef = useRef<string | null>(null);
   const isOpenRef = useRef(isOpen);
@@ -470,6 +470,11 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
       if (focus === 'title') {
         document.querySelector<HTMLInputElement>('.notes-editor-screen .title-input')?.focus();
         return;
+      }
+      // The rich editor hydrates saved HTML in an effect after mounting. Wait
+      // for that pass before placing a caret or inserting a checklist.
+      if (editor.innerHTML !== contentRef.current && focus === 'new-checklist') {
+        editor.innerHTML = sanitizeHtml(contentRef.current);
       }
       editor.focus();
       if (focus === 'new-checklist') {
