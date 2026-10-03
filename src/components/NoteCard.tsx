@@ -376,7 +376,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
   }, [note.updatedAt]);
 
   return (
-    <div className="relative overflow-hidden rounded-lg perf-contain-item h-full w-full flex">
+    <div className="relative overflow-hidden perf-contain-item h-full w-full flex">
       {/* Swipe action backgrounds */}
       <div className="absolute inset-0 flex">
         {/* Left side actions - Favorite + Pin (swipe right reveals) */}
@@ -443,17 +443,14 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
         onDragEnd={onDragEnd}
         onDragLeave={onDragLeave}
         className={cn(
-          'group relative overflow-hidden cursor-pointer',
-          'w-full h-full hover:shadow-md border border-border/50',
+          'notes-card group relative overflow-hidden cursor-pointer',
+          'w-full h-full bg-card text-card-foreground',
           isSwiping ? '' : 'transition-transform duration-200',
           isSelected && 'ring-2 ring-primary ring-offset-2'
         )}
-        style={{ 
-          ...cardStyle,
-          transform: `translateX(${swipeOffset}px)`,
-        }}
+        style={{ transform: `translateX(${swipeOffset}px)` }}
       >
-        <div className="p-4 h-full flex flex-col">
+        <div className="px-0 py-3 h-full flex flex-col">
           <div className="flex items-start justify-between gap-2">
             {/* Selection checkbox */}
             {isSelectionMode && (
@@ -471,7 +468,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
               </div>
             )}
           {note.title && (
-              <h3 className="font-semibold text-base line-clamp-1 text-gray-900 flex-1">{sanitizeDisplayName(note.title)}</h3>
+              <h3 className="font-semibold text-base line-clamp-1 text-card-foreground flex-1">{sanitizeDisplayName(note.title)}</h3>
             )}
             {note.isPinned && (
               <Pin className="h-4 w-4 text-warning fill-warning shrink-0" />
@@ -487,52 +484,51 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
           {/* Show metaDescription if available, otherwise show content preview */}
           {note.type === 'sketch' ? (
             note.metaDescription ? (
-              <p className="text-sm text-gray-700 mb-3 line-clamp-2">
+              <p className="text-sm text-muted-foreground line-clamp-1">
                 {note.metaDescription}
               </p>
             ) : (
-              <div className="flex items-center gap-2 text-sm text-gray-500 mb-3 italic">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground italic">
                 <Pen className="h-4 w-4" />
                 <span>{t('notes.sketchDrawing')}</span>
               </div>
             )
           ) : previewText && (
-            <p className="text-sm text-gray-700 mb-3 line-clamp-2 transition-all duration-300">
+            <p className="text-sm text-muted-foreground line-clamp-1 transition-all duration-300">
               {previewText}
             </p>
           )}
 
           {/* Tags display */}
           {noteTags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-2">
+            <div className="flex flex-wrap gap-1 mt-auto">
               {noteTags.slice(0, 3).map((tag) => (
                 <span
                   key={tag.id}
-                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded-full font-medium text-white"
-                  style={{ backgroundColor: `hsl(${tag.color})` }}
+                  className="inline-flex items-center gap-0.5 text-xs font-medium text-muted-foreground"
                 >
                   {tag.icon && <span className="text-[9px]">{tag.icon}</span>}
                   {tag.name}
                 </span>
               ))}
               {noteTags.length > 3 && (
-                <span className="text-[10px] text-gray-500">+{noteTags.length - 3}</span>
+                <span className="text-xs text-muted-foreground">+{noteTags.length - 3}</span>
               )}
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-2 text-xs text-gray-600">
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mt-auto">
             <span>
               {updatedAtDate.toLocaleDateString('en-US', {
                 month: 'short',
-                day: 'numeric'
+                 day: 'numeric', year: 'numeric'
               })} • {updatedAtDate.toLocaleTimeString('en-US', {
                 hour: 'numeric',
                 minute: '2-digit',
                 hour12: true
               })}
             </span>
-            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/80 text-xs font-medium text-gray-800">
+            <div className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <BadgeIcon className="h-3 w-3" />
               <span>{badge.label}</span>
             </div>
