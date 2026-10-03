@@ -855,7 +855,7 @@ const Today = () => {
         <h1 className="sr-only">Flowist — Today's Tasks &amp; Daily Planner</h1>
 
         {/* Keep folder chips; actions live in the header. */}
-        <div className="mb-1 pt-2" data-tour="todo-folders-section">
+        <div className="mb-1 pt-0.5" data-tour="todo-folders-section">
               {isSelectionMode && (
                 <div className="flex justify-end mb-1">
                   <Button variant="default" size="sm" onClick={() => { setIsSelectionMode(false); setSelectedTaskIds(new Set()); }}>{t('menu.cancel')}</Button>
