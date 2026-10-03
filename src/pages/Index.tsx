@@ -22,19 +22,17 @@ import { VirtualizedNotesGrid, VirtualizedNotesList, shouldVirtualizeNotes } fro
 import { NotesVirtualGrid } from '@/components/notes/NotesVirtualGrid';
 import { useNoteTypeVisibility } from '@/hooks/useNoteTypeVisibility';
 import { getVisibleFeatures } from '@/utils/noteTypeVisibility';
-import { useDarkMode } from '@/hooks/useDarkMode';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Plus, StickyNote, FileText, FileEdit, Pen, ListTodo, Bell, Clock, Repeat, FileCode, GitBranch, Sun, Moon, Receipt, Star, ArrowUpDown, MoreVertical, FolderPlus, CheckSquare, Trash2, Archive, X, RotateCcw, Copy, Folder as FolderIcon, Eye, EyeOff, Mic, Type, LayoutTemplate, Crown, PenTool } from 'lucide-react';
+import { Search, Plus, StickyNote, FileText, FileEdit, Pen, ListTodo, Bell, Clock, Repeat, FileCode, GitBranch, Receipt, Star, ArrowUpDown, MoreVertical, FolderPlus, CheckSquare, Trash2, Archive, X, RotateCcw, Copy, Folder as FolderIcon, Eye, EyeOff, Mic, Type, LayoutTemplate, Crown, PenTool } from 'lucide-react';
 
 import { format, isToday, isTomorrow, differenceInDays } from 'date-fns';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AppLogo } from '@/components/AppLogo';
 import { NotificationCenter } from '@/components/NotificationCenter';
-import { FeatureGuideButton } from '@/components/tours/FeatureGuideModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,7 +71,6 @@ const Index = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isDarkMode, toggleDarkMode, currentTheme } = useDarkMode();
   
   
   // Use global notes context - no more local loading!
@@ -1116,40 +1113,8 @@ const Index = () => {
               <AppLogo />
               <h1 className="text-base xs:text-lg sm:text-xl font-bold">Flowist</h1>
             </div>
-            <div className="flex items-center gap-0.5 xs:gap-1 sm:gap-2 flex-shrink-0">
+            <div className="flex items-center gap-0.5 flex-shrink-0">
               <div id="notes-header-options" />
-              
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => {
-                  // Free users get one dark theme; extras require Pro.
-                  if (!isPro && currentTheme !== 'light' && currentTheme !== 'dark') {
-                    requireFeature('dark_mode');
-                    return;
-                  }
-                  if (!isPro && currentTheme === 'dark') {
-                    // Free user toggling away from the single free dark theme:
-                    // allow returning to light, but tapping again should gate.
-                    toggleDarkMode(false);
-                    return;
-                  }
-                  if (!isPro) {
-                    // Light -> single free dark theme.
-                    toggleDarkMode(false);
-                    return;
-                  }
-                  toggleDarkMode(true);
-                }}
-                className="h-7 w-7 xs:h-8 xs:w-8 sm:h-9 sm:w-9 hover:bg-transparent active:bg-transparent touch-target"
-                title={t('common.toggleDarkMode')}
-                data-tour="dark-mode-toggle"
-              >
-                {isDarkMode ? <Sun className="h-4 w-4 xs:h-5 xs:w-5 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 xs:h-5 xs:w-5 sm:h-5 sm:w-5" />}
-              </Button>
-              
-              <FeatureGuideButton />
-
               <Button
                 size="icon"
                 variant="ghost"

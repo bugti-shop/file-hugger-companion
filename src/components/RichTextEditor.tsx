@@ -80,11 +80,10 @@ import { SlashCommandMenu, SlashCommandId, SLASH_ITEMS_COUNT_FOR_QUERY, SLASH_PR
 
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { MentionMenu, MentionItem } from './richtext/MentionMenu';
-import { BubbleMenu } from './richtext/BubbleMenu';
 import {
   calloutHTML, toggleHTML, quoteHTML, dividerHTML, codeBlockHTML, checklistHTML,
   mentionHTML, getCaretRect, getCaretLI, indentListItem, outdentListItem,
-  replaceTriggerAndInsert, columnsHTML, mathHTML, renderMathIn, wrapSelectionAsComment,
+  replaceTriggerAndInsert, columnsHTML, mathHTML, renderMathIn,
   syncedHTML, hydrateSyncedIn, persistSyncedFrom, removeAdjacentMention, hydrateWebClipsIn, prepareWebClipEmbedsHtml,
   hydrateCodeBlocksIn, hydrateImageMediaIn,
 } from './richtext/richTextBlocks';
@@ -1768,54 +1767,6 @@ export const RichTextEditor = ({
     }, 0);
   }, []);
 
-  // Bubble menu command handler
-  const handleBubbleCommand = useCallback((cmd: 'bold' | 'italic' | 'underline' | 'strike' | 'code' | 'link' | 'comment' | 'markdown') => {
-    switch (cmd) {
-      case 'bold': execCommand('bold'); break;
-      case 'italic': execCommand('italic'); break;
-      case 'underline': execCommand('underline'); break;
-      case 'strike': execCommand('strikeThrough'); break;
-      case 'code': handleCodeBlock(); handleInput(); break;
-      case 'link': handleShowLinkInput(); break;
-      case 'comment': {
-        const text = window.prompt('Add a comment for the selected text:');
-        if (text && text.trim()) {
-          if (wrapSelectionAsComment(text.trim())) handleInput();
-          else toast.error('Select some text first to comment on it.');
-        }
-        break;
-      }
-      case 'markdown': {
-        const sel = window.getSelection();
-        if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
-          toast.error('Select some Markdown text first.');
-          break;
-        }
-        const range = sel.getRangeAt(0);
-        const editor = editorRef.current;
-        if (!editor || !editor.contains(range.commonAncestorContainer)) break;
-        const raw = sel.toString();
-        if (!raw.trim()) { toast.error('Selection is empty.'); break; }
-        const converted = markdownPasteToHtml(raw);
-        if (!converted) {
-          toast.error('No Markdown syntax detected in the selection.');
-          break;
-        }
-        try {
-          editor.focus();
-          document.execCommand('insertHTML', false, converted);
-          hydrateSynced();
-          handleInput();
-          toast.success('Converted Markdown to rich text.');
-        } catch {
-          toast.error('Could not convert selection.');
-        }
-        break;
-      }
-    }
-  }, [hydrateSynced]);
-
-
   // Paste handler: convert Markdown → HTML whenever the plain-text clipboard
   // payload clearly looks like markdown. Mobile browsers/chat apps often expose
   // both text/plain and text/html; previously the text/html presence made us
@@ -2934,9 +2885,6 @@ export const RichTextEditor = ({
         onClose={closeMention}
         onItemsCountChange={(n) => setMentionMenu(m => (m.itemCount === n ? m : { ...m, itemCount: n }))}
       />
-
-      {/* Floating bubble menu for selected text */}
-      <BubbleMenu editorRef={editorRef} onCommand={handleBubbleCommand} />
 
       {/* Synced-block picker (slash → Synced block) */}
       <SyncedBlockPicker

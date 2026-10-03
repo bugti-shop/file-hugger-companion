@@ -650,10 +650,11 @@ const Upcoming = () => {
 
       <FloatingAddButton
         aria-label={t('common.addTask')}
-        onClick={async () => {
+        aria-expanded={isInputOpen}
+        onClick={() => {
           if (!isPro && !canCreateWithinSoftLimit('tasks', allItems.length)) { softRequireCreate('tasks', allItems.length); return; }
-          try { await Haptics.impact({ style: ImpactStyle.Heavy }); } catch {}
           setIsInputOpen(true);
+          void Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
         }}
       >
         {t('common.addTask')}

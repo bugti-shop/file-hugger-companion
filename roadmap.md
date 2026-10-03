@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Remove the Notes selection-format strip and dashboard theme/help icons; tighten header and Inbox spacing, shrink the add glyph, and animate task entry.
+
 - [x] Replace Notes, notebook, and task add bars with right-aligned red rounded-square buttons; relocate folder menus to the header, remove Folders labels, and tighten safe-area-aware top spacing.
 
 - [x] Audit notification and launcher references; replace cached legacy web notification images with versioned white-background logo and monochrome badge.

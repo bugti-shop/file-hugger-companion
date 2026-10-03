@@ -948,12 +948,12 @@ export const TaskInputSheet = ({ isOpen, onClose: rawOnClose, onAddTask, folders
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/20 lg:bg-black/40 z-[60]"
+        className="fixed inset-0 bg-background/20 lg:bg-background/40 z-[60] task-sheet-backdrop"
         onClick={preventBackdropClose ? undefined : onClose}
       />
 
       <div
-        className="fixed left-0 right-0 lg:left-1/2 lg:right-auto lg:w-[min(420px,92vw)] bg-card z-[70] rounded-t-3xl lg:rounded-2xl shadow-2xl pointer-events-auto transition-opacity overflow-y-auto lg:border lg:border-border"
+        className="fixed left-0 right-0 lg:left-1/2 lg:right-auto lg:w-[min(420px,92vw)] bg-card z-[70] rounded-t-3xl lg:rounded-2xl shadow-2xl pointer-events-auto transition-opacity overflow-y-auto lg:border lg:border-border task-sheet-enter"
         style={{ 
           bottom: isDesktop ? 'auto' : (shouldLiftForKeyboard ? `${keyboardHeight}px` : '0px'),
           top: isDesktop ? '50%' : undefined,
