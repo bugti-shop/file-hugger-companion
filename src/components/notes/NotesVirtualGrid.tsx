@@ -40,7 +40,8 @@ export function NotesVirtualGrid({
 }: NotesVirtualGridProps) {
   const [virtualizationSettings] = useVirtualizationSettings();
   const parentRef = useRef<HTMLDivElement>(null);
-  const resolvedRowHeight = estimatedRowHeight ?? 108;
+  const resolvedRowHeight = estimatedRowHeight ?? 46;
+  const rowSize = (idx: number) => rows[idx]?.kind === 'heading' ? 32 : resolvedRowHeight + (rows[idx]?.kind === 'note' && rows[idx].note.tagIds?.length ? 14 : 0);
   const resolvedOverscan = getAdaptiveOverscan(virtualizationSettings.notes.overscan, notes.length, 'notes');
   const resolvedWindowing = useWindowing ?? virtualizationSettings.notes.windowing;
 
@@ -80,7 +81,7 @@ export function NotesVirtualGrid({
   const containerVirtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => parentRef.current,
-    estimateSize: (idx) => rows[idx]?.kind === 'heading' ? 52 : resolvedRowHeight,
+    estimateSize: rowSize,
     overscan: resolvedOverscan,
     getItemKey: (idx) => {
       const row = rows[idx];
@@ -90,7 +91,7 @@ export function NotesVirtualGrid({
 
   const windowVirtualizer = useWindowVirtualizer({
     count: rowCount,
-    estimateSize: (idx) => rows[idx]?.kind === 'heading' ? 52 : resolvedRowHeight,
+    estimateSize: rowSize,
     // Keep a few rows ahead of a fast flick without mounting the whole list.
     overscan: resolvedOverscan,
     scrollMargin,
@@ -158,13 +159,12 @@ export function NotesVirtualGrid({
                 width: '100%',
                 height: `${vrow.size}px`,
                 transform: `translateY(${vrow.start - (resolvedWindowing ? scrollMargin : 0)}px)`,
-                  paddingBottom: row.kind === 'note' && row.last ? '12px' : undefined,
               } as React.CSSProperties}
             >
               {row.kind === 'heading' ? (
-                  <h2 className="notes-date-heading flex h-full items-center rounded-t-lg border-x border-t border-border bg-card px-5 text-xs font-medium uppercase tracking-wider text-muted-foreground">{row.label}</h2>
+                  <h2 className="notes-date-heading flex h-full items-center rounded-t-lg border-x border-t border-border bg-card px-4 text-[11px] font-medium uppercase text-muted-foreground">{row.label}</h2>
               ) : (
-                <div className={`notes-date-row relative h-full min-w-0 border-x border-border bg-card px-5 ${row.last ? 'rounded-b-lg border-b' : ''}`}>
+                <div className={`notes-date-row relative h-full min-w-0 border-x border-border bg-card px-4 ${row.last ? 'rounded-b-lg border-b' : ''}`}>
                   {renderCard(row.note)}
                 </div>
               )}

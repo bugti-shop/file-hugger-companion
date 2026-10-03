@@ -13,8 +13,8 @@
 }
 /* Notes-only typography and grouped-row separators; surrounding navigation is unchanged. */
 :root { --notes-font: 'Montserrat', 'Nunito Sans', sans-serif; }
-.notes-date-heading, .notes-date-row, .notes-card, .notes-editor-font { font-family: var(--notes-font); letter-spacing: 0; }
-.notes-date-row:not(.rounded-b-lg)::after { content: ''; position: absolute; bottom: 0; left: 1.25rem; right: 1.25rem; border-bottom: 1px solid hsl(var(--border)); }
+.notes-date-heading, .notes-date-row, .notes-card, .notes-editor-font { font-family: var(--notes-font); letter-spacing: 0; word-spacing: normal; font-stretch: normal; }
+.notes-date-row:not(.rounded-b-lg)::after { content: ''; position: absolute; bottom: 0; left: 1rem; right: 1rem; border-bottom: 1px solid hsl(var(--border)); }
 .cv-auto-compact {
   content-visibility: auto;
   contain-intrinsic-size: auto 48px;
