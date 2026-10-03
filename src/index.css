@@ -21,21 +21,21 @@
 .dashboard-glass-actions {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 7px;
+  gap: 2px;
+  padding: 2px 5px;
   flex-shrink: 0;
   border-radius: 9999px;
   background: hsl(var(--dashboard-glass-surface) / 0.52);
-  border: 1px solid hsl(var(--dashboard-glass-stroke) / 0.68);
-  box-shadow: 0 3px 14px -4px hsl(var(--dashboard-glass-shadow) / 0.18), inset 0 1px hsl(var(--dashboard-glass-highlight) / 0.7);
+  border: 0;
+  box-shadow: none;
   -webkit-backdrop-filter: blur(16px) saturate(150%);
   backdrop-filter: blur(16px) saturate(150%);
 }
 .dashboard-glass-menu-slot { display: flex; align-items: center; }
 .dashboard-glass-actions .dashboard-glass-action {
-  width: 36px;
-  height: 36px;
-  min-width: 36px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
   padding: 0;
   border-radius: 9999px;
   color: hsl(var(--dashboard-glass-ink));
@@ -44,7 +44,42 @@
 }
 .dashboard-glass-actions .dashboard-glass-action:hover { background: hsl(var(--dashboard-glass-stroke) / 0.26); }
 .dashboard-glass-actions .dashboard-glass-action:active { opacity: 0.58; transform: scale(0.92); }
-.dashboard-glass-actions .dashboard-glass-action svg { width: 20px; height: 20px; stroke-linecap: round; stroke-linejoin: round; }
+.dashboard-glass-actions .dashboard-glass-action svg { width: 19px; height: 19px; stroke-linecap: round; stroke-linejoin: round; }
+/* Notes editor controls: two individual discs and one borderless share/options capsule. */
+.notes-editor-header .editor-header-circle,
+.notes-editor-header .editor-header-capsule {
+  background: hsl(var(--dashboard-glass-surface) / 0.52);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(16px) saturate(150%);
+  color: hsl(var(--dashboard-glass-ink));
+  border: 0;
+  box-shadow: none;
+}
+.notes-editor-header .editor-header-circle {
+  width: 44px !important;
+  height: 44px !important;
+  border-radius: 9999px;
+}
+.notes-editor-header .editor-header-capsule {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: 9999px;
+}
+.notes-editor-header .editor-header-pill-action {
+  width: 44px !important;
+  height: 40px !important;
+  padding: 0;
+  border-radius: 9999px;
+  color: inherit;
+}
+.notes-editor-header .editor-header-circle:hover,
+.notes-editor-header .editor-header-pill-action:hover { background: hsl(var(--dashboard-glass-stroke) / 0.24); }
+.notes-editor-header .editor-header-circle:active,
+.notes-editor-header .editor-header-pill-action:active { opacity: 0.6; transform: scale(0.94); }
+.notes-editor-header .editor-header-circle > svg,
+.notes-editor-header .editor-header-pill-action > svg { width: 24px !important; height: 24px !important; stroke-linecap: round; stroke-linejoin: round; }
 @media (prefers-reduced-motion: reduce) {
   .dashboard-glass-actions .dashboard-glass-action { transition: none; }
   .dashboard-glass-actions .dashboard-glass-action:active { transform: none; }
@@ -90,7 +125,7 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
     --header-icon-size: clamp(20px, 5.6vw, 24px);
     --header-title-size: clamp(15px, 4.4vw, 17px);
     --background: 0 0% 100%;
-    --dashboard-glass-surface: 0 0% 100%;
+    --dashboard-glass-surface: 215 16% 87%;
     --dashboard-glass-stroke: 215 18% 75%;
     --dashboard-glass-highlight: 0 0% 100%;
     --dashboard-glass-shadow: 220 20% 30%;
@@ -241,7 +276,7 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
   .graphite,
   .onyx,
     .charcoal {
-    --dashboard-glass-surface: 0 0% 72%;
+    --dashboard-glass-surface: 0 0% 25%;
     --dashboard-glass-stroke: 0 0% 84%;
     --dashboard-glass-highlight: 0 0% 100%;
     --dashboard-glass-shadow: 0 0% 0%;

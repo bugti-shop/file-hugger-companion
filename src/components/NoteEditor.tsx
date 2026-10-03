@@ -1414,31 +1414,30 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
       {/* Top Header */}
       {true && (
         <div
-          className="app-header"
-          style={{ backgroundColor: getEditorBackgroundColor(), borderColor: 'rgba(0,0,0,0.1)' }}
+          className="app-header notes-editor-header"
+          style={{ backgroundColor: getEditorBackgroundColor() }}
         >
-          <div className="flex items-center -ml-1">
-            <Button variant="ghost" size="icon" onClick={handleClose} className={cn("app-header-btn app-header-back", noteType === 'sticky' && "text-black hover:text-black")}>
-              <ChevronLeft strokeWidth={2.25} />
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={handleClose} aria-label="Back" className={cn("app-header-btn app-header-back editor-header-circle", noteType === 'sticky' && "text-black hover:text-black")}>
+              <ChevronLeft strokeWidth={2.1} />
             </Button>
-            {/* Undo / Redo — grouped tight with back */}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => { editorRef.current?.focus(); document.execCommand('undo'); }}
-              className={cn("app-header-btn -ml-2", noteType === 'sticky' && "text-black hover:text-black")}
+              className={cn("app-header-btn editor-header-circle", noteType === 'sticky' && "text-black hover:text-black")}
               aria-label="Undo"
             >
-              <Undo2 strokeWidth={1.75} />
+              <Undo2 strokeWidth={2.1} />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => { editorRef.current?.focus(); document.execCommand('redo'); }}
-              className={cn("app-header-btn -ml-2", noteType === 'sticky' && "text-black hover:text-black")}
+              className={cn("app-header-btn editor-header-circle", noteType === 'sticky' && "text-black hover:text-black")}
               aria-label="Redo"
             >
-              <Redo2 strokeWidth={1.75} />
+              <Redo2 strokeWidth={2.1} />
             </Button>
           </div>
 
@@ -1462,7 +1461,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
 
 
 
-          <div className="flex items-center gap-0.5 shrink-0 -mr-1">
+          <div className="editor-header-capsule shrink-0">
             {/* Table Picker moved to toolbar/options menu */}
 
             {!isReadOnlyWebClip && (
@@ -1483,17 +1482,17 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
                     // user cancelled or share failed silently
                   }
                 }}
-                className={cn("app-header-btn app-header-share", noteType === 'sticky' && "text-black hover:text-black")}
+                className={cn("app-header-btn app-header-share editor-header-pill-action", noteType === 'sticky' && "text-black hover:text-black")}
                 aria-label={t('common.share', 'Share')}
               >
-                <Share strokeWidth={1.75} />
+                <Share strokeWidth={2.1} />
               </Button>
             )}
 
             {!isReadOnlyWebClip && <DropdownMenu open={isOptionsMenuOpen} onOpenChange={setIsOptionsMenuOpen}>
               <DropdownMenuTrigger asChild>
-                <Button data-tour="note-options-menu" variant="ghost" size="icon" className={cn("app-header-btn", noteType === 'sticky' && "text-black hover:text-black")}>
-                  <MoreHorizontal strokeWidth={2} />
+                <Button data-tour="note-options-menu" aria-label="More options" variant="ghost" size="icon" className={cn("app-header-btn editor-header-pill-action", noteType === 'sticky' && "text-black hover:text-black")}>
+                  <MoreHorizontal strokeWidth={2.1} />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 bg-card z-50 max-h-[70vh] overflow-y-auto">
