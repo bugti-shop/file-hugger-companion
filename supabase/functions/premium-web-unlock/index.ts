@@ -1,69 +1,67 @@
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { z } from 'npm:zod@3.25.76';
+
+const UnlockBody = z.union([
+  z.object({ code: z.string().min(1).max(256) }).strict(),
+  z.object({ token: z.string().min(1).max(256) }).strict(),
+]);
+
+const respond = (body: Record<string, unknown>, status: number) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+
+function constantTimeEqual(value: string, expected: string): boolean {
+  let mismatch = value.length === expected.length ? 0 : 1;
+  for (let i = 0; i < Math.max(value.length, expected.length); i++) {
+    mismatch |= (value.charCodeAt(i) || 0) ^ (expected.charCodeAt(i) || 0);
+  }
+  return mismatch === 0;
+}
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "OPTIONS") return new Response('ok', { headers: corsHeaders });
+  if (req.method !== 'POST') return respond({ error: 'Method not allowed' }, 405);
 
   try {
     const authHeader = req.headers.get("Authorization") || "";
     if (!authHeader.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: "Sign in required" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond({ error: "Sign in required" }, 401);
     }
 
-    const expectedCode = Deno.env.get("ADMIN_UNLOCK_CODE") || "";
-    if (!expectedCode) {
-      console.error("premium-web-unlock: ADMIN_UNLOCK_CODE not configured");
-      return new Response(JSON.stringify({ error: "Unlock not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-    const { code } = await req.json().catch(() => ({ code: "" }));
-    // Constant-time-ish compare
-    const a = String(code || "");
-    const b = expectedCode;
-    let mismatch = a.length !== b.length ? 1 : 0;
-    const len = Math.max(a.length, b.length);
-    for (let i = 0; i < len; i++) {
-      mismatch |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
-    }
-    if (mismatch !== 0) {
-      return new Response(JSON.stringify({ error: "Invalid unlock code" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const body = await req.json().catch(() => null);
+    const parsed = UnlockBody.safeParse(body);
+    if (!parsed.success) return respond({ error: 'Invalid unlock request' }, 400);
+    const expected = 'token' in parsed.data
+      ? Deno.env.get('PRO_LINK_TOKEN')
+      : Deno.env.get('ADMIN_UNLOCK_CODE');
+    if (!expected) {
+      console.error('premium-web-unlock: unlock secret not configured');
+      return respond({ error: 'Unlock not configured' }, 500);
     }
 
-    const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2.45.0");
+    const { createClient } = await import('npm:@supabase/supabase-js@2');
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
     const accessToken = authHeader.replace("Bearer ", "");
     if (!accessToken || accessToken === anonKey) {
-      return new Response(JSON.stringify({ error: "Sign in required" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond({ error: "Sign in required" }, 401);
     }
 
-    const userClient = createClient(Deno.env.get("SUPABASE_URL")!, anonKey, {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    if (!supabaseUrl || !serviceKey || !anonKey) return respond({ error: 'Unlock not configured' }, 500);
+    const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
     const { data: userData, error: userError } = await userClient.auth.getUser(accessToken);
     if (userError || !userData?.user) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return respond({ error: "Unauthorized" }, 401);
     }
 
+    const input = 'token' in parsed.data ? parsed.data.token : parsed.data.code;
+    if (!constantTimeEqual(input, expected)) return respond({ error: 'Invalid unlock code' }, 403);
+
     const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      supabaseUrl,
+      serviceKey,
     );
 
     const expiresAt = new Date("2099-12-31T23:59:59.000Z").toISOString();
@@ -92,14 +90,9 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
-    return new Response(JSON.stringify({ ok: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respond({ ok: true }, 200);
   } catch (e) {
     console.error("premium-web-unlock error", e);
-    return new Response(JSON.stringify({ error: "Could not unlock premium" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return respond({ error: "Could not unlock premium" }, 500);
   }
 });
