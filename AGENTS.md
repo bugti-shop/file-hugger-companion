@@ -3,7 +3,7 @@
 - Reuse the shared floating add control and header-action portal on Notes/Tasks/Notebooks so web and native WebViews retain identical layouts and safe-area spacing; task composer motion belongs to the shared add control and sheet styles so both task views transition alike.
 - Keep the Notes and To-Do dashboard switcher and portaled options menu inside one shared glass action group; a common structure keeps icon order and spacing identical across both headers.
 - Keep the Notes editor share and options controls in one compact borderless capsule, with back at left and undo beside the capsule; this preserves consistent header alignment on web and native views.
-- Open rich-text notes in reading mode and reuse the existing rich editor on edit; checklist toggles must persist through note HTML without striking task text, keeping reading and editing behavior consistent.
+- Open rich-text notes in reading mode and reuse the existing rich editor on edit; checklist toggles must persist through note HTML without striking task text, keeping reading and editing behavior consistent. The reading toolbar is one compact centered capsule holding checklist, pen, and edit icons only — never split it back into left/right capsules.
 - Redeem private Pro links only through the existing premium unlock function with a verified user or anonymous Supabase session; update open-app access only after its confirmed entitlement write. URL tokens and local client flags must never grant access by themselves.
 - Use one date-grouped Notes list renderer across Notes dashboards and notebook views; shared grouping prevents inconsistent calendar headings and keeps virtualized rows fast for large libraries.
 
