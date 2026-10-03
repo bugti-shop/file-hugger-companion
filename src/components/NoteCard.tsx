@@ -45,27 +45,6 @@ interface NoteCardProps {
   onProtect?: (noteId: string) => void;
 }
 
-const STICKY_COLORS = {
-  yellow: 'hsl(var(--sticky-yellow))',
-  blue: 'hsl(var(--sticky-blue))',
-  green: 'hsl(var(--sticky-green))',
-  pink: 'hsl(var(--sticky-pink))',
-  orange: 'hsl(var(--sticky-orange))',
-};
-
-const RANDOM_COLORS = [
-  'hsl(330, 100%, 75%)',
-  'hsl(160, 70%, 70%)',
-  'hsl(280, 70%, 75%)',
-  'hsl(20, 95%, 75%)',
-  'hsl(140, 65%, 70%)',
-  'hsl(350, 80%, 75%)',
-  'hsl(45, 90%, 75%)',
-  'hsl(270, 65%, 75%)',
-  'hsl(200, 80%, 70%)',
-  'hsl(60, 90%, 75%)',
-];
-
 const runCardActionSafely = (action: () => void | Promise<void>) => {
   try {
     const result = action();
@@ -189,8 +168,6 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
     }
   }, [note.tagIds]);
 
-  const isSticky = note.type === 'sticky';
-  const isLined = note.type === 'lined';
   
   const SWIPE_THRESHOLD = 60;
   const SWIPE_ACTION_WIDTH = 70; // Width per action button
@@ -319,37 +296,6 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
       runCardActionSafely(() => onEdit(note));
     }
   };
-
-  // Memoize expensive per-card computations so they don't recalculate on
-  // every parent render (only when the underlying note fields change).
-  const cardStyle = useMemo(() => {
-    if (isSticky && note.color) {
-      return { backgroundColor: STICKY_COLORS[note.color] };
-    }
-    if (note.customColor) {
-      return { backgroundColor: note.customColor };
-    }
-    const createdMs =
-      note.createdAt instanceof Date
-        ? note.createdAt.getTime()
-        : new Date(note.createdAt as unknown as string).getTime() || 0;
-    const seed = `${createdMs}:${note.id}`;
-    let h = 2166136261;
-    for (let i = 0; i < seed.length; i++) {
-      h ^= seed.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    const index = Math.abs(h) % RANDOM_COLORS.length;
-    return { backgroundColor: RANDOM_COLORS[index] };
-  }, [isSticky, note.color, note.customColor, note.createdAt, note.id]);
-
-  const previewText = useMemo(
-    () =>
-      note.metaDescription ||
-      (note as any).__contentPreview ||
-      getTextPreviewFromHtml(note.content, 140),
-    [note.metaDescription, (note as any).__contentPreview, note.content],
-  );
 
   const badge = useMemo(() => {
     if (note.type === 'voice') return { icon: Mic, label: 'Voice' };

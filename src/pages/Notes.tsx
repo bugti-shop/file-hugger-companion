@@ -49,28 +49,6 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 
-const STICKY_COLORS: Record<string, string> = {
-  yellow: 'hsl(var(--sticky-yellow))',
-  blue: 'hsl(var(--sticky-blue))',
-  green: 'hsl(var(--sticky-green))',
-  pink: 'hsl(var(--sticky-pink))',
-  orange: 'hsl(var(--sticky-orange))',
-};
-
-// Vibrant colors for notes display
-const RANDOM_COLORS = [
-  'hsl(330, 100%, 75%)', // Vibrant Pink
-  'hsl(160, 70%, 70%)', // Vibrant Mint
-  'hsl(280, 70%, 75%)', // Vibrant Lavender
-  'hsl(20, 95%, 75%)', // Vibrant Coral
-  'hsl(140, 65%, 70%)', // Vibrant Green
-  'hsl(350, 80%, 75%)', // Vibrant Rose
-  'hsl(45, 90%, 75%)', // Vibrant Peach
-  'hsl(270, 65%, 75%)', // Vibrant Purple
-  'hsl(200, 80%, 70%)', // Vibrant Sky Blue
-  'hsl(60, 90%, 75%)', // Vibrant Yellow
-];
-
 const Notes = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -505,26 +483,6 @@ const Notes = () => {
     toast.success(t('notes.trashEmptied'));
   };
 
-  const getCardColor = (note: Note) => {
-    if (note.type === 'sticky' && note.color) {
-      return STICKY_COLORS[note.color];
-    }
-    // Better-distributed hash so colors don't cluster on one shade (e.g. green)
-    // after the UUID migration. Mix createdAt + id with an FNV-1a style hash.
-    const createdMs =
-      note.createdAt instanceof Date
-        ? note.createdAt.getTime()
-        : new Date(note.createdAt as unknown as string).getTime() || 0;
-    const seed = `${createdMs}:${note.id}`;
-    let h = 2166136261;
-    for (let i = 0; i < seed.length; i++) {
-      h ^= seed.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    const index = Math.abs(h) % RANDOM_COLORS.length;
-    return RANDOM_COLORS[index];
-  };
-
   return (
     <div className="min-h-screen min-h-screen-dynamic bg-background pb-14 md:pb-0">
       <div className="flex-1 min-w-0 flex flex-col">
@@ -742,7 +700,6 @@ const Notes = () => {
             notes={sortedNotes}
             getRowKey={(row) => row.map((note) => `${note.id}:${note.updatedAt instanceof Date ? note.updatedAt.getTime() : new Date(note.updatedAt).getTime()}`).join('|')}
             renderCard={(note) => {
-              const previewText = note.metaDescription || (notesMetaById.get(note.id)?.contentPreview ?? getTextPreviewFromHtml(note.content, 180));
               return (
               <div
                 draggable={!note.isArchived && !note.isDeleted}
