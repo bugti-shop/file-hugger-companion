@@ -115,7 +115,7 @@
 }
 .notes-reading-toolbar button:hover { background: hsl(var(--note-reader-control-ink) / 0.12); }
 .notes-reading-toolbar svg { width: 27px; height: 27px; }
-.notes-reading-title { font-size: 1.375rem; line-height: 1.25; letter-spacing: 0; }
+.notes-reading-title { font-size: 1.625rem; line-height: 1.25; letter-spacing: 0; }
 .notes-editor-screen .notes-reading-content ul.checklist,
 .notes-editor-screen .rich-text-editor ul.checklist { list-style: none; padding-left: 0; margin: 0.5rem 0; }
 .notes-editor-screen .notes-reading-content .checklist-item,
