@@ -11,6 +11,7 @@ import { Trash2, Plus, ArrowUpDown, Filter, MousePointer2, Eye, EyeOff, MoreVert
 import { useSubscription, FREE_LIMITS } from '@/contexts/SubscriptionContext';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { FloatingAddButton } from '@/components/FloatingAddButton';
 import { format, isAfter, startOfDay, startOfWeek, endOfWeek, addDays, isTomorrow, isThisWeek } from 'date-fns';
 import { TaskInputSheet } from '@/components/TaskInputSheet';
 import { TaskDetailPage } from '@/components/TaskDetailPage';
@@ -647,18 +648,16 @@ const Upcoming = () => {
         </div>
       </main>
 
-      <Button
+      <FloatingAddButton
+        aria-label={t('common.addTask')}
         onClick={async () => {
           if (!isPro && !canCreateWithinSoftLimit('tasks', allItems.length)) { softRequireCreate('tasks', allItems.length); return; }
           try { await Haptics.impact({ style: ImpactStyle.Heavy }); } catch {}
           setIsInputOpen(true);
         }}
-        className="fixed left-4 right-4 z-30 h-12 text-base font-semibold"
-        style={{ bottom: 'calc(4.25rem + var(--safe-bottom, 0px))' }}
-        size="lg"
       >
-        <Plus className="h-5 w-5" />{t('common.addTask')}
-      </Button>
+        {t('common.addTask')}
+      </FloatingAddButton>
 
       <TaskInputSheet
         isOpen={isInputOpen}
