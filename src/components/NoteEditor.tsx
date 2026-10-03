@@ -171,6 +171,10 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
   // Autosave is skipped until the user actually edits something so that
   // simply opening a note does not bump `updatedAt`.
   const initialSnapshotRef = useRef<{ title: string; content: string; codeContent: string } | null>(null);
+  const hasTextChanges = useCallback(() => {
+    const snapshot = initialSnapshotRef.current;
+    return !snapshot || title !== snapshot.title || contentRef.current !== snapshot.content || codeContent !== snapshot.codeContent;
+  }, [title, codeContent]);
   const setContent = useCallback((val: React.SetStateAction<string>) => {
     setContentState(prev => {
       const next = typeof val === 'function' ? val(prev) : val;
@@ -512,7 +516,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
         : recoveredContent;
       setContent(fastOfflineContent);
       if (fastOfflineContent !== recoveredContent) {
-        saveNoteToDBSingle({ ...note, content: fastOfflineContent, updatedAt: new Date() })
+        saveNoteToDBSingle({ ...note, content: fastOfflineContent })
           .catch((e) => console.warn('[NoteEditor] could not upgrade web clip for fast offline open', e));
       }
       setIsReadingMode(!!(note.fullPageSnapshot || WEB_CLIP_RE.test(note.content || '')));
@@ -755,6 +759,8 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
   ]);
 
   const commitNote = useCallback(async ({ full }: { full: boolean }) => {
+    // Opening or backgrounding an unchanged existing note is a read, not an edit.
+    if (note && !hasTextChanges()) return;
     const savedNote = buildCurrentNote();
 
     // Ask the parent first — if they reject (e.g. soft paywall), do NOT persist.
@@ -799,7 +805,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     }
 
     persistNoteToIndexedDB(savedNote);
-  }, [buildCurrentNote, note, onSave, persistNoteToIndexedDB]);
+  }, [buildCurrentNote, hasTextChanges, note, onSave, persistNoteToIndexedDB]);
 
   const handleSave = useCallback(async () => {
     triggerTripleHeavyHaptic();
@@ -929,8 +935,9 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         if (isReadOnlyWebClip) return;
-        void commitNote({ full: false });
+        if (hasTextChanges()) void commitNote({ full: false });
         // Also write to localStorage as synchronous fallback
+        if (!hasTextChanges()) return;
         try {
           const savedNote = buildCurrentNoteRef.current();
           localStorage.setItem(CRASH_RECOVERY_KEY, JSON.stringify({
@@ -947,6 +954,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     // Force-save on page refresh/close to prevent data loss
     // localStorage.setItem is SYNCHRONOUS and guaranteed to persist
     const onBeforeUnload = () => {
+      if (!hasTextChanges()) return;
       try {
         const savedNote = buildCurrentNoteRef.current();
         // Synchronous localStorage write - guaranteed to complete before page unloads
@@ -971,7 +979,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
       document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('beforeunload', onBeforeUnload);
     };
-  }, [isOpen, commitNote, isReadOnlyWebClip]);
+  }, [isOpen, commitNote, hasTextChanges, isReadOnlyWebClip]);
 
   // Handle hardware back button on Android - save and close editor (parent keeps correct screen)
   useHardwareBackButton({
