@@ -498,6 +498,19 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [checkLocalTrial]);
 
+  // A private link changes Pro state only after the backend confirms an entitlement
+  // for the current signed-in user; nothing in local storage can activate this path.
+  useEffect(() => {
+    const onGranted = () => {
+      setLocalProAccess(true);
+      setIsAdminBypass(true);
+      setShowPaywall(false);
+      setPaywallFeature(null);
+    };
+    window.addEventListener('webPremiumEntitlementGranted', onGranted);
+    return () => window.removeEventListener('webPremiumEntitlementGranted', onGranted);
+  }, []);
+
   // On native: clear local bypass if RevenueCat confirms no active entitlement
   // BUT skip if it's an admin bypass (access code)
   useEffect(() => {

@@ -87,7 +87,7 @@
 .notes-reading-toolbar {
   position: absolute;
   z-index: 40;
-  bottom: calc(var(--safe-bottom, 0px) + 14px);
+  bottom: calc(var(--safe-bottom, 0px) + 8px);
   left: calc(var(--safe-left, 0px) + 18px);
   right: calc(var(--safe-right, 0px) + 18px);
   display: flex;
@@ -101,15 +101,16 @@
   box-shadow: 0 2px 9px hsl(var(--dashboard-glass-shadow) / 0.07), inset 0 1px 0 hsl(var(--dashboard-glass-highlight) / 0.8);
   pointer-events: auto;
 }
-.notes-reading-tools-left { display: flex; align-items: center; gap: 14px; padding: 5px 12px; border-radius: 999px; }
+.notes-reading-tools-left { display: flex; align-items: center; gap: 12px; padding: 2px 9px; border-radius: 999px; }
 .notes-reading-toolbar .notes-reading-tools-left > button,
-.notes-reading-toolbar .notes-reading-edit-right { width: 48px; height: 48px; border-radius: 999px; color: inherit; padding: 6px; }
+.notes-reading-toolbar .notes-reading-edit-right { width: 44px; height: 44px; border-radius: 999px; color: inherit; padding: 5px; }
 .notes-reading-toolbar button:hover { background: hsl(var(--note-reader-control-ink) / 0.12); }
-.notes-reading-toolbar svg { width: 32px; height: 32px; }
+.notes-reading-toolbar svg { width: 34px; height: 34px; }
 .notes-editor-screen .notes-reading-content ul.checklist,
 .notes-editor-screen .rich-text-editor ul.checklist { list-style: none; padding-left: 0; margin: 0.5rem 0; }
 .notes-editor-screen .notes-reading-content .checklist-item,
 .notes-editor-screen .rich-text-editor .checklist-item { display: flex; align-items: flex-start; gap: 9px; padding: 3px 0; min-height: 28px; font-size: 0.875em; line-height: 1.5; }
+.notes-editor-screen .notes-reading-content .checklist-item { font-size: 0.925em; }
 .notes-editor-screen .checklist-item .checklist-checkbox {
   appearance: none;
   width: 20px;

@@ -2,14 +2,14 @@
  * Web-only premium unlock route: /premium-unlock
  *
  * SECURITY: The unlock code is NEVER shipped in the client bundle. The admin
- * must type it into the input below. The server (premium-web-unlock edge
- * function) compares it against the ADMIN_UNLOCK_CODE env var. If it matches
+ * must type it into the input below, or arrive via a private URL token.
+ * The server (premium-web-unlock edge function) checks its encrypted secrets. If it matches
  * AND the caller is signed in, a real `web_premium_unlock` entitlement is
  * granted server-side. All other clients (AI extract, web clipper, etc.)
  * then see Pro via the normal entitlement path — there is no separate
  * client-supplied bypass anymore.
  */
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setSetting } from '@/utils/settingsStorage';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,38 +18,49 @@ import { Input } from '@/components/ui/input';
 
 const PremiumUnlock = () => {
   const navigate = useNavigate();
+  const linkTokenRef = useRef<string | null>(null);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
+  const [linkMode, setLinkMode] = useState(false);
+
+  const redeem = async (body: { code?: string; token?: string }) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke('premium-web-unlock', { body });
+      if (fnErr) throw fnErr;
+      if (!data || (data as { ok?: boolean }).ok !== true) throw new Error('Invalid unlock');
+      // This event updates the open paywall only after the server has written the entitlement.
+      // Do not persist an unverified client-side Pro flag on the device.
+      window.dispatchEvent(new Event('webPremiumEntitlementGranted'));
+      setOk(true);
+      setTimeout(() => navigate('/', { replace: true }), 800);
+    } catch {
+      setError('Link invalid hai ya sign-in zaroori hai.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const token = url.searchParams.get('token');
+    if (!token) return;
+    setLinkMode(true);
+    linkTokenRef.current = token;
+    url.searchParams.delete('token');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+    void redeem({ token }).finally(() => { linkTokenRef.current = null; });
+    // Redeem just once per navigation, even in development StrictMode.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!code.trim() || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const { data, error: fnErr } = await supabase.functions.invoke('premium-web-unlock', {
-        body: { code: code.trim() },
-      });
-      if (fnErr) throw fnErr;
-      if (!data || (data as { ok?: boolean }).ok !== true) {
-        throw new Error('Invalid code');
-      }
-      try {
-        await setSetting('flowist_admin_bypass', true);
-        localStorage.setItem('flowist_stripe_plan', 'team');
-        localStorage.setItem('flowist_rc_product', 'com.flowist.app.team.year');
-      } catch {}
-      try { window.dispatchEvent(new Event('adminBypassActivated')); } catch {}
-      setOk(true);
-      setTimeout(() => navigate('/', { replace: true }), 800);
-    } catch (err) {
-      console.warn('PremiumUnlock: unlock failed', err);
-      setError('Invalid code or you are not signed in.');
-    } finally {
-      setBusy(false);
-    }
+    await redeem({ code: code.trim() });
   };
 
   return (
@@ -58,6 +69,8 @@ const PremiumUnlock = () => {
         <h1 className="text-2xl font-bold">Premium Unlock</h1>
         {ok ? (
           <p className="text-sm text-muted-foreground">Unlocked. Redirecting…</p>
+        ) : linkMode ? (
+          <p className="text-sm text-muted-foreground">{busy ? 'Checking your link…' : (error || 'Link check complete.')}</p>
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
