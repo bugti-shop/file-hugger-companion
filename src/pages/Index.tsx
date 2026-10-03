@@ -1093,9 +1093,7 @@ const Index = () => {
   const trashedNotes = useMemo(() => notes.filter(n => n.isDeleted), [notes]);
   const archivedNotes = useMemo(() => notes.filter(n => n.isArchived && !n.isDeleted), [notes]);
 
-  const favoriteNotes = useMemo(() => filteredNotes.filter(note => note.isFavorite), [filteredNotes]);
-  const regularNotes = useMemo(() => filteredNotes.filter(note => !note.isFavorite), [filteredNotes]);
-  const hasAnyVisibleNotes = favoriteNotes.length > 0 || regularNotes.length > 0;
+  const hasAnyVisibleNotes = filteredNotes.length > 0;
 
   return (
     <div className="min-h-screen min-h-screen-dynamic bg-background pb-14 md:pb-0">

@@ -46,12 +46,16 @@ export function NotesVirtualGrid({
 
   const rows = useMemo<SectionRow[]>(() => {
     const byGroup = new Map<string, { label: string; notes: Note[] }>();
-    [...notes].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).forEach(note => {
+    [...notes].sort((a, b) => (new Date(b.updatedAt).getTime() || 0) - (new Date(a.updatedAt).getTime() || 0)).forEach(note => {
       const { key, label } = getNotesDateGroup(note.updatedAt);
       if (!byGroup.has(key)) byGroup.set(key, { label, notes: [] });
       byGroup.get(key)?.notes.push(note);
     });
-    return [...byGroup.entries()].flatMap(([key, section]) => [
+    const ordered = [...byGroup.entries()].sort(([a], [b]) => {
+      const rank = (key: string) => key === 'today' ? 3 : key === 'yesterday' ? 2 : key === 'week' ? 1 : 0;
+      return rank(b) - rank(a) || b.localeCompare(a);
+    });
+    return ordered.flatMap(([key, section]) => [
       { kind: 'heading' as const, key: `heading-${key}`, label: section.label },
       ...section.notes.map((note, index) => ({ kind: 'note' as const, key: note.id, note, last: index === section.notes.length - 1 })),
     ]);
