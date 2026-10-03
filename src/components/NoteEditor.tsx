@@ -235,6 +235,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
   const [isNoteLinkingOpen, setIsNoteLinkingOpen] = useState(false);
   const [isBacklinksOpen, setIsBacklinksOpen] = useState(true);
   const [isReadingMode, setIsReadingMode] = useState(true);
+  const lastOpenedNoteKeyRef = useRef<string | null>(null);
   const readingContentRef = useRef<HTMLDivElement>(null);
   const pendingEditorFocusRef = useRef<'body' | 'title' | number | 'new-checklist' | null>(null);
   const [showStats, setShowStats] = useState(false);
@@ -562,6 +563,16 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
   }, []);
 
   useEffect(() => {
+    if (!isOpen) {
+      lastOpenedNoteKeyRef.current = null;
+      return;
+    }
+    const openedKey = note?.id || 'new';
+    if (lastOpenedNoteKeyRef.current !== openedKey) {
+      setIsReadingMode(true);
+      pendingEditorFocusRef.current = null;
+      lastOpenedNoteKeyRef.current = openedKey;
+    }
     if (note) {
       console.log(`[NoteEditor] Loading note: id=${note.id}, type=${note.type}, content length=${note.content?.length || 0}`);
       setNoteType(note.type);
@@ -596,8 +607,6 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
         saveNoteToDBSingle({ ...note, content: fastOfflineContent })
           .catch((e) => console.warn('[NoteEditor] could not upgrade web clip for fast offline open', e));
       }
-      setIsReadingMode(true);
-      pendingEditorFocusRef.current = null;
       setColor(note.color || 'yellow');
       setCustomColor(note.customColor);
       setImages(note.images || []);
@@ -681,8 +690,6 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
       loadDefaultFontSettings();
       
       setNoteType(defaultType);
-      setIsReadingMode(true);
-      pendingEditorFocusRef.current = null;
       setTitle('');
       setContent('');
       setColor('yellow');
