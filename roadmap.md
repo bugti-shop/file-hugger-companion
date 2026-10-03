@@ -1,6 +1,6 @@
 # Roadmap
 
-- [ ] Restyle all Notes cards as quiet white, rounded date-grouped rows with date and optional tags; use the reference's geometric font in cards and note content without changing surrounding controls.
+- [x] Restyle all Notes cards as quiet white, rounded date-grouped rows with date and optional tags; use the reference's geometric font in cards and note content without changing surrounding controls.
 
 - [x] Separate the To-Do Inbox chip from the search bar visibly and add the feature tutorial to Settings.
 
