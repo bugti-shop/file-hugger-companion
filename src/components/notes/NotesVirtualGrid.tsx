@@ -46,7 +46,8 @@ export function NotesVirtualGrid({
 
   const rows = useMemo<SectionRow[]>(() => {
     const byGroup = new Map<string, { label: string; notes: Note[] }>();
-    [...notes].sort((a, b) => (new Date(b.updatedAt).getTime() || 0) - (new Date(a.updatedAt).getTime() || 0)).forEach(note => {
+    // Keep each view's existing sort (date, title, type, pinned) inside its date sections.
+    notes.forEach(note => {
       const { key, label } = getNotesDateGroup(note.updatedAt);
       if (!byGroup.has(key)) byGroup.set(key, { label, notes: [] });
       byGroup.get(key)?.notes.push(note);
