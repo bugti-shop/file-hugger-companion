@@ -25,6 +25,7 @@ import { getVisibleFeatures } from '@/utils/noteTypeVisibility';
 import { useDarkMode } from '@/hooks/useDarkMode';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { FloatingAddButton } from '@/components/FloatingAddButton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search, Plus, StickyNote, FileText, FileEdit, Pen, ListTodo, Bell, Clock, Repeat, FileCode, GitBranch, Sun, Moon, Receipt, Star, ArrowUpDown, MoreVertical, FolderPlus, CheckSquare, Trash2, Archive, X, RotateCcw, Copy, Folder as FolderIcon, Eye, EyeOff, Mic, Type, LayoutTemplate, Crown, PenTool } from 'lucide-react';
@@ -1109,13 +1110,14 @@ const Index = () => {
           paddingTop: 'var(--safe-top, 0px)',
         }}
       >
-        <div className="container mx-auto px-2 xs:px-3 sm:px-4 pt-3 pb-1.5">
-          <div className="flex items-center justify-between mb-2 xs:mb-3 sm:mb-4 gap-1 xs:gap-2">
+        <div className="container mx-auto px-2 xs:px-3 sm:px-4 pt-1.5 pb-1">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2 gap-1 xs:gap-2">
             <div className="flex items-center gap-1.5 xs:gap-2 min-w-0 flex-shrink-0 md:hidden">
               <AppLogo />
               <h1 className="text-base xs:text-lg sm:text-xl font-bold">Flowist</h1>
             </div>
             <div className="flex items-center gap-0.5 xs:gap-1 sm:gap-2 flex-shrink-0">
+              <div id="notes-header-options" />
               
               <Button
                 size="icon"
@@ -1200,7 +1202,7 @@ const Index = () => {
         <div className="h-[1px] bg-border" />
       </header>
 
-      <main className="container mx-auto px-2 xs:px-3 sm:px-4 py-2 xs:py-3">
+      <main className="container mx-auto px-2 xs:px-3 sm:px-4 py-1.5">
         
 
         {/* Upcoming Reminders Section - hidden from home UI, functionality preserved */}
@@ -1662,32 +1664,26 @@ const Index = () => {
       {!isEditorOpen && (
         visibleTypes.length === 1 ? (
           // If only one type is visible, directly open that note type without dropdown
-          <Button
-            className="fixed left-4 right-4 z-50 h-12 text-base font-semibold md:hidden"
-            style={{ bottom: 'calc(4.25rem + var(--safe-bottom, 0px))' }}
-            size="lg"
+          <FloatingAddButton
+            aria-label={t('notes.newNote')}
             onClick={() => {
               triggerHaptic('heavy');
               handleCreateNote(visibleTypes[0]);
             }}
           >
-            <Plus className="h-5 w-5" />
             {t('notes.newNote')}
-          </Button>
+          </FloatingAddButton>
         ) : (
           // Show dropdown when multiple types are visible
           <DropdownMenu open={noteTypeSelectorOpen} onOpenChange={setNoteTypeSelectorOpen}>
             <DropdownMenuTrigger asChild>
-              <Button
+              <FloatingAddButton
                 data-tour="new-note-button"
-                className="fixed left-4 right-4 z-50 h-12 text-base font-semibold md:hidden"
-                style={{ bottom: 'calc(4.25rem + var(--safe-bottom, 0px))' }}
-                size="lg"
+                aria-label={t('notes.newNote')}
                 onClick={() => triggerHaptic('heavy')}
               >
-                <Plus className="h-5 w-5" />
                 {t('notes.newNote')}
-              </Button>
+              </FloatingAddButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" className="mb-2 w-48 bg-card">
               {isTypeVisible('sticky') && (

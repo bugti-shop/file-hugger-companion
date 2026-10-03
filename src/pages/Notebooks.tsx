@@ -8,6 +8,7 @@ import { useNotes } from '@/contexts/NotesContext';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { Button } from '@/components/ui/button';
+import { FloatingAddButton } from '@/components/FloatingAddButton';
 import { Input } from '@/components/ui/input';
 import { genId } from '@/utils/genId';
 import { notebooksRuntimeCache, setNotebooksCache } from '@/utils/notebooksRuntimeCache';
@@ -213,7 +214,7 @@ const Notebooks = () => {
         className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b"
         style={{ paddingTop: 'var(--safe-top, 0px)', paddingLeft: 'var(--safe-left, 0px)', paddingRight: 'var(--safe-right, 0px)' }}
       >
-        <div className="flex items-center gap-2 px-4 py-3">
+        <div className="flex items-center gap-2 px-4 py-2">
           <Button
             variant="ghost"
             size="icon"
@@ -229,7 +230,7 @@ const Notebooks = () => {
           </span>
           <FeatureGuideButton />
         </div>
-        <div className="px-4 pb-3">
+        <div className="px-4 pb-2">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -433,20 +434,16 @@ const Notebooks = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Add Notebook button — bottom fixed, matches Home's New note button */}
-      <Button
+      <FloatingAddButton
         data-tour="add-notebook"
-        className="fixed left-4 right-4 z-50 h-12 text-base font-semibold md:hidden"
-        style={{ bottom: 'calc(4.25rem + var(--safe-bottom, 0px))' }}
-        size="lg"
+        aria-label="Add Notebook"
         onClick={() => {
           if (!requireCapacity('noteFolders', folders.length)) return;
           setAddOpen(true);
         }}
       >
-        <Plus className="h-5 w-5" />
         Add Notebook
-      </Button>
+      </FloatingAddButton>
 
       <BottomNavigation />
     </div>

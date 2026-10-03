@@ -6,6 +6,8 @@ import { Play, Pause, Repeat, Check, Trash2 as TrashIcon, Edit, Plus as PlusIcon
 import { Plus, FolderIcon, ChevronRight, ChevronDown, MoreVertical, Copy, LayoutList, Trash2, Tag, Columns3, GitBranch, ListChecks, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { FloatingAddButton } from '@/components/FloatingAddButton';
+import { HeaderActionsPortal } from '@/components/HeaderActionsPortal';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -849,19 +851,18 @@ const Today = () => {
   return (
     <TodoLayout title="Flowist" searchValue={viewModeSearch} onSearchChange={(val) => startTransition(() => setViewModeSearch(val))}>
       <TodayTourTrigger />
-      <main className="pt-1 pb-32">
+      <main className="pt-0 pb-32">
         <h1 className="sr-only">Flowist — Today's Tasks &amp; Daily Planner</h1>
 
-        {/* Folders — full width to align with search bar */}
+        {/* Keep folder chips; actions live in the header. */}
         <div className="mb-2" data-tour="todo-folders-section">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-semibold flex items-center gap-2"><FolderIcon className="h-5 w-5" />{t('menu.folders')}</h2>
-              </div>
-              <div className="flex items-center gap-2">
-                {isSelectionMode && (
+              {isSelectionMode && (
+                <div className="flex justify-end mb-1">
                   <Button variant="default" size="sm" onClick={() => { setIsSelectionMode(false); setSelectedTaskIds(new Set()); }}>{t('menu.cancel')}</Button>
-                )}
+                </div>
+              )}
+              <HeaderActionsPortal targetId="todo-header-options">
+                <div className="flex items-center">
                 <TodoOptionsDropdown
                   dropdownView={dropdownView}
                   setDropdownView={setDropdownView}
@@ -928,8 +929,8 @@ const Today = () => {
                     setCollapsedViewSections(allSectionIds);
                   }}
                 />
-              </div>
-            </div>
+                </div>
+              </HeaderActionsPortal>
             <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 
               <DragDropContext onDragEnd={(result: DropResult) => {
@@ -1120,14 +1121,14 @@ const Today = () => {
         </div>
       </main>
 
-      <Button data-tour="todo-add-task" onClick={async () => {
+      <FloatingAddButton data-tour="todo-add-task" aria-label={t('tasks.addTask')} onClick={async () => {
         // Always open the input sheet — never block the click. If the user
         // hits a limit at save-time, the paywall triggers there.
         try { await Haptics.impact({ style: ImpactStyle.Heavy }); } catch {}
         setIsInputOpen(true);
-      }} className="fixed left-4 right-4 z-30 h-12 text-base font-semibold lg:hidden" style={{ bottom: 'calc(4.25rem + var(--safe-bottom, 0px))' }} size="lg">
-        <Plus className="h-5 w-5" />{t('tasks.addTask')}
-      </Button>
+      }}>
+        {t('tasks.addTask')}
+      </FloatingAddButton>
 
       {/* All sheets/dialogs extracted to TodaySheets */}
       <Suspense fallback={null}><TodaySheets

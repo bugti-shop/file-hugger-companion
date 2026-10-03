@@ -7,6 +7,7 @@ import { notebooksRuntimeCache, setNotebooksCache } from '@/utils/notebooksRunti
 import { useNotes } from '@/contexts/NotesContext';
 import { BottomNavigation } from '@/components/BottomNavigation';
 import { Button } from '@/components/ui/button';
+import { FloatingAddButton } from '@/components/FloatingAddButton';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -216,29 +217,23 @@ const NotebookDetail = () => {
 
       {!isEditorOpen && (
         visibleTypes.length === 1 ? (
-          <Button
+          <FloatingAddButton
             data-tour="new-note-button"
-            className="fixed left-4 right-4 z-50 h-12 text-base font-semibold md:hidden"
-            style={{ bottom: 'calc(4.25rem + var(--safe-bottom, 0px))' }}
-            size="lg"
+            aria-label="New note"
             onClick={() => { triggerHaptic('heavy'); handleCreateNote(visibleTypes[0]); }}
           >
-            <Plus className="h-5 w-5" />
             New note
-          </Button>
+          </FloatingAddButton>
         ) : (
           <DropdownMenu open={noteTypeSelectorOpen} onOpenChange={setNoteTypeSelectorOpen}>
             <DropdownMenuTrigger asChild>
-              <Button
+              <FloatingAddButton
                 data-tour="new-note-button"
-                className="fixed left-4 right-4 z-50 h-12 text-base font-semibold md:hidden"
-                style={{ bottom: 'calc(4.25rem + var(--safe-bottom, 0px))' }}
-                size="lg"
+                aria-label="New note"
                 onClick={() => triggerHaptic('heavy')}
               >
-                <Plus className="h-5 w-5" />
                 New note
-              </Button>
+              </FloatingAddButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="center" className="mb-2 w-48 bg-card">
               {isTypeVisible('sticky') && (
