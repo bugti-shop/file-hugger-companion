@@ -4,6 +4,7 @@ import { z } from 'npm:zod@3.25.76';
 const UnlockBody = z.union([
   z.object({ code: z.string().min(1).max(256) }).strict(),
   z.object({ token: z.string().min(1).max(256) }).strict(),
+  z.object({ status: z.literal(true) }).strict(),
 ]);
 
 const respond = (body: Record<string, unknown>, status: number) =>
@@ -30,13 +31,6 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => null);
     const parsed = UnlockBody.safeParse(body);
     if (!parsed.success) return respond({ error: 'Invalid unlock request' }, 400);
-    const expected = 'token' in parsed.data
-      ? Deno.env.get('PRO_LINK_TOKEN')
-      : Deno.env.get('ADMIN_UNLOCK_CODE');
-    if (!expected) {
-      console.error('premium-web-unlock: unlock secret not configured');
-      return respond({ error: 'Unlock not configured' }, 500);
-    }
 
     const { createClient } = await import('npm:@supabase/supabase-js@2');
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
@@ -56,13 +50,29 @@ Deno.serve(async (req) => {
       return respond({ error: "Unauthorized" }, 401);
     }
 
-    const input = 'token' in parsed.data ? parsed.data.token : parsed.data.code;
-    if (!constantTimeEqual(input, expected)) return respond({ error: 'Invalid unlock code' }, 403);
-
     const admin = createClient(
       supabaseUrl,
       serviceKey,
     );
+
+    if ('status' in parsed.data) {
+      const { data: entitlement, error: statusError } = await admin
+        .from('user_entitlements')
+        .select('is_active,expires_at,product_id')
+        .eq('app_user_id', userData.user.id)
+        .maybeSingle();
+      if (statusError) throw statusError;
+      const active = entitlement?.product_id === 'web_premium_unlock' && entitlement.is_active === true
+        && !!entitlement.expires_at && new Date(entitlement.expires_at).getTime() > Date.now();
+      return respond({ active }, 200);
+    }
+
+    const expected = 'token' in parsed.data
+      ? Deno.env.get('PRO_LINK_TOKEN')
+      : Deno.env.get('ADMIN_UNLOCK_CODE');
+    if (!expected) return respond({ error: 'Unlock not configured' }, 500);
+    const input = 'token' in parsed.data ? parsed.data.token : parsed.data.code;
+    if (!constantTimeEqual(input, expected)) return respond({ error: 'Invalid unlock code' }, 403);
 
     const expiresAt = new Date("2099-12-31T23:59:59.000Z").toISOString();
     const rows = [
