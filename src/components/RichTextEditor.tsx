@@ -578,22 +578,7 @@ export const RichTextEditor = ({
       
       // Check if clicked on a checklist checkbox
       if (target.classList.contains('checklist-checkbox')) {
-        e.preventDefault();
         e.stopPropagation();
-        const checkbox = target as HTMLInputElement;
-        const listItem = checkbox.closest('.checklist-item');
-        if (listItem) {
-          if (checkbox.checked) {
-            listItem.classList.add('checked');
-          } else {
-            listItem.classList.remove('checked');
-          }
-          // Trigger change
-          if (editorRef.current) {
-            const event = new Event('input', { bubbles: true });
-            editorRef.current.dispatchEvent(event);
-          }
-        }
         return;
       }
       
@@ -716,6 +701,14 @@ export const RichTextEditor = ({
         return;
       }
     };
+
+    const handleChecklistChange = (e: Event) => {
+      const checkbox = e.target;
+      if (!(checkbox instanceof HTMLInputElement) || !checkbox.matches('.checklist-checkbox')) return;
+      checkbox.toggleAttribute('checked', checkbox.checked);
+      checkbox.closest('.checklist-item')?.classList.toggle('checked', checkbox.checked);
+      editorRef.current?.dispatchEvent(new Event('input', { bubbles: true }));
+    };
     
     // Handle touch events for mobile - convert touchend to click-like behavior
     const handleEditorTouch = (e: TouchEvent) => {
@@ -756,6 +749,7 @@ export const RichTextEditor = ({
     
     // Add event delegation with capture phase to intercept before contenteditable
     editorRef.current.addEventListener('click', handleEditorClick, true);
+    editorRef.current.addEventListener('change', handleChecklistChange);
     editorRef.current.addEventListener('touchend', handleEditorTouch, true);
 
     
@@ -773,6 +767,7 @@ export const RichTextEditor = ({
         if (audioClickHandlerRef.current) {
           editorEl.removeEventListener('click', audioClickHandlerRef.current, true);
         }
+        editorEl.removeEventListener('change', handleChecklistChange);
         editorEl.removeEventListener('touchend', handleEditorTouch, true);
       }
     };
