@@ -860,7 +860,9 @@ export const onSupabaseAuthStateChanged = (
   onTokenRefreshed?: () => void,
 ) => {
   const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-    if (session?.user) {
+    // An anonymous session is used only for private Pro links; it must not be
+    // mistaken for a Google/Apple account or persisted as a signed-in profile.
+    if (session?.user && !session.user.is_anonymous) {
       callback({
         id: session.user.id,
         email: session.user.email || undefined,
