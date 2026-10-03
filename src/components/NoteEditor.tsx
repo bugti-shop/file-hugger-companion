@@ -2571,17 +2571,17 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
 
         {isReadingMode && !isReadOnlyWebClip && ['regular', 'lined', 'sticky', 'textformat'].includes(noteType) && (
           <div className="notes-reading-toolbar" role="toolbar" aria-label="Note actions">
-            <div className="notes-reading-tools-left">
+            <div className="notes-reading-capsule">
               <Button variant="ghost" size="icon" aria-label="Add checklist" title="Add checklist" onClick={() => enableEditing('new-checklist')}>
-                <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="7" r="3"/><path d="m4.5 7 1 1 2-2M13 7h12"/><circle cx="6" cy="20" r="3"/><path d="M13 20h12"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg>
               </Button>
               <Button variant="ghost" size="icon" aria-label="Edit note" title="Edit note" onClick={() => enableEditing()}>
-                <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="14" cy="14" r="11"/><path d="m10 18 1-4 6.5-6.5 3 3L14 17l-4 1ZM16 9l3 3"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 2 5.6 11.3a2.4 2.4 0 0 0-.3 2.1L6.8 17h10.4l1.5-3.6a2.4 2.4 0 0 0-.3-2.1L12 2Z"/><line x1="12" y1="2" x2="12" y2="8.8"/><circle cx="12" cy="11" r="1.8"/><rect x="6.5" y="19.2" width="11" height="2.8" rx="1"/></svg>
+              </Button>
+              <Button variant="ghost" size="icon" aria-label="Start editing" title="Start editing" onClick={() => enableEditing()}>
+                <SquarePen strokeWidth={1.8} />
               </Button>
             </div>
-            <Button variant="ghost" size="icon" className="notes-reading-edit-right" aria-label="Start editing" title="Start editing" onClick={() => enableEditing()}>
-              <SquarePen strokeWidth={1.8} />
-            </Button>
           </div>
         )}
 
