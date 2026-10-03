@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Separate the To-Do Inbox chip from the search bar visibly and add the feature tutorial to Settings.
+
 - [x] Remove the Notes selection-format strip and dashboard theme/help icons; tighten header and Inbox spacing, shrink the add glyph, and animate task entry.
 
 - [x] Replace Notes, notebook, and task add bars with right-aligned red rounded-square buttons; relocate folder menus to the header, remove Folders labels, and tighten safe-area-aware top spacing.

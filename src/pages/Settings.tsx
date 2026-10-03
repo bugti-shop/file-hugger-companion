@@ -27,6 +27,7 @@ import { FeedbackDialog } from '@/components/FeedbackDialog';
 import { HeaderOffsetSheet } from '@/components/settings/HeaderOffsetSheet';
 import { AccessibilityZoomSheet } from '@/components/settings/AccessibilityZoomSheet';
 import { NotificationPermissionsDialog } from '@/components/settings/NotificationPermissionsDialog';
+import { FeatureGuideModal } from '@/components/tours/FeatureGuideModal';
 import { triggerTestAlarm } from '@/utils/testAlarm';
 import { Capacitor } from '@capacitor/core';
 
@@ -50,6 +51,7 @@ const Settings = () => {
   const [showHeaderOffsetSheet, setShowHeaderOffsetSheet] = useState(false);
   const [showAccessibilityZoomSheet, setShowAccessibilityZoomSheet] = useState(false);
   const [showNotificationPermissions, setShowNotificationPermissions] = useState(false);
+  const [showFeatureGuide, setShowFeatureGuide] = useState(false);
   const [query, setQuery] = useState('');
 
   const groups: { rows: IconRow[] }[] = useMemo(() => [
@@ -80,6 +82,7 @@ const Settings = () => {
     {
       rows: [
         { label: 'Sync & Backup', icon: Cloud, color: '#32ADE6', onClick: () => { if (requireFeature('backup')) state.handleBackupData(); }, keywords: ['export', 'save', 'drive', 'restore', 'cloud'] },
+        { label: 'Feature Guide', icon: HelpCircle, color: '#34C759', onClick: () => setShowFeatureGuide(true), keywords: ['tutorial', 'tour', 'walkthrough', 'guide', 'help'] },
         { label: 'Help & Support', icon: HelpCircle, color: '#34C759', onClick: () => setShowFeedbackDialog(true), keywords: ['feedback', 'contact', 'faq'] },
         { label: 'About', icon: Info, color: '#48484A', onClick: () => state.setShowTermsDialog(true), keywords: ['version', 'terms', 'legal', 'privacy'] },
       ],
@@ -254,6 +257,7 @@ const Settings = () => {
       <HeaderOffsetSheet isOpen={showHeaderOffsetSheet} onClose={() => setShowHeaderOffsetSheet(false)} />
       <AccessibilityZoomSheet isOpen={showAccessibilityZoomSheet} onClose={() => setShowAccessibilityZoomSheet(false)} />
       <NotificationPermissionsDialog open={showNotificationPermissions} onOpenChange={setShowNotificationPermissions} />
+      <FeatureGuideModal isOpen={showFeatureGuide} onClose={() => setShowFeatureGuide(false)} />
     </div>
   );
 };
