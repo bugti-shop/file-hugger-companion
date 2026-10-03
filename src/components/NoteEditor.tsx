@@ -759,8 +759,6 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
   ]);
 
   const commitNote = useCallback(async ({ full }: { full: boolean }) => {
-    // Opening or backgrounding an unchanged existing note is a read, not an edit.
-    if (note && !hasTextChanges()) return;
     const savedNote = buildCurrentNote();
 
     // Ask the parent first — if they reject (e.g. soft paywall), do NOT persist.
@@ -805,11 +803,11 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     }
 
     persistNoteToIndexedDB(savedNote);
-  }, [buildCurrentNote, hasTextChanges, note, onSave, persistNoteToIndexedDB]);
+  }, [buildCurrentNote, note, onSave, persistNoteToIndexedDB]);
 
   const handleSave = useCallback(async () => {
     triggerTripleHeavyHaptic();
-    if (!isReadOnlyWebClip) {
+    if (!isReadOnlyWebClip && (!note || hasTextChanges() || selectedFolderId !== note.folderId || noteTagIds.join(',') !== (note.tagIds || []).join(',') || reminderEnabled !== !!note.reminderEnabled || color !== (note.color || 'yellow') || customColor !== note.customColor || metaDescription !== (note.metaDescription || '') || location !== (note.location || ''))) {
       await commitNote({ full: true });
     }
   }, [commitNote, isReadOnlyWebClip]);
@@ -838,7 +836,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
         navigate(returnToRef.current!, { replace: true });
       }, 10);
     }
-  }, [commitNote, navigate, onClose, isReadOnlyWebClip]);
+  }, [commitNote, navigate, onClose, isReadOnlyWebClip, note, hasTextChanges, selectedFolderId, noteTagIds, reminderEnabled, color, customColor, metaDescription, location]);
 
   const handleClose = useCallback(async () => {
     if (!isOpenRef.current) return;
