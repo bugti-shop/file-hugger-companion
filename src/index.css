@@ -91,21 +91,30 @@
   left: calc(var(--safe-left, 0px) + 18px);
   right: calc(var(--safe-right, 0px) + 18px);
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   pointer-events: none;
 }
-.notes-reading-tools-left, .notes-reading-edit-right {
+.notes-reading-capsule {
   background: hsl(var(--note-reader-control-surface) / 0.94);
   color: hsl(var(--note-reader-control-ink));
   box-shadow: 0 2px 9px hsl(var(--dashboard-glass-shadow) / 0.07), inset 0 1px 0 hsl(var(--dashboard-glass-highlight) / 0.8);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 999px;
   pointer-events: auto;
 }
-.notes-reading-tools-left { display: flex; align-items: center; gap: 12px; padding: 2px 9px; border-radius: 999px; }
-.notes-reading-toolbar .notes-reading-tools-left > button,
-.notes-reading-toolbar .notes-reading-edit-right { width: 44px; height: 44px; border-radius: 999px; color: inherit; padding: 5px; }
+.notes-reading-capsule > button {
+  width: 40px;
+  height: 32px;
+  border-radius: 999px;
+  color: inherit;
+  padding: 0;
+}
 .notes-reading-toolbar button:hover { background: hsl(var(--note-reader-control-ink) / 0.12); }
-.notes-reading-toolbar svg { width: 34px; height: 34px; }
+.notes-reading-toolbar svg { width: 23px; height: 23px; }
 .notes-editor-screen .notes-reading-content ul.checklist,
 .notes-editor-screen .rich-text-editor ul.checklist { list-style: none; padding-left: 0; margin: 0.5rem 0; }
 .notes-editor-screen .notes-reading-content .checklist-item,
