@@ -109,7 +109,7 @@
 .notes-editor-screen .notes-reading-content ul.checklist,
 .notes-editor-screen .rich-text-editor ul.checklist { list-style: none; padding-left: 0; margin: 0.5rem 0; }
 .notes-editor-screen .notes-reading-content .checklist-item,
-.notes-editor-screen .rich-text-editor .checklist-item { display: flex; align-items: flex-start; gap: 9px; padding: 3px 0; min-height: 28px; font-size: 0.94em; line-height: 1.5; }
+.notes-editor-screen .rich-text-editor .checklist-item { display: flex; align-items: flex-start; gap: 9px; padding: 3px 0; min-height: 28px; font-size: 0.875em; line-height: 1.5; }
 .notes-editor-screen .checklist-item .checklist-checkbox {
   appearance: none;
   width: 20px;
