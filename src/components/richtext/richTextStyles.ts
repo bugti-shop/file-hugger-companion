@@ -42,8 +42,8 @@ export const RICH_TEXT_EDITOR_STYLES = `
     min-width: 0;
   }
   .rich-text-editor .checklist-item.checked .checklist-text {
-    text-decoration: line-through;
-    opacity: 0.6;
+    text-decoration: none;
+    opacity: 1;
   }
   .rich-text-editor ol {
     list-style: decimal;
