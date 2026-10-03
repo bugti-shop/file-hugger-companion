@@ -471,8 +471,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
         document.querySelector<HTMLInputElement>('.notes-editor-screen .title-input')?.focus();
         return;
       }
-      // The rich editor hydrates saved HTML in an effect after mounting. Wait
-      // for that pass before placing a caret or inserting a checklist.
+      // Ensure saved HTML is present before adding a checklist at the end.
       if (editor.innerHTML !== contentRef.current && focus === 'new-checklist') {
         editor.innerHTML = sanitizeHtml(contentRef.current);
       }
