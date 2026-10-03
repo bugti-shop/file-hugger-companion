@@ -1,6 +1,6 @@
 # Roadmap
 
-- [x] Compact and lower Notes reading capsules, enlarge their icons and slightly enlarge checklist text; add signed-in backend-verified private Pro link redemption.
+- [x] Compact and lower Notes reading capsules, enlarge their icons and slightly enlarge checklist text; add backend-verified private Pro link redemption for signed-in users and guests without a login screen.
 
 - [x] Match reference checklist alignment, circle/text density and bottom icon size; fix completion toggles in reading and editing modes.
 

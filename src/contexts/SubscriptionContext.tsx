@@ -502,15 +502,20 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
   // from local storage or a client event alone.
   useEffect(() => {
     let cancelled = false;
+    let latestRefresh = 0;
     const refresh = async () => {
+      const refreshId = ++latestRefresh;
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) return;
       const { data, error } = await supabase.functions.invoke('premium-web-unlock', { body: { status: true } });
-      if (!cancelled && !error && data?.active === true) {
-        setLocalProAccess(true);
-        setIsAdminBypass(true);
-        setShowPaywall(false);
-        setPaywallFeature(null);
+      if (!cancelled && refreshId === latestRefresh && !error) {
+        const active = data?.active === true;
+        setLocalProAccess(active);
+        setIsAdminBypass(active);
+        if (active) {
+          setShowPaywall(false);
+          setPaywallFeature(null);
+        }
       }
     };
     void refresh();

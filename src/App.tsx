@@ -759,6 +759,8 @@ const AppContent = () => {
   // gates the next prompt.
   useEffect(() => {
     if (subLoading || isVerifyingCheckout) return;
+    // The private-link screen must stay readable while a guest link is checked.
+    if (window.location.pathname === '/premium-unlock') return;
     if (isPro) return;
     if (showLanding) return;
     let firstShown = false;
