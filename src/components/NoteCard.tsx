@@ -428,10 +428,10 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
             <span>
               {updatedAtDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
-            <div className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+            {note.type !== 'regular' && <div className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <BadgeIcon className="h-3 w-3" />
               <span>{badge.label}</span>
-            </div>
+            </div>}
           </div>
 
           {/* Tags display beneath the date */}

@@ -24,9 +24,9 @@ export function getNotesDateGroup(value: Date | string, now = new Date()): { key
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
   const weekStart = new Date(today); weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
-    if (date >= today) return { key: 'today', label: 'Today' };
-    if (date >= yesterday) return { key: 'yesterday', label: 'Yesterday' };
-    if (date >= weekStart && date < today) return { key: 'week', label: 'This Week' };
+  if (date >= today) return { key: 'today', label: 'Today' };
+  if (date >= yesterday) return { key: 'yesterday', label: 'Yesterday' };
+  if (date >= weekStart) return { key: 'week', label: 'This Week' };
   const key = format(date, 'yyyy-MM');
   return { key, label: date.getFullYear() === now.getFullYear() ? format(date, 'MMMM') : format(date, 'MMMM yyyy') };
 }
