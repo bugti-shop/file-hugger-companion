@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Note } from '@/types/note';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trash2, Edit, Mic, FileText, Pen, Pin, FileCode, GitBranch, AlignLeft, Archive, Star, Check, Copy, EyeOff, Shield, Lock, FolderInput, StickyNote, MoreVertical } from 'lucide-react';
+import { Trash2, Edit, Pin, Archive, Star, Check, Copy, EyeOff, Shield, Lock, FolderInput } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { getNoteProtection, NoteProtection } from '@/utils/noteProtection';
@@ -297,25 +297,6 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
     }
   };
 
-  const badge = useMemo(() => {
-    if (note.type === 'voice') return { icon: Mic, label: 'Voice' };
-    if (note.voiceRecordings && note.voiceRecordings.length > 0) {
-      return { icon: Mic, label: 'Audio File' };
-    }
-    switch (note.type) {
-      case 'sketch':    return { icon: Pen, label: 'Sketch' };
-      case 'sticky':    return { icon: StickyNote, label: 'Sticky' };
-      case 'lined':     return { icon: AlignLeft, label: 'Lined' };
-      case 'code':      return { icon: FileCode, label: 'Code' };
-      case 'linkedin':  return { icon: FileText, label: 'LinkedIn' };
-      case 'textformat':return { icon: FileText, label: 'Text Format' };
-      case 'regular':
-      default:          return { icon: FileText, label: 'Regular' };
-    }
-  }, [note.type, note.voiceRecordings?.length]);
-
-  const BadgeIcon = badge.icon;
-
   const updatedAtDate = useMemo(() => {
     const ms = note.updatedAt instanceof Date ? note.updatedAt.getTime() : new Date(note.updatedAt as any).getTime();
     return new Date(Number.isFinite(ms) ? ms : Date.now());
@@ -430,8 +411,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
             <span className="shrink-0">
               {updatedAtDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
-            {contentPreview && !(noteProtection.hasPassword || noteProtection.useBiometric) && <span className="min-w-0 truncate">{contentPreview}</span>}
-            {note.type !== 'regular' && <BadgeIcon className="h-3 w-3 shrink-0 ml-auto" aria-label={badge.label} />}
+            {contentPreview && !(noteProtection.hasPassword || noteProtection.useBiometric) && <span className="min-w-0 truncate text-[13px]">{contentPreview}</span>}
           </div>
 
           {/* Tags display beneath the date */}

@@ -26,7 +26,7 @@ export function getNotesDateGroup(value: Date | string, now = new Date()): { key
   const weekStart = new Date(today); weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
   if (date >= today) return { key: 'today', label: 'Today' };
   if (date >= yesterday) return { key: 'yesterday', label: 'Yesterday' };
-  if (date >= weekStart) return { key: 'week', label: 'This Week' };
+  if (date >= weekStart) return { key: 'week', label: 'This week' };
   const key = format(date, 'yyyy-MM');
   return { key, label: date.getFullYear() === now.getFullYear() ? format(date, 'MMMM') : format(date, 'MMMM yyyy') };
 }
@@ -168,7 +168,7 @@ export function NotesVirtualGrid({
               } as React.CSSProperties}
             >
               {row.kind === 'heading' ? (
-                  <h2 className="notes-date-heading flex h-full items-end px-1 pb-1.5 text-[17px] font-bold uppercase tracking-wide text-foreground">{row.label}</h2>
+                  <h2 className="notes-date-heading flex h-full items-end px-1 pb-1.5 text-[17px] font-bold text-foreground">{row.label}</h2>
               ) : (
                 <div className={`notes-date-row relative h-full min-w-0 border-x border-border bg-card px-4 ${row.first ? 'rounded-t-lg border-t' : ''} ${row.last ? 'rounded-b-lg border-b' : ''}`}>
                   {renderCard(row.note)}

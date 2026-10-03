@@ -16,4 +16,4 @@ No-argument slash shortcuts in notes editor should auto-run when complete, espec
 - [Flowist red brand system](mem://design-brand-refresh) — Red primary, pen-check logo, transparent placements, white native splash screens
 - [Free Timeline and selected navigation](mem://features/free-timeline-navigation) — Timeline is free/default; active bottom tabs use a soft red pill
 - [Apple Notes concept reference](mem://preferences/apple-notes-concept-reference) — For the ten screenshot concepts, improve the uploaded Apple Notes UI itself, not Flowist
-- [Notes card and editor typography](mem://design/notes-date-cards) — White rounded grouped Notes rows by date, date and tags beneath, geometric sans in cards and note editor; leave surrounding controls alone
+- [Notes card and editor typography](mem://design/notes-date-cards) — Equal-height grouped Notes strips, sentence-case Flowist-style headings, larger inline previews, no type icons; leave surrounding controls alone
