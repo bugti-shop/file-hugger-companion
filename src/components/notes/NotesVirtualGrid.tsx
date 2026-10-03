@@ -10,7 +10,7 @@
  */
 import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
 import { useVirtualizer, useWindowVirtualizer } from '@tanstack/react-virtual';
-import { format, isToday, isYesterday, isThisWeek } from 'date-fns';
+import { format } from 'date-fns';
 import type { Note } from '@/types/note';
 import { logPerfEvent, startScopedScrollFpsMonitor } from '@/utils/perfLogger';
 import { getAdaptiveOverscan, useVirtualizationSettings } from '@/utils/virtualizationSettings';
@@ -31,9 +31,12 @@ type SectionRow = { kind: 'heading'; label: string; key: string } | { kind: 'not
 export function getNotesDateGroup(value: Date | string, now = new Date()): { key: string; label: string } {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return { key: 'unknown', label: 'Earlier' };
-  if (isToday(date)) return { key: 'today', label: 'Today' };
-  if (isYesterday(date)) return { key: 'yesterday', label: 'Yesterday' };
-  if (isThisWeek(date, { weekStartsOn: 1 })) return { key: 'week', label: 'This Week' };
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  const weekStart = new Date(today); weekStart.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+  if (date >= today) return { key: 'today', label: 'Today' };
+  if (date >= yesterday) return { key: 'yesterday', label: 'Yesterday' };
+  if (date >= weekStart) return { key: 'week', label: 'This Week' };
   const key = format(date, 'yyyy-MM');
   return { key, label: date.getFullYear() === now.getFullYear() ? format(date, 'MMMM') : format(date, 'MMMM yyyy') };
 }
