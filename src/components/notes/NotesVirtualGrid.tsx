@@ -41,7 +41,11 @@ export function NotesVirtualGrid({
   const [virtualizationSettings] = useVirtualizationSettings();
   const parentRef = useRef<HTMLDivElement>(null);
   const resolvedRowHeight = estimatedRowHeight ?? 46;
-  const rowSize = (idx: number) => rows[idx]?.kind === 'heading' ? 56 : resolvedRowHeight + (rows[idx]?.kind === 'note' && rows[idx].note.tagIds?.length ? 14 : 0);
+  const rowSize = (idx: number) => rows[idx]?.kind === 'heading'
+    // The very first heading (e.g. "Today") sits right under the folder chips,
+    // so keep it compact instead of reserving a full 56px heading slot.
+    ? (idx === 0 ? 38 : 56)
+    : resolvedRowHeight + (rows[idx]?.kind === 'note' && rows[idx].note.tagIds?.length ? 14 : 0);
   const resolvedOverscan = getAdaptiveOverscan(virtualizationSettings.notes.overscan, notes.length, 'notes');
   const resolvedWindowing = useWindowing ?? virtualizationSettings.notes.windowing;
 
