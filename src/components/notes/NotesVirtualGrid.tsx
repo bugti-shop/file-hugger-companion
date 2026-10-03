@@ -16,7 +16,7 @@ interface NotesVirtualGridProps {
   useWindowing?: boolean;
 }
 
-type SectionRow = { kind: 'heading'; label: string; key: string } | { kind: 'note'; note: Note; key: string; last: boolean };
+type SectionRow = { kind: 'heading'; label: string; key: string } | { kind: 'note'; note: Note; key: string; first: boolean; last: boolean };
 
 export function getNotesDateGroup(value: Date | string, now = new Date()): { key: string; label: string } {
   const date = new Date(value);
@@ -41,7 +41,7 @@ export function NotesVirtualGrid({
   const [virtualizationSettings] = useVirtualizationSettings();
   const parentRef = useRef<HTMLDivElement>(null);
   const resolvedRowHeight = estimatedRowHeight ?? 46;
-  const rowSize = (idx: number) => rows[idx]?.kind === 'heading' ? 32 : resolvedRowHeight + (rows[idx]?.kind === 'note' && rows[idx].note.tagIds?.length ? 14 : 0);
+  const rowSize = (idx: number) => rows[idx]?.kind === 'heading' ? 56 : resolvedRowHeight + (rows[idx]?.kind === 'note' && rows[idx].note.tagIds?.length ? 14 : 0);
   const resolvedOverscan = getAdaptiveOverscan(virtualizationSettings.notes.overscan, notes.length, 'notes');
   const resolvedWindowing = useWindowing ?? virtualizationSettings.notes.windowing;
 
@@ -59,7 +59,7 @@ export function NotesVirtualGrid({
     });
     return ordered.flatMap(([key, section]) => [
       { kind: 'heading' as const, key: `heading-${key}`, label: section.label },
-      ...section.notes.map((note, index) => ({ kind: 'note' as const, key: note.id, note, last: index === section.notes.length - 1 })),
+      ...section.notes.map((note, index) => ({ kind: 'note' as const, key: note.id, note, first: index === 0, last: index === section.notes.length - 1 })),
     ]);
   }, [notes]);
   const rowCount = rows.length;
@@ -162,9 +162,9 @@ export function NotesVirtualGrid({
               } as React.CSSProperties}
             >
               {row.kind === 'heading' ? (
-                  <h2 className="notes-date-heading flex h-full items-center rounded-t-lg border-x border-t border-border bg-card px-4 text-[11px] font-medium uppercase text-muted-foreground">{row.label}</h2>
+                  <h2 className="notes-date-heading flex h-full items-end px-1 pb-1.5 text-[17px] font-bold uppercase tracking-wide text-foreground">{row.label}</h2>
               ) : (
-                <div className={`notes-date-row relative h-full min-w-0 border-x border-border bg-card px-4 ${row.last ? 'rounded-b-lg border-b' : ''}`}>
+                <div className={`notes-date-row relative h-full min-w-0 border-x border-border bg-card px-4 ${row.first ? 'rounded-t-lg border-t' : ''} ${row.last ? 'rounded-b-lg border-b' : ''}`}>
                   {renderCard(row.note)}
                 </div>
               )}
