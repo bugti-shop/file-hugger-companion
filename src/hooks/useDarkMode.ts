@@ -21,7 +21,7 @@ export const themes = [
 ];
 
 const allThemeClasses: ThemeId[] = ['light', 'dark', 'ocean', 'forest', 'sunset', 'rose', 'midnight', 'minimal', 'nebula', 'obsidian', 'graphite', 'onyx', 'charcoal', 'custom'];
-const darkThemes: ThemeId[] = ['dark', 'ocean', 'forest', 'sunset', 'rose', 'midnight', 'minimal', 'nebula', 'obsidian', 'graphite', 'onyx', 'charcoal'];
+const darkThemes: ThemeId[] = ['obsidian', 'dark', 'ocean', 'forest', 'sunset', 'rose', 'midnight', 'minimal', 'nebula', 'graphite', 'onyx', 'charcoal'];
 
 export const useDarkMode = () => {
   const [currentTheme, setCurrentTheme] = useState<ThemeId>('light');
@@ -36,7 +36,7 @@ export const useDarkMode = () => {
       } else {
         // Check for old darkMode setting
         const oldDarkMode = await getSetting<boolean>('darkMode', false);
-        setCurrentTheme(oldDarkMode ? 'dark' : 'light');
+        setCurrentTheme(oldDarkMode ? 'obsidian' : 'light');
       }
       setIsLoaded(true);
     };
@@ -55,8 +55,9 @@ export const useDarkMode = () => {
       document.documentElement.classList.remove(cls);
     });
     
-    // Add the current theme class (only add if not light)
+    // Tailwind's dark: rules rely on .dark, even when the chosen palette has its own class.
     if (currentTheme !== 'light') {
+      document.documentElement.classList.add('dark');
       document.documentElement.classList.add(currentTheme);
     }
     
@@ -65,16 +66,16 @@ export const useDarkMode = () => {
   }, [currentTheme, isLoaded]);
 
   // Cycle through dark themes on toggle. When `isPro` is false, only the
-  // first dark theme ('dark') is free; cycling beyond it is gated, so the
+  // first dark theme ('obsidian') is free; cycling beyond it is gated, so the
   // toggle behaves as a simple light↔dark switch for free users.
   const toggleDarkMode = (isPro: boolean = true) => {
     setCurrentTheme(prev => {
       if (!isPro) {
-        return prev === 'light' ? 'dark' : 'light';
+        return prev === 'light' ? 'obsidian' : 'light';
       }
       // If currently light, go to first dark theme
       if (prev === 'light') {
-        return 'dark';
+        return 'obsidian';
       }
       // Find current dark theme index and go to next
       const currentIndex = darkThemes.indexOf(prev);
