@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Match the screenshot's native sans-serif type in the Notes editor without rewriting saved notes; use black glass-capsule icons in light mode and white in dark mode.
+
 - [x] Put Notes and To-Do dashboard navigation and horizontal options dots in a matching right-aligned frosted glass capsule.
 
 - [x] Match Notes section headings to the Flowist header typeface and sentence case; enlarge only note preview text within fixed-height strips and remove note-type icons.

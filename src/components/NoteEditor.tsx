@@ -197,7 +197,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     { id: 'modern', name: t('editor.tableStyles.modern', 'Modern') },
   ] as const;
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-  const [fontFamily, setFontFamily] = useState<string>('"Montserrat", "Nunito Sans", sans-serif');
+  const [fontFamily, setFontFamily] = useState<string>('var(--notes-font)');
   const [fontSize, setFontSize] = useState<string>('16px');
   const [fontWeight, setFontWeight] = useState<string>('400');
   const [letterSpacing, setLetterSpacing] = useState<string>('0em');
@@ -528,7 +528,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
       setNoteAttachments(note.attachments || []);
       setSelectedFolderId(note.folderId);
       setNoteTagIds(note.tagIds || []);
-      setFontFamily(note.fontFamily || '"Montserrat", "Nunito Sans", sans-serif');
+      setFontFamily(note.fontFamily || 'var(--notes-font)');
       setFontSize(note.fontSize || '16px');
       setFontWeight(note.fontWeight || '400');
       setLetterSpacing(note.letterSpacing || '0em');
@@ -582,7 +582,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
             if (savedFont && savedFont !== 'System Default') {
               setFontFamily(savedFont);
             } else {
-              setFontFamily('"Montserrat", "Nunito Sans", sans-serif');
+              setFontFamily('var(--notes-font)');
             }
             if (savedSize) {
               setFontSize(`${savedSize}px`);
@@ -590,12 +590,12 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
               setFontSize('16px');
             }
           } else {
-            setFontFamily('"Montserrat", "Nunito Sans", sans-serif');
+            setFontFamily('var(--notes-font)');
             setFontSize('16px');
           }
         } catch (error) {
           console.error('Error loading default font settings:', error);
-          setFontFamily('"Montserrat", "Nunito Sans", sans-serif');
+          setFontFamily('var(--notes-font)');
           setFontSize('16px');
         }
       };

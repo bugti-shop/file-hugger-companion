@@ -12,7 +12,7 @@
   contain-intrinsic-size: auto 120px;
 }
 /* Notes-only typography and grouped-row separators; surrounding navigation is unchanged. */
-:root { --notes-font: 'Montserrat', 'Nunito Sans', sans-serif; }
+:root { --notes-font: -apple-system, BlinkMacSystemFont, 'Roboto', 'Segoe UI', sans-serif; }
 .notes-date-heading { font-family: inherit; letter-spacing: 0; word-spacing: normal; text-align: left; }
 .notes-date-row, .notes-card { font-family: 'Nunito Sans', sans-serif; letter-spacing: 0; word-spacing: normal; font-stretch: normal; text-align: left; }
 .notes-editor-font { font-family: var(--notes-font); letter-spacing: 0; word-spacing: normal; }
@@ -94,7 +94,7 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
     --dashboard-glass-stroke: 215 18% 75%;
     --dashboard-glass-highlight: 0 0% 100%;
     --dashboard-glass-shadow: 220 20% 30%;
-    --dashboard-glass-ink: var(--primary);
+    --dashboard-glass-ink: 0 0% 0%;
     --notes-page-bg: #f1f4f9;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
