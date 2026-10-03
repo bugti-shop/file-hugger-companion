@@ -11,7 +11,6 @@ import { getNoteProtection, NoteProtection } from '@/utils/noteProtection';
 import { getSetting } from '@/utils/settingsStorage';
 import { logActivity } from '@/utils/activityLogger';
 import { sanitizeDisplayName } from '@/utils/duplicateName';
-import { getTextPreviewFromHtml } from '@/utils/contentPreview';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   DropdownMenu,
@@ -44,27 +43,6 @@ interface NoteCardProps {
   onHide?: (noteId: string) => void;
   onProtect?: (noteId: string) => void;
 }
-
-const STICKY_COLORS = {
-  yellow: 'hsl(var(--sticky-yellow))',
-  blue: 'hsl(var(--sticky-blue))',
-  green: 'hsl(var(--sticky-green))',
-  pink: 'hsl(var(--sticky-pink))',
-  orange: 'hsl(var(--sticky-orange))',
-};
-
-const RANDOM_COLORS = [
-  'hsl(330, 100%, 75%)',
-  'hsl(160, 70%, 70%)',
-  'hsl(280, 70%, 75%)',
-  'hsl(20, 95%, 75%)',
-  'hsl(140, 65%, 70%)',
-  'hsl(350, 80%, 75%)',
-  'hsl(45, 90%, 75%)',
-  'hsl(270, 65%, 75%)',
-  'hsl(200, 80%, 70%)',
-  'hsl(60, 90%, 75%)',
-];
 
 const runCardActionSafely = (action: () => void | Promise<void>) => {
   try {
@@ -189,8 +167,6 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
     }
   }, [note.tagIds]);
 
-  const isSticky = note.type === 'sticky';
-  const isLined = note.type === 'lined';
   
   const SWIPE_THRESHOLD = 60;
   const SWIPE_ACTION_WIDTH = 70; // Width per action button
@@ -320,37 +296,6 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
     }
   };
 
-  // Memoize expensive per-card computations so they don't recalculate on
-  // every parent render (only when the underlying note fields change).
-  const cardStyle = useMemo(() => {
-    if (isSticky && note.color) {
-      return { backgroundColor: STICKY_COLORS[note.color] };
-    }
-    if (note.customColor) {
-      return { backgroundColor: note.customColor };
-    }
-    const createdMs =
-      note.createdAt instanceof Date
-        ? note.createdAt.getTime()
-        : new Date(note.createdAt as unknown as string).getTime() || 0;
-    const seed = `${createdMs}:${note.id}`;
-    let h = 2166136261;
-    for (let i = 0; i < seed.length; i++) {
-      h ^= seed.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    const index = Math.abs(h) % RANDOM_COLORS.length;
-    return { backgroundColor: RANDOM_COLORS[index] };
-  }, [isSticky, note.color, note.customColor, note.createdAt, note.id]);
-
-  const previewText = useMemo(
-    () =>
-      note.metaDescription ||
-      (note as any).__contentPreview ||
-      getTextPreviewFromHtml(note.content, 140),
-    [note.metaDescription, (note as any).__contentPreview, note.content],
-  );
-
   const badge = useMemo(() => {
     if (note.type === 'voice') return { icon: Mic, label: 'Voice' };
     if (note.voiceRecordings && note.voiceRecordings.length > 0) {
@@ -376,7 +321,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
   }, [note.updatedAt]);
 
   return (
-    <div className="relative overflow-hidden rounded-lg perf-contain-item h-full w-full flex">
+    <div className="relative overflow-hidden perf-contain-item h-full w-full flex">
       {/* Swipe action backgrounds */}
       <div className="absolute inset-0 flex">
         {/* Left side actions - Favorite + Pin (swipe right reveals) */}
@@ -443,17 +388,14 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
         onDragEnd={onDragEnd}
         onDragLeave={onDragLeave}
         className={cn(
-          'group relative overflow-hidden cursor-pointer',
-          'w-full h-full hover:shadow-md border border-border/50',
+          'notes-card group relative overflow-hidden cursor-pointer',
+          'w-full h-full border-0 rounded-none shadow-none bg-card text-card-foreground',
           isSwiping ? '' : 'transition-transform duration-200',
           isSelected && 'ring-2 ring-primary ring-offset-2'
         )}
-        style={{ 
-          ...cardStyle,
-          transform: `translateX(${swipeOffset}px)`,
-        }}
+        style={{ transform: `translateX(${swipeOffset}px)` }}
       >
-        <div className="p-4 h-full flex flex-col">
+        <div className="px-0 py-3 h-full flex flex-col">
           <div className="flex items-start justify-between gap-2">
             {/* Selection checkbox */}
             {isSelectionMode && (
@@ -470,9 +412,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
                 {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
               </div>
             )}
-          {note.title && (
-              <h3 className="font-semibold text-base line-clamp-1 text-gray-900 flex-1">{sanitizeDisplayName(note.title)}</h3>
-            )}
+            <h3 className="font-semibold text-base line-clamp-1 text-card-foreground flex-1">{sanitizeDisplayName(note.title || t('notes.untitled'))}</h3>
             {note.isPinned && (
               <Pin className="h-4 w-4 text-warning fill-warning shrink-0" />
             )}
@@ -484,59 +424,34 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
             )}
           </div>
 
-          {/* Show metaDescription if available, otherwise show content preview */}
-          {note.type === 'sketch' ? (
-            note.metaDescription ? (
-              <p className="text-sm text-gray-700 mb-3 line-clamp-2">
-                {note.metaDescription}
-              </p>
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-gray-500 mb-3 italic">
-                <Pen className="h-4 w-4" />
-                <span>{t('notes.sketchDrawing')}</span>
-              </div>
-            )
-          ) : previewText && (
-            <p className="text-sm text-gray-700 mb-3 line-clamp-2 transition-all duration-300">
-              {previewText}
-            </p>
-          )}
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mt-2">
+            <span>
+              {updatedAtDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+            {note.type !== 'regular' && <div className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <BadgeIcon className="h-3 w-3" />
+              <span>{badge.label}</span>
+            </div>}
+          </div>
 
-          {/* Tags display */}
+          {/* Tags display beneath the date */}
           {noteTags.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-2">
+            <div className="flex flex-wrap gap-1 mt-1">
               {noteTags.slice(0, 3).map((tag) => (
                 <span
                   key={tag.id}
-                  className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] rounded-full font-medium text-white"
-                  style={{ backgroundColor: `hsl(${tag.color})` }}
+                  className="inline-flex items-center gap-0.5 text-xs font-medium text-muted-foreground"
                 >
                   {tag.icon && <span className="text-[9px]">{tag.icon}</span>}
                   {tag.name}
                 </span>
               ))}
               {noteTags.length > 3 && (
-                <span className="text-[10px] text-gray-500">+{noteTags.length - 3}</span>
+                <span className="text-xs text-muted-foreground">+{noteTags.length - 3}</span>
               )}
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-2 text-xs text-gray-600">
-            <span>
-              {updatedAtDate.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric'
-              })} • {updatedAtDate.toLocaleTimeString('en-US', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true
-              })}
-            </span>
-            <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/80 text-xs font-medium text-gray-800">
-              <BadgeIcon className="h-3 w-3" />
-              <span>{badge.label}</span>
-            </div>
-          </div>
         </div>
       </Card>
 

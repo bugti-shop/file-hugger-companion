@@ -197,7 +197,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     { id: 'modern', name: t('editor.tableStyles.modern', 'Modern') },
   ] as const;
   const [showTemplateSelector, setShowTemplateSelector] = useState(false);
-  const [fontFamily, setFontFamily] = useState<string>('-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
+  const [fontFamily, setFontFamily] = useState<string>('"Montserrat", "Nunito Sans", sans-serif');
   const [fontSize, setFontSize] = useState<string>('16px');
   const [fontWeight, setFontWeight] = useState<string>('400');
   const [letterSpacing, setLetterSpacing] = useState<string>('0em');
@@ -524,7 +524,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
       setNoteAttachments(note.attachments || []);
       setSelectedFolderId(note.folderId);
       setNoteTagIds(note.tagIds || []);
-      setFontFamily(note.fontFamily || '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
+      setFontFamily(note.fontFamily || '"Montserrat", "Nunito Sans", sans-serif');
       setFontSize(note.fontSize || '16px');
       setFontWeight(note.fontWeight || '400');
       setLetterSpacing(note.letterSpacing || '0em');
@@ -578,7 +578,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
             if (savedFont && savedFont !== 'System Default') {
               setFontFamily(savedFont);
             } else {
-              setFontFamily('-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
+              setFontFamily('"Montserrat", "Nunito Sans", sans-serif');
             }
             if (savedSize) {
               setFontSize(`${savedSize}px`);
@@ -586,12 +586,12 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
               setFontSize('16px');
             }
           } else {
-            setFontFamily('-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
+            setFontFamily('"Montserrat", "Nunito Sans", sans-serif');
             setFontSize('16px');
           }
         } catch (error) {
           console.error('Error loading default font settings:', error);
-          setFontFamily('-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif');
+          setFontFamily('"Montserrat", "Nunito Sans", sans-serif');
           setFontSize('16px');
         }
       };
@@ -2465,6 +2465,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
                 allowImages={noteType !== 'lined'}
                 showTable={noteType !== 'lined'}
                 className={cn(
+                  'notes-editor-font',
                   noteType === 'lined' && 'lined-note',
                   noteType === 'sticky' && 'sticky-note-editor',
                   noteType === 'textformat' && 'textformat-note'

@@ -2712,7 +2712,7 @@ export const RichTextEditor = ({
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
           placeholder={t('editor.titlePlaceholder')}
-          className="title-input"
+          className="title-input notes-editor-font"
           autoCapitalize="sentences"
           enterKeyHint="next"
           onKeyDown={(e) => {
@@ -2799,7 +2799,7 @@ export const RichTextEditor = ({
         data-enable-grammarly="false"
         data-placeholder={t('editor.bodyPlaceholder', 'Start writing')}
         className={cn(
-          "rich-text-editor flex-1 min-h-0 p-4 border-0 focus:outline-none overflow-y-auto pb-32 rich-text-editor__scroll origin-top-left",
+          "rich-text-editor notes-editor-font flex-1 min-h-0 p-4 border-0 focus:outline-none overflow-y-auto pb-32 rich-text-editor__scroll origin-top-left",
           // Don't add pt-2 for lined notes - let CSS padding-top handle it
           showTitle && !className?.includes('lined-note') ? "pt-2" : "",
           className

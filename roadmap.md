@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Restyle all Notes cards as quiet white, rounded date-grouped rows with date and optional tags; use the reference's geometric font in cards and note content without changing surrounding controls.
+
 - [x] Separate the To-Do Inbox chip from the search bar visibly and add the feature tutorial to Settings.
 
 - [x] Remove the Notes selection-format strip and dashboard theme/help icons; tighten header and Inbox spacing, shrink the add glyph, and animate task entry.

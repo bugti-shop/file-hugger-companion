@@ -24,7 +24,6 @@ import { prefetchRoute } from '@/utils/routePrefetch';
 
 import { useTranslation } from 'react-i18next';
 import { useNotes } from '@/contexts/NotesContext';
-import { getTextPreviewFromHtml } from '@/utils/contentPreview';
 import { logPerfEvent } from '@/utils/perfLogger';
 import { FeatureGuideButton } from '@/components/tours/FeatureGuideModal';
 import { EmptyStateHint } from '@/components/tours/EmptyStateHint';
@@ -48,28 +47,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-
-const STICKY_COLORS: Record<string, string> = {
-  yellow: 'hsl(var(--sticky-yellow))',
-  blue: 'hsl(var(--sticky-blue))',
-  green: 'hsl(var(--sticky-green))',
-  pink: 'hsl(var(--sticky-pink))',
-  orange: 'hsl(var(--sticky-orange))',
-};
-
-// Vibrant colors for notes display
-const RANDOM_COLORS = [
-  'hsl(330, 100%, 75%)', // Vibrant Pink
-  'hsl(160, 70%, 70%)', // Vibrant Mint
-  'hsl(280, 70%, 75%)', // Vibrant Lavender
-  'hsl(20, 95%, 75%)', // Vibrant Coral
-  'hsl(140, 65%, 70%)', // Vibrant Green
-  'hsl(350, 80%, 75%)', // Vibrant Rose
-  'hsl(45, 90%, 75%)', // Vibrant Peach
-  'hsl(270, 65%, 75%)', // Vibrant Purple
-  'hsl(200, 80%, 70%)', // Vibrant Sky Blue
-  'hsl(60, 90%, 75%)', // Vibrant Yellow
-];
 
 const Notes = () => {
   const navigate = useNavigate();
@@ -505,26 +482,6 @@ const Notes = () => {
     toast.success(t('notes.trashEmptied'));
   };
 
-  const getCardColor = (note: Note) => {
-    if (note.type === 'sticky' && note.color) {
-      return STICKY_COLORS[note.color];
-    }
-    // Better-distributed hash so colors don't cluster on one shade (e.g. green)
-    // after the UUID migration. Mix createdAt + id with an FNV-1a style hash.
-    const createdMs =
-      note.createdAt instanceof Date
-        ? note.createdAt.getTime()
-        : new Date(note.createdAt as unknown as string).getTime() || 0;
-    const seed = `${createdMs}:${note.id}`;
-    let h = 2166136261;
-    for (let i = 0; i < seed.length; i++) {
-      h ^= seed.charCodeAt(i);
-      h = Math.imul(h, 16777619);
-    }
-    const index = Math.abs(h) % RANDOM_COLORS.length;
-    return RANDOM_COLORS[index];
-  };
-
   return (
     <div className="min-h-screen min-h-screen-dynamic bg-background pb-14 md:pb-0">
       <div className="flex-1 min-w-0 flex flex-col">
@@ -742,7 +699,6 @@ const Notes = () => {
             notes={sortedNotes}
             getRowKey={(row) => row.map((note) => `${note.id}:${note.updatedAt instanceof Date ? note.updatedAt.getTime() : new Date(note.updatedAt).getTime()}`).join('|')}
             renderCard={(note) => {
-              const previewText = note.metaDescription || (notesMetaById.get(note.id)?.contentPreview ?? getTextPreviewFromHtml(note.content, 180));
               return (
               <div
                 draggable={!note.isArchived && !note.isDeleted}
@@ -754,17 +710,12 @@ const Notes = () => {
                   if (!next || !e.currentTarget.contains(next)) (e.currentTarget as HTMLElement).blur();
                 }}
                 className={cn(
-                  "cursor-pointer transition-colors relative group rounded-lg min-h-[150px] overflow-hidden border border-border/50 hover:shadow-md",
+                  "notes-card cursor-pointer transition-colors relative group h-full overflow-hidden text-card-foreground",
                   (note.isArchived || note.isDeleted) && "opacity-75"
                 )}
-                style={{
-                  backgroundColor: getCardColor(note),
-                  touchAction: 'manipulation',
-                  WebkitTapHighlightColor: 'transparent',
-                }}
                 onClick={() => !note.isDeleted && handleEditNote(note)}
               >
-                <div className="p-4 h-full flex flex-col">
+                <div className="py-3 h-full flex flex-col">
                   <div className="absolute top-2 right-2 flex gap-1">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -875,37 +826,23 @@ const Notes = () => {
                       </Button>
                     )}
                   </div>
-                  {note.title && (
-                    <h2 className="font-semibold text-base mb-2 text-gray-900 pr-10 line-clamp-1">
-                      {sanitizeDisplayName(note.title)}
-                    </h2>
-                  )}
-                  {previewText && (
-                    <p className="text-sm text-gray-700 mb-3 line-clamp-2">
-                      {previewText}
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between gap-2 text-xs text-gray-600 mt-auto">
+                   <h2 className="font-semibold text-base text-card-foreground pr-10 line-clamp-1">
+                     {sanitizeDisplayName(note.title || t('notes.untitled'))}
+                   </h2>
+                   <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground mt-2">
                     <span>
                       {new Date(note.updatedAt).toLocaleDateString('en-US', {
                         month: 'short',
-                        day: 'numeric'
-                      })} • {new Date(note.updatedAt).toLocaleTimeString('en-US', {
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        hour12: true
+                         day: 'numeric', year: 'numeric'
                       })}
                     </span>
-                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/80 text-xs font-medium text-gray-800">
-                      <FileText className="h-3 w-3" />
-                      <span>Regular</span>
-                    </div>
-                    {note.isDeleted && note.deletedAt && (
+                     {note.isDeleted && note.deletedAt && (
                       <div className="inline-block px-2 py-1 rounded-full bg-destructive/20 text-xs text-destructive font-medium">
                         {t('notes.daysRemaining', { days: getDaysRemaining(note.deletedAt) })}
                       </div>
                     )}
                   </div>
+                   {note.tagIds?.length ? <span className="mt-1 text-xs text-muted-foreground truncate">{allTags.filter(tag => note.tagIds?.includes(tag.id)).map(tag => `#${tag.name}`).join(' · ')}</span> : null}
                 </div>
               </div>
             )}}
