@@ -44,8 +44,10 @@ export function NotesVirtualGrid({
   const rowSize = (idx: number) => rows[idx]?.kind === 'heading'
     // The very first heading (e.g. "Today") sits right under the folder chips,
     // so keep it compact instead of reserving a full 56px heading slot.
-    ? (idx === 0 ? 38 : 56)
-    : resolvedRowHeight + (rows[idx]?.kind === 'note' && rows[idx].note.tagIds?.length ? 14 : 0);
+    ? (idx === 0 ? 30 : 56)
+    // Every note strip gets the identical height (tags included) so no card
+    // looks taller or shorter than its neighbours.
+    : resolvedRowHeight + 14;
   const resolvedOverscan = getAdaptiveOverscan(virtualizationSettings.notes.overscan, notes.length, 'notes');
   const resolvedWindowing = useWindowing ?? virtualizationSettings.notes.windowing;
 
