@@ -807,7 +807,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
 
   const handleSave = useCallback(async () => {
     triggerTripleHeavyHaptic();
-    if (!isReadOnlyWebClip && (!note || hasTextChanges() || selectedFolderId !== note.folderId || noteTagIds.join(',') !== (note.tagIds || []).join(',') || reminderEnabled !== !!note.reminderEnabled || color !== (note.color || 'yellow') || customColor !== note.customColor || metaDescription !== (note.metaDescription || '') || location !== (note.location || ''))) {
+    if (!isReadOnlyWebClip) {
       await commitNote({ full: true });
     }
   }, [commitNote, isReadOnlyWebClip]);
@@ -821,7 +821,7 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     // Mark as closing to prevent re-entry
     if (!isOpenRef.current) return;
     
-    if (!isReadOnlyWebClip) {
+    if (!isReadOnlyWebClip && (!note || hasTextChanges() || selectedFolderId !== note.folderId || noteTagIds.join(',') !== (note.tagIds || []).join(',') || reminderEnabled !== !!note.reminderEnabled || color !== (note.color || 'yellow') || customColor !== note.customColor || metaDescription !== (note.metaDescription || '') || location !== (note.location || ''))) {
       await commitNote({ full: true });
     }
     // Clear crash recovery since we saved successfully
