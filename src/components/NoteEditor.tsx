@@ -60,7 +60,7 @@ import 'katex/dist/katex.min.css';
 import { ErrorBoundary } from './ErrorBoundary';
 import { PdfExportSuccessDialog } from './PdfExportSuccessDialog';
 import { PdfExportOptionsSheet, PdfExportSettings } from './PdfExportOptionsSheet';
-import { ArrowLeft, ChevronLeft, Folder as FolderIcon, Plus, CalendarIcon, History, FileDown, Link2, ChevronDown, FileText, BookOpen, BarChart3, MoreVertical, MoreHorizontal, Mic, Share2, Share, Search, Image, Table, Minus, SeparatorHorizontal, MessageSquare, FileSymlink, FileType, Bell, Clock, Repeat, Trash2, Mail, Phone, LinkIcon, Copy, Replace, Palette, Hash, Crown, ListFilter, CaseLower, Tag as TagIcon, Camera, Sparkles, Globe, Keyboard, MapPin, Undo2 } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, Folder as FolderIcon, Plus, CalendarIcon, History, FileDown, Link2, ChevronDown, FileText, BookOpen, BarChart3, MoreVertical, MoreHorizontal, Mic, Share2, Share, Search, Image, Table, Minus, SeparatorHorizontal, MessageSquare, FileSymlink, FileType, Bell, Clock, Repeat, Trash2, Mail, Phone, LinkIcon, Copy, Replace, Palette, Hash, Crown, ListFilter, CaseLower, Tag as TagIcon, Camera, Sparkles, Globe, Keyboard, MapPin, Undo2, SquarePen } from 'lucide-react';
 import { exportNoteToPdf, getPageBreakCount, PdfExportResult } from '@/utils/exportToPdf';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -234,7 +234,9 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
   const [isVersionHistoryOpen, setIsVersionHistoryOpen] = useState(false);
   const [isNoteLinkingOpen, setIsNoteLinkingOpen] = useState(false);
   const [isBacklinksOpen, setIsBacklinksOpen] = useState(true);
-  const [isReadingMode, setIsReadingMode] = useState(false);
+  const [isReadingMode, setIsReadingMode] = useState(true);
+  const readingContentRef = useRef<HTMLDivElement>(null);
+  const pendingEditorFocusRef = useRef<'body' | 'title' | number | 'new-checklist' | null>(null);
   const [showStats, setShowStats] = useState(false);
   const [isFindReplaceOpen, setIsFindReplaceOpen] = useState(false);
   const [isShortcutsSheetOpen, setIsShortcutsSheetOpen] = useState(false);
@@ -452,6 +454,68 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
     [visibleReadOnlyContent, isReadOnlyWebClip, isReadingMode],
   );
 
+  const enableEditing = useCallback((focus: 'body' | 'title' | number | 'new-checklist' = 'body') => {
+    pendingEditorFocusRef.current = focus;
+    setIsReadingMode(false);
+  }, []);
+
+  useEffect(() => {
+    if (isReadingMode || pendingEditorFocusRef.current === null || !isOpen) return;
+    const focus = pendingEditorFocusRef.current;
+    pendingEditorFocusRef.current = null;
+    const frame = requestAnimationFrame(() => {
+      const editor = editorRef.current;
+      if (!editor) return;
+      if (focus === 'title') {
+        document.querySelector<HTMLInputElement>('.notes-editor-screen .title-input')?.focus();
+        return;
+      }
+      editor.focus();
+      if (focus === 'new-checklist') {
+        const range = document.createRange();
+        range.selectNodeContents(editor);
+        range.collapse(false);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+        document.execCommand('insertHTML', false, '<ul class="checklist"><li class="checklist-item"><input type="checkbox" class="checklist-checkbox" /><span class="checklist-text">&nbsp;</span></li></ul>');
+        setContent(editor.innerHTML);
+        editor.querySelector<HTMLElement>('.checklist-item:last-child .checklist-text')?.focus();
+      } else if (typeof focus === 'number') {
+        const text = editor.querySelectorAll<HTMLElement>('.checklist-item .checklist-text')[focus];
+        if (text) {
+          const range = document.createRange();
+          range.selectNodeContents(text);
+          range.collapse(false);
+          const selection = window.getSelection();
+          selection?.removeAllRanges();
+          selection?.addRange(range);
+        }
+      }
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [isReadingMode, isOpen, setContent]);
+
+  const handleReadingContentClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const checkbox = target.closest<HTMLInputElement>('input.checklist-checkbox');
+    if (checkbox) {
+      const item = checkbox.closest('.checklist-item');
+      item?.classList.toggle('checked', checkbox.checked);
+      if (checkbox.checked) checkbox.setAttribute('checked', '');
+      else checkbox.removeAttribute('checked');
+      if (readingContentRef.current) setContent(readingContentRef.current.innerHTML);
+      return;
+    }
+    const taskTitle = target.closest('.checklist-item .checklist-text');
+    if (taskTitle) {
+      const items = readingContentRef.current?.querySelectorAll('.checklist-item .checklist-text');
+      const index = items ? Array.from(items).indexOf(taskTitle) : -1;
+      enableEditing(index >= 0 ? index : 'body');
+    }
+  }, [enableEditing, setContent]);
+
   useEffect(() => {
     if (!isReadOnlyWebClip || !readOnlySnapshotHtml || !readOnlyContentRef.current) return;
     return hydrateSnapshotFrames(readOnlyContentRef.current, readOnlySnapshotHtml);
@@ -519,7 +583,8 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
         saveNoteToDBSingle({ ...note, content: fastOfflineContent })
           .catch((e) => console.warn('[NoteEditor] could not upgrade web clip for fast offline open', e));
       }
-      setIsReadingMode(!!(note.fullPageSnapshot || WEB_CLIP_RE.test(note.content || '')));
+      setIsReadingMode(true);
+      pendingEditorFocusRef.current = null;
       setColor(note.color || 'yellow');
       setCustomColor(note.customColor);
       setImages(note.images || []);
@@ -603,6 +668,8 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
       loadDefaultFontSettings();
       
       setNoteType(defaultType);
+      setIsReadingMode(true);
+      pendingEditorFocusRef.current = null;
       setTitle('');
       setContent('');
       setColor('yellow');
@@ -1529,13 +1596,9 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
                   <BarChart3 className="h-4 w-4 mr-2" />
                   {showStats ? t('editor.hideStats') : t('editor.showStats')}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  if (!isReadingMode && !requireProFeature('reading_mode')) return;
-                  setIsReadingMode(!isReadingMode);
-                }}>
+                <DropdownMenuItem onClick={() => isReadingMode ? enableEditing() : setIsReadingMode(true)}>
                   <BookOpen className="h-4 w-4 mr-2" />
                   {isReadingMode ? t('editor.exitReadingMode') : t('editor.enterReadingMode')}
-                  {!isPro && !isReadingMode && <Crown className="h-3 w-3 ml-auto text-amber-500" />}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={toggleToc}>
                   <ListFilter className="h-4 w-4 mr-2" />
@@ -2374,28 +2437,30 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
                 />
               </div>
             </div>
-          ) : isReadingMode ? (
+          ) : isReadingMode && ['regular', 'lined', 'sticky', 'textformat'].includes(noteType) ? (
             <div 
-              className="h-full overflow-y-auto overscroll-contain"
+               className="h-full overflow-y-auto overscroll-contain notes-reading-scroll"
               style={{ 
                 WebkitOverflowScrolling: 'touch',
                 minHeight: 0,
               }}
             >
-              <div className="p-4 pb-20">
-                {title && (
+               <div className="px-4 pt-1 pb-24">
+                 {title ? (
                   <h1 
-                    className="text-2xl font-bold mb-4"
+                     className="text-2xl font-bold mb-2 cursor-text notes-editor-font"
                     style={{ fontFamily }}
+                     onClick={() => enableEditing('title')}
                   >
                     {title}
                   </h1>
-                )}
+                 ) : <Button variant="ghost" className="px-0 text-muted-foreground" onClick={() => enableEditing('title')}>{t('editor.titlePlaceholder', 'Title')}</Button>}
                 <div 
-                  className="prose prose-sm max-w-none dark:prose-invert"
+                   className="prose prose-sm max-w-none dark:prose-invert notes-reading-content notes-editor-font"
                   style={{ fontFamily, fontSize, fontWeight, lineHeight }}
                   dangerouslySetInnerHTML={{ __html: displayContentHtml }}
-                  ref={(el) => { if (el) { renderMathIn(el); hydrateSyncedIn(el, { editable: false }); hydrateWebClipsIn(el); } }}
+                   onClick={handleReadingContentClick}
+                   ref={(el) => { readingContentRef.current = el; if (el) { renderMathIn(el); hydrateSyncedIn(el, { editable: false }); hydrateWebClipsIn(el); } }}
                 />
               </div>
             </div>
@@ -2475,6 +2540,22 @@ export const NoteEditor = ({ note, isOpen, onClose, onSave, defaultType = 'regul
             </div>
           )}
         </ErrorBoundary>
+
+        {isReadingMode && !isReadOnlyWebClip && ['regular', 'lined', 'sticky', 'textformat'].includes(noteType) && (
+          <div className="notes-reading-toolbar" role="toolbar" aria-label="Note actions">
+            <div className="notes-reading-tools-left">
+              <Button variant="ghost" size="icon" aria-label="Add checklist" title="Add checklist" onClick={() => enableEditing('new-checklist')}>
+                <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="6" cy="7" r="3"/><path d="m4.5 7 1 1 2-2M13 7h12"/><circle cx="6" cy="20" r="3"/><path d="M13 20h12"/></svg>
+              </Button>
+              <Button variant="ghost" size="icon" aria-label="Edit note" title="Edit note" onClick={() => enableEditing()}>
+                <svg viewBox="0 0 28 28" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="14" cy="14" r="11"/><path d="m10 18 1-4 6.5-6.5 3 3L14 17l-4 1ZM16 9l3 3"/></svg>
+              </Button>
+            </div>
+            <Button variant="ghost" size="icon" className="notes-reading-edit-right" aria-label="Start editing" title="Start editing" onClick={() => enableEditing()}>
+              <SquarePen strokeWidth={1.8} />
+            </Button>
+          </div>
+        )}
 
         {/* Floating AI mini-toolbar for voice/code/sketch notes (Pro). The
             rich-editor branch above renders its own toolbar inside the editor
