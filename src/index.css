@@ -1416,3 +1416,24 @@ iframe.webclip-iframe {
 /* Hide scrollbars for horizontal mockup carousels */
 .no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* Coordinated task quick-add: the add control lifts while the composer rises. */
+@keyframes task-add-lift {
+  from { translate: 0 0; opacity: 1; }
+  to { translate: 0 -40px; opacity: 0; }
+}
+@keyframes task-sheet-rise {
+  from { translate: 0 48px; opacity: 0; }
+  to { translate: 0 0; opacity: 1; }
+}
+@keyframes task-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.task-add-button-opening { animation: task-add-lift 200ms ease-out both; }
+.task-sheet-enter { animation: task-sheet-rise 240ms cubic-bezier(.2,.8,.2,1) both; }
+.task-sheet-backdrop { animation: task-backdrop-in 220ms ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .task-add-button-opening, .task-sheet-enter, .task-sheet-backdrop { animation: none; }
+  .task-add-button-opening { opacity: 0; }
+}

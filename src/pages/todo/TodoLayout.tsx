@@ -3,13 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { FileText, Search, Sun, Moon, X, Crown } from 'lucide-react';
+import { FileText, Search, X, Crown } from 'lucide-react';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { FeatureGuideButton } from '@/components/tours/FeatureGuideModal';
-import { useSubscription } from '@/contexts/SubscriptionContext';
 import { TodoBottomNavigation } from '@/components/TodoBottomNavigation';
 
-import { useDarkMode } from '@/hooks/useDarkMode';
 import { AppLogo } from '@/components/AppLogo';
 import { triggerHaptic } from '@/utils/haptics';
 import { prefetchRoute } from '@/utils/routePrefetch';
@@ -25,8 +23,6 @@ interface TodoLayoutProps {
 export const TodoLayout = ({ children, title, searchValue, onSearchChange }: TodoLayoutProps) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const { isDarkMode, toggleDarkMode, currentTheme } = useDarkMode();
-  const { openPaywall, isPro, requireFeature } = useSubscription();
 
 
   return (
@@ -48,27 +44,9 @@ export const TodoLayout = ({ children, title, searchValue, onSearchChange }: Tod
               </div>
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold truncate md:hidden">{title}</h1>
             </div>
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            <div className="flex items-center gap-0.5 flex-shrink-0">
               <div id="todo-header-options" />
-              
-              <Button
-                size="icon"
-                variant="ghost"
-                onClick={() => {
-                  if (!isPro && currentTheme !== 'light' && currentTheme !== 'dark') {
-                    requireFeature('dark_mode');
-                    return;
-                  }
-                  toggleDarkMode(isPro);
-                }}
-                className="h-8 w-8 sm:h-9 sm:w-9 hover:bg-transparent active:bg-transparent"
-                title={t('common.toggleDarkMode')}
-                data-tour="todo-dark-mode"
-              >
-                {isDarkMode ? <Sun className="h-4 w-4 sm:h-5 sm:w-5" /> : <Moon className="h-4 w-4 sm:h-5 sm:w-5" />}
-              </Button>
-              
-              <FeatureGuideButton />
+              <FeatureGuideButton className="hidden" />
 
               <Button
                 size="icon"
