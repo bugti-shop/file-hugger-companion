@@ -948,7 +948,7 @@ export const TaskInputSheet = ({ isOpen, onClose: rawOnClose, onAddTask, folders
   return (
     <>
       <div
-        className="fixed inset-0 bg-background/20 lg:bg-background/40 z-[60] task-sheet-backdrop"
+        className="fixed inset-0 bg-foreground/20 lg:bg-foreground/40 z-[60] task-sheet-backdrop"
         onClick={preventBackdropClose ? undefined : onClose}
       />
 

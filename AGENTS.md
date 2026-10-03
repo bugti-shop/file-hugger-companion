@@ -1,6 +1,6 @@
 # Architecture rules
 
-- Reuse the shared floating add control and header-action portal on Notes/Tasks/Notebooks so web and native WebViews retain identical layouts and safe-area spacing.
+- Reuse the shared floating add control and header-action portal on Notes/Tasks/Notebooks so web and native WebViews retain identical layouts and safe-area spacing; task composer motion belongs to the shared add control and sheet styles so both task views transition alike.
 
 - Keep Android launcher layers opaque white and the original logo within the adaptive mask to avoid green backgrounds and clipping.
 - Both Notes and To-Do bottom tabs navigate on pointer-down (keyboard via click) with a pending-path guard, so both dashboards feel equally instant.
