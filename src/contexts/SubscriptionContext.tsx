@@ -504,32 +504,19 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     let cancelled = false;
     const refresh = async () => {
       const { data: session } = await supabase.auth.getSession();
-      if (!session.session) {
-        if (!cancelled) {
-          setLocalProAccess(false);
-          setIsAdminBypass(false);
-        }
-        return;
-      }
+      if (!session.session) return;
       const { data, error } = await supabase.functions.invoke('premium-web-unlock', { body: { status: true } });
-      if (!cancelled && !error) {
-        const active = data?.active === true;
-        setLocalProAccess(active);
-        setIsAdminBypass(active);
-        if (active) {
-          setShowPaywall(false);
-          setPaywallFeature(null);
-        }
+      if (!cancelled && !error && data?.active === true) {
+        setLocalProAccess(true);
+        setIsAdminBypass(true);
+        setShowPaywall(false);
+        setPaywallFeature(null);
       }
     };
     void refresh();
     window.addEventListener('webPremiumEntitlementGranted', refresh);
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') setTimeout(() => { if (!cancelled) void refresh(); }, 0);
-      if (event === 'SIGNED_OUT') {
-        setLocalProAccess(false);
-        setIsAdminBypass(false);
-      }
     });
     return () => { cancelled = true; window.removeEventListener('webPremiumEntitlementGranted', refresh); listener.subscription.unsubscribe(); };
   }, []);
