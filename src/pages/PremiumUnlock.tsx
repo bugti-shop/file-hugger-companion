@@ -16,13 +16,27 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+// Keep the token only in memory during app-shell remounts (e.g. onboarding
+// hydration); remove it from the address bar before any request is made.
+const linkToken = (() => {
+  const url = new URL(window.location.href);
+  if (url.pathname !== '/premium-unlock') return null;
+  const token = url.searchParams.get('token');
+  if (token) {
+    url.searchParams.delete('token');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
+  }
+  return token;
+})();
+let linkRedemption: Promise<boolean> | null = null;
+
 const PremiumUnlock = () => {
   const navigate = useNavigate();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
-  const [linkMode, setLinkMode] = useState(false);
+  const [linkMode] = useState(!!linkToken);
 
   const redeem = async (body: { code?: string; token?: string }) => {
     setBusy(true);
@@ -44,14 +58,26 @@ const PremiumUnlock = () => {
   };
 
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const token = url.searchParams.get('token');
-    if (!token) return;
-    setLinkMode(true);
-    url.searchParams.delete('token');
-    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
-    void redeem({ token });
-    // Redeem just once per navigation, even in development StrictMode.
+    if (!linkToken) return;
+    let active = true;
+    if (!linkRedemption) {
+      linkRedemption = supabase.functions.invoke('premium-web-unlock', { body: { token: linkToken } })
+        .then(({ data, error }) => !error && data?.ok === true)
+        .catch(() => false);
+    }
+    void linkRedemption.then((success) => {
+      if (!active) return;
+      setBusy(false);
+      if (success) {
+        window.dispatchEvent(new Event('webPremiumEntitlementGranted'));
+        setOk(true);
+        setTimeout(() => navigate('/', { replace: true }), 800);
+      } else {
+        setError('Link invalid hai ya sign-in zaroori hai.');
+      }
+    });
+    return () => { active = false; };
+    // Redeem just once per navigation, including app-shell remounts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -68,7 +94,7 @@ const PremiumUnlock = () => {
         {ok ? (
           <p className="text-sm text-muted-foreground">Unlocked. Redirecting…</p>
         ) : linkMode ? (
-          <p className="text-sm text-muted-foreground">{busy ? 'Checking your link…' : (error || 'Link check complete.')}</p>
+          <p className="text-sm text-muted-foreground">{busy || (!error && !ok) ? 'Checking your link…' : (error || 'Link check complete.')}</p>
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
