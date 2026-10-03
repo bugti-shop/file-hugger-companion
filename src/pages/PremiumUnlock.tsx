@@ -9,7 +9,7 @@
  * then see Pro via the normal entitlement path — there is no separate
  * client-supplied bypass anymore.
  */
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { setSetting } from '@/utils/settingsStorage';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,7 +18,6 @@ import { Input } from '@/components/ui/input';
 
 const PremiumUnlock = () => {
   const navigate = useNavigate();
-  const linkTokenRef = useRef<string | null>(null);
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,10 +48,9 @@ const PremiumUnlock = () => {
     const token = url.searchParams.get('token');
     if (!token) return;
     setLinkMode(true);
-    linkTokenRef.current = token;
     url.searchParams.delete('token');
     window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
-    void redeem({ token }).finally(() => { linkTokenRef.current = null; });
+    void redeem({ token });
     // Redeem just once per navigation, even in development StrictMode.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

@@ -498,31 +498,32 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [checkLocalTrial]);
 
-  // A private link changes Pro state only after the backend confirms an entitlement
-  // for the current signed-in user; nothing in local storage can activate this path.
-  useEffect(() => {
-    const onGranted = () => {
-      setLocalProAccess(true);
-      setIsAdminBypass(true);
-      setShowPaywall(false);
-      setPaywallFeature(null);
-    };
-    window.addEventListener('webPremiumEntitlementGranted', onGranted);
-    return () => window.removeEventListener('webPremiumEntitlementGranted', onGranted);
-  }, []);
-
+  // Refresh private-link access from a verified backend entitlement, never
+  // from local storage or a client event alone.
   useEffect(() => {
     let cancelled = false;
     const refresh = async () => {
       const { data: session } = await supabase.auth.getSession();
-      if (!session.session) return;
+      if (!session.session) {
+        if (!cancelled) {
+          setLocalProAccess(false);
+          setIsAdminBypass(false);
+        }
+        return;
+      }
       const { data, error } = await supabase.functions.invoke('premium-web-unlock', { body: { status: true } });
-      if (!cancelled && !error && data?.active === true) {
-        setLocalProAccess(true);
-        setIsAdminBypass(true);
+      if (!cancelled && !error) {
+        const active = data?.active === true;
+        setLocalProAccess(active);
+        setIsAdminBypass(active);
+        if (active) {
+          setShowPaywall(false);
+          setPaywallFeature(null);
+        }
       }
     };
     void refresh();
+    window.addEventListener('webPremiumEntitlementGranted', refresh);
     const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN') setTimeout(() => { if (!cancelled) void refresh(); }, 0);
       if (event === 'SIGNED_OUT') {
@@ -530,7 +531,7 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
         setIsAdminBypass(false);
       }
     });
-    return () => { cancelled = true; listener.subscription.unsubscribe(); };
+    return () => { cancelled = true; window.removeEventListener('webPremiumEntitlementGranted', refresh); listener.subscription.unsubscribe(); };
   }, []);
 
   // On native: clear local bypass if RevenueCat confirms no active entitlement
