@@ -498,6 +498,29 @@ export const SubscriptionProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [checkLocalTrial]);
 
+  // Refresh private-link access from a verified backend entitlement, never
+  // from local storage or a client event alone.
+  useEffect(() => {
+    let cancelled = false;
+    const refresh = async () => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) return;
+      const { data, error } = await supabase.functions.invoke('premium-web-unlock', { body: { status: true } });
+      if (!cancelled && !error && data?.active === true) {
+        setLocalProAccess(true);
+        setIsAdminBypass(true);
+        setShowPaywall(false);
+        setPaywallFeature(null);
+      }
+    };
+    void refresh();
+    window.addEventListener('webPremiumEntitlementGranted', refresh);
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') setTimeout(() => { if (!cancelled) void refresh(); }, 0);
+    });
+    return () => { cancelled = true; window.removeEventListener('webPremiumEntitlementGranted', refresh); listener.subscription.unsubscribe(); };
+  }, []);
+
   // On native: clear local bypass if RevenueCat confirms no active entitlement
   // BUT skip if it's an admin bypass (access code)
   useEffect(() => {

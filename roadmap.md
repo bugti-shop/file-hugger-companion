@@ -1,5 +1,7 @@
 # Roadmap
 
+- [x] Compact and lower Notes reading capsules, enlarge their icons and slightly enlarge checklist text; add signed-in backend-verified private Pro link redemption.
+
 - [x] Match reference checklist alignment, circle/text density and bottom icon size; fix completion toggles in reading and editing modes.
 
 - [x] Open every rich-text note in reading mode; add the reference bottom checklist/edit controls, editable checklist titles, red checked circles without strike-through, and restore the existing toolbar on edit.
