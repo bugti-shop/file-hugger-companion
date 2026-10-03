@@ -40,8 +40,8 @@ export const TodoLayout = ({ children, title, searchValue, onSearchChange }: Tod
           paddingTop: 'var(--safe-top, 0px)', paddingLeft: 'var(--safe-left, 0px)', paddingRight: 'var(--safe-right, 0px)',
         }}
       >
-        <div className="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1400px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-3 pb-1.5">
-          <div className="flex items-center justify-between mb-3 sm:mb-4 gap-2">
+        <div className="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1400px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-1.5 pb-1">
+          <div className="flex items-center justify-between mb-1.5 sm:mb-2 gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
               <div className="md:hidden flex items-center gap-2">
                 <AppLogo />
@@ -49,6 +49,7 @@ export const TodoLayout = ({ children, title, searchValue, onSearchChange }: Tod
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold truncate md:hidden">{title}</h1>
             </div>
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <div id="todo-header-options" />
               
               <Button
                 size="icon"

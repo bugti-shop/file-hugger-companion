@@ -7,7 +7,7 @@ import { Plus, FolderIcon, ChevronRight, ChevronDown, MoreVertical, Copy, Layout
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { FloatingAddButton } from '@/components/FloatingAddButton';
-import { createPortal } from 'react-dom';
+import { HeaderActionsPortal } from '@/components/HeaderActionsPortal';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -861,7 +861,7 @@ const Today = () => {
                   <Button variant="default" size="sm" onClick={() => { setIsSelectionMode(false); setSelectedTaskIds(new Set()); }}>{t('menu.cancel')}</Button>
                 </div>
               )}
-              {optionsTarget && createPortal(
+              <HeaderActionsPortal targetId="todo-header-options">
                 <div className="flex items-center">
                 <TodoOptionsDropdown
                   dropdownView={dropdownView}
@@ -929,8 +929,8 @@ const Today = () => {
                     setCollapsedViewSections(allSectionIds);
                   }}
                 />
-                </div>, optionsTarget
-              )}
+                </div>
+              </HeaderActionsPortal>
             <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
 
               <DragDropContext onDragEnd={(result: DropResult) => {

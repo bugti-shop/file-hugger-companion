@@ -8,6 +8,7 @@ import { exportNotesCsv } from '@/utils/csvExport';
 import { cn } from '@/lib/utils';
 import { Folder, Note, NoteType } from '@/types/note';
 import { Button } from '@/components/ui/button';
+import { HeaderActionsPortal } from '@/components/HeaderActionsPortal';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -225,11 +226,7 @@ export const FolderManager = ({
 
   return (
     <div className="mb-2 xs:mb-3" data-tour="folders-section">
-      <div className="flex items-center justify-between mb-1.5 xs:mb-2">
-        <h2 className="text-base xs:text-lg font-semibold flex items-center gap-1.5 xs:gap-2">
-          <FolderIcon className="w-4 h-4 xs:w-5 xs:h-5" />
-          {t('notesMenu.folders')}
-        </h2>
+      <HeaderActionsPortal targetId="notes-header-options">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="ghost" className="h-8 w-8 p-0">
@@ -417,7 +414,7 @@ export const FolderManager = ({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-      </div>
+      </HeaderActionsPortal>
 
       <ImportDataSheet isOpen={isImportOpen} onClose={() => setIsImportOpen(false)} />
 
