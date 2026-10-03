@@ -4,7 +4,7 @@
  * SECURITY: The unlock code is NEVER shipped in the client bundle. The admin
  * must type it into the input below, or arrive via a private URL token.
  * The server (premium-web-unlock edge function) checks its encrypted secrets. If it matches
- * AND the caller is signed in, a real `web_premium_unlock` entitlement is
+ * AND the caller has a verified identity (including a guest identity), a real `web_premium_unlock` entitlement is
  * granted server-side. All other clients (AI extract, web clipper, etc.)
  * then see Pro via the normal entitlement path — there is no separate
  * client-supplied bypass anymore.
@@ -30,6 +30,17 @@ const linkToken = (() => {
 })();
 let linkRedemption: Promise<boolean> | null = null;
 
+// Private links work without a login screen: create a scoped anonymous Supabase
+// identity only when needed, so the server can bind the entitlement to a real
+// verified JWT rather than trusting a browser flag or a user-supplied ID.
+const ensureUnlockIdentity = async () => {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  if (error) throw error;
+  if (session) return;
+  const { error: signInError } = await supabase.auth.signInAnonymously();
+  if (signInError) throw signInError;
+};
+
 const PremiumUnlock = () => {
   const navigate = useNavigate();
   const [code, setCode] = useState('');
@@ -42,6 +53,7 @@ const PremiumUnlock = () => {
     setBusy(true);
     setError(null);
     try {
+      await ensureUnlockIdentity();
       const { data, error: fnErr } = await supabase.functions.invoke('premium-web-unlock', { body });
       if (fnErr) throw fnErr;
       if (!data || (data as { ok?: boolean }).ok !== true) throw new Error('Invalid unlock');
@@ -51,7 +63,7 @@ const PremiumUnlock = () => {
       setOk(true);
       setTimeout(() => navigate('/', { replace: true }), 800);
     } catch {
-      setError('Link invalid hai ya sign-in zaroori hai.');
+      setError('Link ya code invalid hai. Dobara try karein.');
     } finally {
       setBusy(false);
     }
@@ -61,7 +73,8 @@ const PremiumUnlock = () => {
     if (!linkToken) return;
     let active = true;
     if (!linkRedemption) {
-      linkRedemption = supabase.functions.invoke('premium-web-unlock', { body: { token: linkToken } })
+      linkRedemption = ensureUnlockIdentity()
+        .then(() => supabase.functions.invoke('premium-web-unlock', { body: { token: linkToken } }))
         .then(({ data, error }) => !error && data?.ok === true)
         .catch(() => false);
     }
@@ -73,7 +86,7 @@ const PremiumUnlock = () => {
         setOk(true);
         setTimeout(() => navigate('/', { replace: true }), 800);
       } else {
-        setError('Link invalid hai ya sign-in zaroori hai.');
+        setError('Link invalid hai ya guest access available nahi hai.');
       }
     });
     return () => { active = false; };
@@ -98,7 +111,7 @@ const PremiumUnlock = () => {
         ) : (
           <>
             <p className="text-sm text-muted-foreground">
-              Enter your admin unlock code. You must be signed in.
+              Enter your admin unlock code. No sign-in needed.
             </p>
             <Input
               type="password"
