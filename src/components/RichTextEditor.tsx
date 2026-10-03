@@ -2801,10 +2801,9 @@ export const RichTextEditor = ({
         )}
         style={{
           paddingBottom: isAndroidNativeEditor ? '8rem' : 'calc(8rem + var(--keyboard-inset, 0px))',
-          fontFamily: (notesSettings.normalText.fontFamily !== 'System Default' && notesSettings.normalText.fontFamily !== 'Montserrat')
-            ? notesSettings.normalText.fontFamily
-            : fontFamily.includes('Montserrat') ? 'var(--notes-font)' : fontFamily,
-          fontSize: notesSettings.normalText.fontSize ? `${notesSettings.normalText.fontSize}px` : fontSize,
+          // Saved note typography wins over global defaults, including after an app update.
+          fontFamily: fontFamily === 'System Default' || fontFamily.includes('Montserrat') ? 'var(--notes-font)' : fontFamily,
+          fontSize,
           color: notesSettings.normalText.fontColor && notesSettings.normalText.fontColor !== '#000000' ? notesSettings.normalText.fontColor : undefined,
           fontWeight: notesSettings.normalText.isBold ? '700' : fontWeight,
           letterSpacing,

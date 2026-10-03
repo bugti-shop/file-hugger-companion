@@ -91,7 +91,7 @@
   left: calc(var(--safe-left, 0px) + 18px);
   right: calc(var(--safe-right, 0px) + 18px);
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   pointer-events: none;
 }
@@ -107,19 +107,22 @@
   pointer-events: auto;
 }
 .notes-reading-capsule > button {
-  width: 40px;
-  height: 32px;
+  width: 44px;
+  height: 36px;
   border-radius: 999px;
   color: inherit;
   padding: 0;
 }
 .notes-reading-toolbar button:hover { background: hsl(var(--note-reader-control-ink) / 0.12); }
-.notes-reading-toolbar svg { width: 23px; height: 23px; }
+.notes-reading-toolbar svg { width: 27px; height: 27px; }
+.notes-reading-title { font-size: 1.625rem; line-height: 1.25; letter-spacing: 0; }
+.notes-editor-screen .notes-reading-content [style*="Montserrat"],
+.notes-editor-screen .rich-text-editor [style*="Montserrat"] { font-family: var(--notes-font) !important; }
 .notes-editor-screen .notes-reading-content ul.checklist,
 .notes-editor-screen .rich-text-editor ul.checklist { list-style: none; padding-left: 0; margin: 0.5rem 0; }
 .notes-editor-screen .notes-reading-content .checklist-item,
-.notes-editor-screen .rich-text-editor .checklist-item { display: flex; align-items: flex-start; gap: 9px; padding: 3px 0; min-height: 28px; font-size: 0.875em; line-height: 1.5; }
-.notes-editor-screen .notes-reading-content .checklist-item { font-size: 0.925em; }
+.notes-editor-screen .rich-text-editor .checklist-item { display: flex; align-items: flex-start; gap: 9px; padding: 3px 0; min-height: 28px; font-size: inherit; line-height: 1.5; }
+.notes-editor-screen .notes-reading-content .checklist-item { display: flex; align-items: flex-start; gap: 9px; padding: 3px 0; min-height: 28px; font-size: inherit; line-height: 1.5; }
 .notes-editor-screen .checklist-item .checklist-checkbox {
   appearance: none;
   width: 20px;
@@ -145,6 +148,8 @@
   transform: translateY(-2px) rotate(45deg);
 }
 .notes-editor-screen .checklist-item .checklist-text { flex: 1; min-width: 0; padding-top: 3px; text-decoration: none; opacity: 1; overflow-wrap: break-word; }
+.notes-editor-screen .checklist-item .checklist-text,
+.notes-editor-screen .checklist-item .checklist-text [style*="font-size"] { font-size: inherit !important; }
 .notes-editor-screen .checklist-item.checked .checklist-text { text-decoration: none; opacity: 1; }
 .notes-reading-content .checklist-text { cursor: text; }
 @media (prefers-reduced-motion: reduce) {
