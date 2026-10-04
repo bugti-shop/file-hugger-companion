@@ -294,7 +294,7 @@ const NotesCalendar = () => {
   }, [notes]);
 
   return (
-    <div className="min-h-screen min-h-screen-dynamic bg-notes-bg pb-14 flex flex-col">
+    <div className="notes-page-shell min-h-screen min-h-screen-dynamic bg-notes-bg pb-14 flex flex-col">
       <div style={{ paddingTop: 'var(--safe-top, 0px)', paddingLeft: 'var(--safe-left, 0px)', paddingRight: 'var(--safe-right, 0px)' }} className="flex-1 flex flex-col min-h-0">
         {/* Header with App Logo + layout switcher */}
         <div className="flex items-center justify-between gap-2 px-4 pt-3 pb-1 flex-shrink-0">

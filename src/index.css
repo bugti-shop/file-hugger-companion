@@ -17,6 +17,12 @@
 .notes-date-row, .notes-card { font-family: 'Nunito Sans', sans-serif; letter-spacing: 0; word-spacing: normal; font-stretch: normal; text-align: left; }
 .notes-editor-font { font-family: var(--notes-font); letter-spacing: 0; word-spacing: normal; }
 .notes-date-row:not(.rounded-b-lg)::after { content: ''; position: absolute; bottom: 0; left: 1rem; right: 1rem; border-bottom: 1px solid hsl(var(--border)); }
+/* Cover the Android WebView beyond a short Notes/Calendar page; the fixed tab bar keeps its own surface. */
+html:has(.notes-page-shell),
+body:has(.notes-page-shell),
+body:has(.notes-page-shell) #root {
+  background: var(--notes-page-bg);
+}
 /* Shared glass navigation capsule for the two dashboard headers. */
 .dashboard-glass-actions {
   display: inline-flex;
@@ -975,7 +981,7 @@ body[data-tour-active="true"] [aria-busy="true"][role="status"] {
 
 /* On Android native, use 100% to fill the actual WebView instead of 100vh */
 .android-stretch .min-h-screen-dynamic {
-  min-height: 100%;
+  min-height: 100dvh;
 }
 
 /* Responsive text sizing */

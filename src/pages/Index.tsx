@@ -1097,7 +1097,7 @@ const Index = () => {
   const hasAnyVisibleNotes = filteredNotes.length > 0;
 
   return (
-    <div className="min-h-screen min-h-screen-dynamic bg-notes-bg pb-14 md:pb-0 flex flex-col">
+    <div className="notes-page-shell min-h-screen min-h-screen-dynamic bg-notes-bg pb-14 md:pb-0 flex flex-col">
       <div className="flex-1 min-w-0 flex flex-col bg-notes-bg">
       <header 
         className="sticky top-0 bg-background z-10"

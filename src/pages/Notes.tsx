@@ -485,7 +485,7 @@ const Notes = () => {
   };
 
   return (
-    <div className="min-h-screen min-h-screen-dynamic bg-notes-bg pb-14 md:pb-0 flex flex-col">
+    <div className="notes-page-shell min-h-screen min-h-screen-dynamic bg-notes-bg pb-14 md:pb-0 flex flex-col">
 
        <div className="flex-1 min-w-0 flex flex-col bg-notes-bg">
       <header className="bg-background sticky top-0 z-10" style={{ paddingTop: 'var(--safe-top, 0px)', paddingLeft: 'var(--safe-left, 0px)', paddingRight: 'var(--safe-right, 0px)' }}>
