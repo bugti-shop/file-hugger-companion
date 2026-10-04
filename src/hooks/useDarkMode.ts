@@ -24,19 +24,29 @@ const allThemeClasses: ThemeId[] = ['light', 'dark', 'ocean', 'forest', 'sunset'
 const darkThemes: ThemeId[] = ['obsidian', 'dark', 'ocean', 'forest', 'sunset', 'rose', 'midnight', 'minimal', 'nebula', 'graphite', 'onyx', 'charcoal'];
 
 export const useDarkMode = () => {
-  const [currentTheme, setCurrentTheme] = useState<ThemeId>('light');
+  const [selectedTheme, setSelectedTheme] = useState<ThemeId>('light');
+  const [systemDark, setSystemDark] = useState(() => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const currentTheme = selectedTheme === 'light' && systemDark ? 'obsidian' : selectedTheme;
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = (event: MediaQueryListEvent) => setSystemDark(event.matches);
+    setSystemDark(media.matches);
+    media.addEventListener('change', onChange);
+    return () => media.removeEventListener('change', onChange);
+  }, []);
 
   // Load theme from IndexedDB on mount
   useEffect(() => {
     const loadTheme = async () => {
-      const saved = await getSetting<string>('theme', 'light');
+      const saved = await getSetting<string>('theme', '');
       if (saved && allThemeClasses.includes(saved as ThemeId)) {
-        setCurrentTheme(saved as ThemeId);
+        setSelectedTheme(saved as ThemeId);
       } else {
         // Check for old darkMode setting
         const oldDarkMode = await getSetting<boolean>('darkMode', false);
-        setCurrentTheme(oldDarkMode ? 'obsidian' : 'light');
+        setSelectedTheme(oldDarkMode ? 'obsidian' : 'light');
       }
       setIsLoaded(true);
     };
@@ -48,7 +58,8 @@ export const useDarkMode = () => {
   useEffect(() => {
     if (!isLoaded) return;
     
-    setSetting('theme', currentTheme);
+    // Persist the user's choice, not a temporary system appearance override.
+    setSetting('theme', selectedTheme);
     
     // Remove all theme classes first
     allThemeClasses.forEach(cls => {
@@ -63,13 +74,13 @@ export const useDarkMode = () => {
     
     // Update status bar to match theme
     updateStatusBarStyle(currentTheme !== 'light', currentTheme);
-  }, [currentTheme, isLoaded]);
+  }, [currentTheme, selectedTheme, isLoaded]);
 
   // Cycle through dark themes on toggle. When `isPro` is false, only the
   // first dark theme ('obsidian') is free; cycling beyond it is gated, so the
   // toggle behaves as a simple light↔dark switch for free users.
   const toggleDarkMode = (isPro: boolean = true) => {
-    setCurrentTheme(prev => {
+    setSelectedTheme(prev => {
       if (!isPro) {
         return prev === 'light' ? 'obsidian' : 'light';
       }
@@ -93,7 +104,7 @@ export const useDarkMode = () => {
       clearCustomThemeStyles();
       setActiveCustomThemeId(null);
     }
-    setCurrentTheme(themeId);
+    setSelectedTheme(themeId);
   };
 
   return { isDarkMode, toggleDarkMode, currentTheme, setTheme, themes };
