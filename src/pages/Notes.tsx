@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { exportNoteToMarkdown } from '@/utils/markdownExport';
 import { sanitizeDisplayName } from '@/utils/duplicateName';
 import { getTextPreviewFromHtml } from '@/utils/contentPreview';
+import { getNoteCardPreview } from '@/utils/noteCardPreview';
 import { toast } from 'sonner';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AppLogo } from '@/components/AppLogo';
@@ -484,9 +485,9 @@ const Notes = () => {
   };
 
   return (
-    <div className="min-h-screen min-h-screen-dynamic bg-notes-bg pb-14 md:pb-0">
+    <div className="min-h-screen min-h-screen-dynamic bg-notes-bg pb-14 md:pb-0 flex flex-col">
 
-      <div className="flex-1 min-w-0 flex flex-col">
+       <div className="flex-1 min-w-0 flex flex-col bg-notes-bg">
       <header className="bg-background sticky top-0 z-10" style={{ paddingTop: 'var(--safe-top, 0px)', paddingLeft: 'var(--safe-left, 0px)', paddingRight: 'var(--safe-right, 0px)' }}>
          <div className="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1400px] mx-auto px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 pt-3 pb-2">
           <div className="flex items-center justify-between gap-1 xs:gap-2">
@@ -552,7 +553,7 @@ const Notes = () => {
         <div className="h-[1px] bg-border" />
       </header>
 
-      <main className="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1400px] mx-auto px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 py-3 xs:py-4 sm:py-6">
+       <main className="w-full flex-1 max-w-6xl xl:max-w-7xl 2xl:max-w-[1400px] mx-auto px-2 xs:px-3 sm:px-4 md:px-6 lg:px-8 py-3 xs:py-4 sm:py-6">
         {/* Archive & Trash Tabs - Simplified to only Archive and Trash */}
         <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'active' | 'archived' | 'trash')} className="mb-4">
           <TabsList className="grid w-full grid-cols-2 max-w-md">
@@ -838,7 +839,7 @@ const Notes = () => {
                          day: 'numeric', year: 'numeric'
                       })}
                     </span>
-                     {((note as any).__contentPreview || note.content) && <span className="truncate min-w-0 text-[13px]">{(note as any).__contentPreview || getTextPreviewFromHtml(note.content, 120)}</span>}
+                     {getNoteCardPreview(note) && <span className="min-w-0 overflow-hidden whitespace-nowrap [text-overflow:clip] text-[13px]">{getNoteCardPreview(note)}</span>}
                      {note.isDeleted && note.deletedAt && (
                       <div className="inline-block px-2 py-1 rounded-full bg-destructive/20 text-xs text-destructive font-medium">
                         {t('notes.daysRemaining', { days: getDaysRemaining(note.deletedAt) })}

@@ -83,7 +83,7 @@ export const NotesCalendarDayWeekMonth = ({
         if (t.dueDate) s.add(dateKey(new Date(t.dueDate)));
       }
     } else {
-      for (const n of notes) s.add(dateKey(new Date(n.createdAt)));
+      for (const n of notes) if (!n.isDeleted && !n.isArchived) s.add(dateKey(new Date(n.createdAt)));
     }
     return s;
   }, [notes, tasks, isTaskMode]);
@@ -116,7 +116,7 @@ export const NotesCalendarDayWeekMonth = ({
   }, [selectedDate]);
 
   const selectedNotes = useMemo(
-    () => notes.filter((n) => isSameDay(new Date(n.createdAt), selectedDate)),
+    () => notes.filter((n) => !n.isDeleted && !n.isArchived && isSameDay(new Date(n.createdAt), selectedDate)),
     [notes, selectedDate],
   );
 
@@ -321,7 +321,7 @@ export const NotesCalendarDayWeekMonth = ({
 
 
   return (
-    <div className="w-full bg-background">
+    <div className="w-full min-h-full bg-notes-bg">
       {/* Header: Title + segmented control */}
       <div className="px-4 pt-3 pb-3 flex items-center justify-between gap-3">
         <button
@@ -438,9 +438,11 @@ export const NotesCalendarDayWeekMonth = ({
             No {itemLabel.toLowerCase()} for this date yet.
           </div>
         ) : (
-          <div className="space-y-3">
-            {selectedNotes.map((n) => (
-              <NoteCard key={n.id} note={n} onEdit={onEditNote} onDelete={onDeleteNote} />
+          <div className="overflow-hidden rounded-lg border border-border bg-card px-4">
+            {selectedNotes.map((n, index) => (
+              <div key={n.id} className={cn('h-[60px] min-w-0', index > 0 && 'border-t border-border')}>
+                <NoteCard note={n} onEdit={onEditNote} onDelete={onDeleteNote} />
+              </div>
             ))}
           </div>
         )}

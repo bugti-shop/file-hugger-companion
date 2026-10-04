@@ -12,6 +12,7 @@ import { getSetting } from '@/utils/settingsStorage';
 import { logActivity } from '@/utils/activityLogger';
 import { sanitizeDisplayName } from '@/utils/duplicateName';
 import { getTextPreviewFromHtml } from '@/utils/contentPreview';
+import { getNoteCardPreview } from '@/utils/noteCardPreview';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   DropdownMenu,
@@ -301,7 +302,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
     const ms = note.updatedAt instanceof Date ? note.updatedAt.getTime() : new Date(note.updatedAt as any).getTime();
     return new Date(Number.isFinite(ms) ? ms : Date.now());
   }, [note.updatedAt]);
-  const contentPreview = useMemo(() => (note as any).__contentPreview || getTextPreviewFromHtml(note.content || '', 120), [note.content, (note as any).__contentPreview]);
+  const contentPreview = useMemo(() => getNoteCardPreview(note), [note.id, note.content, (note as any).__contentPreview]);
 
   return (
     <div className="relative overflow-hidden perf-contain-item h-full w-full flex">
@@ -411,7 +412,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
             <span className="shrink-0">
               {updatedAtDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
-            {contentPreview && !(noteProtection.hasPassword || noteProtection.useBiometric) && <span className="min-w-0 truncate text-[13px]">{contentPreview}</span>}
+            {contentPreview && !(noteProtection.hasPassword || noteProtection.useBiometric) && <span className="min-w-0 overflow-hidden whitespace-nowrap [text-overflow:clip] text-[13px]">{contentPreview}</span>}
           </div>
 
           {/* Tags display beneath the date */}

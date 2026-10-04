@@ -1097,8 +1097,8 @@ const Index = () => {
   const hasAnyVisibleNotes = filteredNotes.length > 0;
 
   return (
-    <div className="min-h-screen min-h-screen-dynamic bg-notes-bg pb-14 md:pb-0">
-      <div className="flex-1 min-w-0 flex flex-col">
+    <div className="min-h-screen min-h-screen-dynamic bg-notes-bg pb-14 md:pb-0 flex flex-col">
+      <div className="flex-1 min-w-0 flex flex-col bg-notes-bg">
       <header 
         className="sticky top-0 bg-background z-10"
         style={{
@@ -1169,7 +1169,7 @@ const Index = () => {
         <div className="h-[1px] bg-border" />
       </header>
 
-      <main className="container mx-auto px-2 xs:px-3 sm:px-4 py-1.5">
+      <main className="container mx-auto flex-1 px-2 xs:px-3 sm:px-4 py-1.5">
         
 
         {/* Upcoming Reminders Section - hidden from home UI, functionality preserved */}
