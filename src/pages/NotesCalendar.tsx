@@ -163,9 +163,10 @@ const NotesCalendar = () => {
         createdAt: existingNote?.createdAt || incomingNote.createdAt || activeDate,
         updatedAt: new Date(),
       });
+      const updatedMeta = makeMetadataNote(updatedNote);
       const updatedNotes = currentNotes.some(n => n.id === currentEditingId)
-        ? currentNotes.map(n => n.id === currentEditingId ? updatedNote : n)
-        : [updatedNote, ...currentNotes.filter(n => n.id !== currentEditingId)];
+        ? currentNotes.map(n => n.id === currentEditingId ? updatedMeta : n)
+        : [updatedMeta, ...currentNotes.filter(n => n.id !== currentEditingId)];
       notesRef.current = updatedNotes;
       setNotes(updatedNotes);
       await saveNoteToDBSingle(updatedNote);
@@ -181,9 +182,10 @@ const NotesCalendar = () => {
         createdAt: activeDate,
         updatedAt: new Date(),
       });
+      const newMeta = makeMetadataNote(newNote);
       const updatedNotes = currentNotes.some(n => n.id === newNote.id)
-        ? currentNotes.map(n => n.id === newNote.id ? newNote : n)
-        : [...currentNotes, newNote];
+        ? currentNotes.map(n => n.id === newNote.id ? newMeta : n)
+        : [...currentNotes, newMeta];
       notesRef.current = updatedNotes;
       setNotes(updatedNotes);
       editingNoteIdRef.current = newNote.id;
