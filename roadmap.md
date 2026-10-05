@@ -1,10 +1,10 @@
 # Roadmap
 
-- [ ] Match Notes and Calendar lower-page backgrounds in light/Obsidian, sync active notes and deletion across both, add Calendar row dividers, vary short previews without ellipses, and follow phone dark mode with Obsidian.
+- [x] Match Notes and Calendar lower-page backgrounds in light/Obsidian, sync active notes and deletion across both, add Calendar row dividers, vary short previews without ellipses, and follow phone dark mode with Obsidian.
 
-- [ ] Make Obsidian the free default dark palette and correct dark surfaces on task, notes, settings, habits, and matrix screens.
-- [ ] Fix Notes bottom icon sizing and fit approximately one more six-letter word per line.
-- [ ] Rotate native Focus fullscreen horizontally and stop ambient audio on Stop or exit.
+- [x] Make Obsidian the free default dark palette and correct dark surfaces on task, notes, settings, habits, and matrix screens.
+- [x] Fix Notes bottom icon sizing and fit approximately one more six-letter word per line.
+- [x] Rotate native Focus fullscreen horizontally and stop ambient audio on Stop or exit.
 
 - [x] Restore separate left checklist/pen and right edit controls, enlarge their icons, and make legacy note titles and checklist text consistent in reading mode.
 
