@@ -1,3 +1,4 @@
+import { makeMetadataNote } from "@/utils/noteStorage";
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { genId } from '@/utils/genId';
 import { useTranslation } from 'react-i18next';
