@@ -1,5 +1,8 @@
 # Architecture rules
 
+- Keep appearance in one shared external store initialized before React renders; resolve the system palette centrally so page mounts cannot change it.
+- Notes previews use original complete sentences and show them only when they fit; never fabricate summaries or clip sentences.
+
 - Reuse the shared floating add control and header-action portal on Notes/Tasks/Notebooks so web and native WebViews retain identical layouts and safe-area spacing; task composer motion belongs to the shared add control and sheet styles so both task views transition alike.
 - Keep the Notes and To-Do dashboard switcher and portaled options menu inside one shared glass action group; a common structure keeps icon order and spacing identical across both headers.
 - Keep the Notes editor share and options controls in one compact borderless capsule, with back at left and undo beside the capsule; this preserves consistent header alignment on web and native views.
