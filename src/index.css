@@ -370,25 +370,25 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
     --note-reader-control-surface: 0 0% 16%;
     --note-reader-control-ink: 0 0% 100%;
     --notes-page-bg: hsl(var(--background));
-    --background: 140 30% 12%;
+    --background: 230 20% 8%;
     --foreground: 0 0% 100%;
-    --card: 140 30% 12%;
+    --card: 230 20% 8%;
     --card-foreground: 0 0% 100%;
-    --popover: 140 30% 12%;
+    --popover: 230 20% 8%;
     --popover-foreground: 0 0% 100%;
-    --secondary: 140 20% 18%;
+    --secondary: 230 18% 12%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 140 20% 18%;
+    --muted: 230 18% 12%;
     --muted-foreground: 0 0% 85%;
-    --accent: 140 20% 18%;
+    --accent: 230 18% 12%;
     --accent-foreground: 0 0% 100%;
-    --border: 140 15% 25%;
-    --input: 140 15% 25%;
-    --sidebar-background: 140 30% 10%;
+    --border: 230 15% 18%;
+    --input: 230 15% 18%;
+    --sidebar-background: 230 20% 8%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-accent: 140 20% 15%;
+    --sidebar-accent: 230 18% 12%;
     --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 140 15% 25%;
+    --sidebar-border: 230 15% 18%;
   }
 
   /* Theme-specific background variations */

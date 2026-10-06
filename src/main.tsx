@@ -5,6 +5,7 @@ import { SplashScreen } from "@capacitor/splash-screen";
 import App from "./App.tsx";
 import "./index.css";
 import "./i18n";
+import { initializeTheme, getCurrentTheme } from "@/hooks/useDarkMode";
 import { initAppZoom } from "@/utils/appZoom";
 
 // Restore the user's saved accessibility zoom before the tree renders so
@@ -253,7 +254,8 @@ const rootCache = globalThis as typeof globalThis & {
 };
 
 const renderApp = () => {
-  const rootEl = document.getElementById("root")!;
+  const rootEl = document.getElementById("root");
+  if (!rootEl) return;
   patchRootContainer(rootEl);
   const appRoot = rootCache.__flowistAppRoot ?? createRoot(rootEl);
   rootCache.__flowistAppRoot = appRoot;
@@ -280,6 +282,8 @@ const renderApp = () => {
 // route on the very first paint — no main-screen flash, no transition.
 // We block the initial render for at most one short Preferences read.
 const bootstrap = async () => {
+  await migrateLocalStorageToIndexedDB();
+  await initializeTheme();
   if (Capacitor.isNativePlatform()) {
     try {
       const { Preferences } = await import('@capacitor/preferences');
@@ -391,7 +395,7 @@ if (!__IS_QUICK_ADD_BOOT_MAIN__) {
       
 
       // Configure status bar
-      const theme = await getSetting<string>('theme', 'light');
+      const theme = getCurrentTheme();
       await configureStatusBar(theme !== 'light', theme || 'light');
     } catch (error) {
       console.error('Deferred initialization error:', error);

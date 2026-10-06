@@ -47,7 +47,7 @@ export function NotesVirtualGrid({
     ? (idx === 0 ? 30 : 56)
     // Every note strip gets the identical height (tags included) so no card
     // looks taller or shorter than its neighbours.
-    : resolvedRowHeight + 14;
+    : (resolvedRowHeight + 14) * 0.91;
   const resolvedOverscan = getAdaptiveOverscan(virtualizationSettings.notes.overscan, notes.length, 'notes');
   const resolvedWindowing = useWindowing ?? virtualizationSettings.notes.windowing;
 
@@ -170,7 +170,7 @@ export function NotesVirtualGrid({
               {row.kind === 'heading' ? (
                   <h2 className="notes-date-heading flex h-full items-end px-1 pb-1.5 text-[17px] font-bold text-foreground">{row.label}</h2>
               ) : (
-                <div className={`notes-date-row relative h-full min-w-0 border-x border-border bg-card px-4 ${row.first ? 'rounded-t-lg border-t' : ''} ${row.last ? 'rounded-b-lg border-b' : ''}`}>
+                <div className={`notes-date-row relative h-full min-w-0 border-x border-card bg-card px-4 ${row.first ? 'rounded-t-lg border-t' : ''} ${row.last ? 'rounded-b-lg border-b' : ''}`}>
                   {renderCard(row.note)}
                 </div>
               )}

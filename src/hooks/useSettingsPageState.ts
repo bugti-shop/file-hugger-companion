@@ -71,13 +71,13 @@ export const useSettingsPageState = () => {
     getSetting<'off' | 'light' | 'medium' | 'heavy'>('haptic_intensity', 'medium').then(setHapticIntensity);
     getActiveCustomThemeId().then(async (id) => {
       setActiveCustomThemeIdState(id);
-      if (id) {
+      if (id && currentTheme === 'custom') {
         const allThemes = await getCustomThemes();
         const active = allThemes.find(t => t.id === id);
         if (active) applyCustomTheme(active);
       }
     });
-  }, []);
+  }, [currentTheme]);
 
   // Load notes
   useEffect(() => {

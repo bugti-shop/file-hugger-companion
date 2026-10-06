@@ -438,9 +438,9 @@ export const NotesCalendarDayWeekMonth = ({
             No {itemLabel.toLowerCase()} for this date yet.
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-border bg-card px-4">
+          <div className="overflow-hidden rounded-lg border border-card bg-card px-4">
             {selectedNotes.map((n, index) => (
-              <div key={n.id} className={cn('h-[60px] min-w-0', index > 0 && 'border-t border-border')}>
+              <div key={n.id} className={cn('h-[54.6px] min-w-0', index > 0 && 'border-t border-border')}>
                 <NoteCard note={n} onEdit={onEditNote} onDelete={onDeleteNote} />
               </div>
             ))}
