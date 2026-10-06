@@ -17,6 +17,7 @@ import { exportNoteToMarkdown } from '@/utils/markdownExport';
 import { sanitizeDisplayName } from '@/utils/duplicateName';
 import { getTextPreviewFromHtml } from '@/utils/contentPreview';
 import { getNoteCardPreview } from '@/utils/noteCardPreview';
+import { NotePreviewText } from '@/components/notes/NotePreviewText';
 import { toast } from 'sonner';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AppLogo } from '@/components/AppLogo';
@@ -839,7 +840,7 @@ const Notes = () => {
                          day: 'numeric', year: 'numeric'
                       })}
                     </span>
-                     {getNoteCardPreview(note) && <span className="min-w-0 overflow-hidden whitespace-nowrap [text-overflow:clip] text-[13px]">{getNoteCardPreview(note)}</span>}
+                     {getNoteCardPreview(note) && <NotePreviewText text={getNoteCardPreview(note)} />}
                      {note.isDeleted && note.deletedAt && (
                       <div className="inline-block px-2 py-1 rounded-full bg-destructive/20 text-xs text-destructive font-medium">
                         {t('notes.daysRemaining', { days: getDaysRemaining(note.deletedAt) })}

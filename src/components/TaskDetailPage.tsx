@@ -743,14 +743,13 @@ export const TaskDetailPage = ({
   return (
     <div 
       className={cn(
-        "fixed inset-y-0 right-0 left-0 z-50 flex flex-col transition-transform duration-300 border-l border-border pointer-events-auto",
+        "fixed inset-y-0 right-0 left-0 z-50 flex flex-col transition-transform duration-300 border-l border-border pointer-events-auto bg-background text-foreground",
         isOpen ? "translate-x-0" : "translate-x-full"
       )}
       style={{
         paddingTop: 'var(--safe-top, 0px)',
         paddingBottom: 'var(--safe-bottom, 0px)',
         left: 'var(--desktop-sidebar-width, 0px)',
-        backgroundColor: '#f8f8f6',
       }}
     >
       {/* Header — back / share / comments / more */}
@@ -840,9 +839,8 @@ export const TaskDetailPage = ({
 
         {/* Description — plain paragraph, no label, no box */}
         <div
-          className="-mt-3"
+          className="-mt-3 text-muted-foreground"
           style={{
-            color: '#adadad',
             fontFamily: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, system-ui, sans-serif',
           }}
         >
@@ -864,21 +862,21 @@ export const TaskDetailPage = ({
             <div
               onClick={() => setIsEditingDesc(true)}
               className="rich-text-editor w-full text-[13px] whitespace-pre-wrap leading-[1.45] cursor-text"
-              style={{ color: '#adadad', fontFamily: 'inherit' }}
+              style={{ fontFamily: 'inherit' }}
               dangerouslySetInnerHTML={{ __html: descriptionToDisplayHtml(descText) }}
             />
           )}
         </div>
 
         {/* Card 1 — Status / Priority / Due Date / Reminder */}
-        <div className="rounded-2xl bg-white border border-border/60 divide-y divide-border/60 overflow-hidden shadow-sm">
+        <div className="rounded-2xl bg-card border border-border/60 divide-y divide-border/60 overflow-hidden shadow-sm">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button data-tour="task-detail-status" className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 transition-colors text-left">
                 <span className="flex-shrink-0 h-3.5 w-3.5 rounded-full border-[1.25px] border-foreground/80 flex items-center justify-center">
                   <MoreHorizontal className="h-2 w-2" />
                 </span>
-                <span className="flex-1 text-[13.5px] font-normal leading-none text-black">Status</span>
+                <span className="flex-1 text-[13.5px] font-normal leading-none text-foreground">Status</span>
                 <span className="text-[12.5px] leading-none px-2 py-1 rounded-full bg-info/15 text-info font-medium">
                   {getStatusConfig(task.status || 'not_started').label}
                 </span>
@@ -913,7 +911,7 @@ export const TaskDetailPage = ({
                     }}
                   />
                 </span>
-                <span className="flex-1 text-[13.5px] font-normal leading-none text-black">Priority</span>
+                <span className="flex-1 text-[13.5px] font-normal leading-none text-foreground">Priority</span>
                 <span
                   className="text-[12.5px] leading-none font-medium capitalize"
                   style={{ color: task.priority && task.priority !== 'none' ? getPriorityHex(task.priority) : 'hsl(var(--muted-foreground))' }}
@@ -935,7 +933,7 @@ export const TaskDetailPage = ({
             <span className="flex-shrink-0 h-3.5 w-3.5 flex items-center justify-center">
               <CalendarIcon className="h-3.5 w-3.5" />
             </span>
-            <span className="flex-1 text-[13.5px] font-normal leading-none text-black">Due Date</span>
+            <span className="flex-1 text-[13.5px] font-normal leading-none text-foreground">Due Date</span>
             <span className="text-[12.5px] leading-none text-muted-foreground">
               {task.dueDate ? format(new Date(task.dueDate), 'EEE, MMM d, yyyy') : 'None'}
             </span>
@@ -957,7 +955,7 @@ export const TaskDetailPage = ({
             <span className="flex-shrink-0 h-3.5 w-3.5 flex items-center justify-center">
               <Bell className="h-3.5 w-3.5" />
             </span>
-            <span className="flex-1 text-[13.5px] font-normal leading-none text-black">Reminder</span>
+            <span className="flex-1 text-[13.5px] font-normal leading-none text-foreground">Reminder</span>
             <span className="text-[12.5px] leading-none text-muted-foreground truncate max-w-[50%]">
               {(() => {
                 const list = (task as any).extraReminders as Array<{ time: Date }> | undefined;
@@ -971,7 +969,7 @@ export const TaskDetailPage = ({
         </div>
 
         {/* Card 2 — Focus & Time */}
-        <div className="rounded-2xl bg-white border border-border/60 divide-y divide-border/60 overflow-hidden shadow-sm">
+        <div className="rounded-2xl bg-card border border-border/60 divide-y divide-border/60 overflow-hidden shadow-sm">
           <button
             type="button"
             data-tour="task-detail-focus-mode"
@@ -982,7 +980,7 @@ export const TaskDetailPage = ({
             <span className="flex-shrink-0 h-4 w-4 flex items-center justify-center">
               <Target className="h-4 w-4 text-primary" />
             </span>
-            <span className="flex-1 min-w-0 flex items-center gap-1 text-[13.5px] font-normal leading-none text-black truncate">
+            <span className="flex-1 min-w-0 flex items-center gap-1 text-[13.5px] font-normal leading-none text-foreground truncate">
               Focus Mode {!isPro && <PremiumCrown size={12} />}
             </span>
             <span className="text-[12.5px] leading-none text-muted-foreground truncate">Deep Work</span>
@@ -998,7 +996,7 @@ export const TaskDetailPage = ({
             <span className="flex-shrink-0 h-4 w-4 flex items-center justify-center">
               <Clock className="h-4 w-4 text-info" />
             </span>
-            <span className="flex-1 min-w-0 text-[13.5px] font-normal leading-none text-black truncate">Time Tracking</span>
+            <span className="flex-1 min-w-0 text-[13.5px] font-normal leading-none text-foreground truncate">Time Tracking</span>
             <span className="text-[12.5px] leading-none text-muted-foreground tabular-nums truncate">
               {formatPomodoroDuration(pomodoroStats.taskFocusedSec)}
             </span>
@@ -1007,7 +1005,7 @@ export const TaskDetailPage = ({
         </div>
 
         {/* Card 3 — Subtasks / Tags / Convert to Notes */}
-        <div className="rounded-2xl bg-white border border-border/60 divide-y divide-border/60 overflow-hidden shadow-sm">
+        <div className="rounded-2xl bg-card border border-border/60 divide-y divide-border/60 overflow-hidden shadow-sm">
 
           <button
             type="button"
@@ -1018,7 +1016,7 @@ export const TaskDetailPage = ({
             <span className="flex-shrink-0 h-4 w-4 flex items-center justify-center">
               <List className="h-4 w-4 text-success" strokeWidth={2.25} />
             </span>
-            <span className="flex-1 min-w-0 text-[13.5px] font-normal leading-none text-black truncate">Subtasks</span>
+            <span className="flex-1 min-w-0 text-[13.5px] font-normal leading-none text-foreground truncate">Subtasks</span>
             <span className="text-[12.5px] leading-none text-muted-foreground tabular-nums truncate">
               {task.subtasks?.length ?? 0}
             </span>
@@ -1034,7 +1032,7 @@ export const TaskDetailPage = ({
             <span className="flex-shrink-0 h-4 w-4 flex items-center justify-center">
               <Tag className="h-4 w-4 text-info scale-x-[-1]" />
             </span>
-            <span className="flex-1 min-w-0 text-[13.5px] font-normal leading-none text-black truncate">Tags</span>
+            <span className="flex-1 min-w-0 text-[13.5px] font-normal leading-none text-foreground truncate">Tags</span>
             <span className="text-[12.5px] leading-none text-muted-foreground truncate max-w-[50%]">
               {task.coloredTags && task.coloredTags.length > 0
                 ? task.coloredTags.map(t => t.name).join(', ')
@@ -1051,7 +1049,7 @@ export const TaskDetailPage = ({
             <span className="flex-shrink-0 h-4 w-4 flex items-center justify-center">
               <FileEdit className="h-4 w-4 text-warning" />
             </span>
-            <span className="flex-1 min-w-0 text-[13.5px] font-normal leading-none text-black truncate">Convert to Notes</span>
+            <span className="flex-1 min-w-0 text-[13.5px] font-normal leading-none text-foreground truncate">Convert to Notes</span>
             <ChevronRight className="h-3 w-3 text-muted-foreground/60 flex-shrink-0 ml-0.5" />
           </button>
         </div>
@@ -1135,7 +1133,7 @@ export const TaskDetailPage = ({
 
 
         {/* Task History — clickable, opens detail page */}
-        <div className="rounded-2xl bg-white border border-border/60 shadow-sm overflow-hidden">
+        <div className="rounded-2xl bg-card border border-border/60 shadow-sm overflow-hidden">
           <button
             onClick={() => setShowHistoryPage(true)}
             className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-muted/40 transition-colors text-left"
@@ -1152,7 +1150,7 @@ export const TaskDetailPage = ({
 
         {/* Actual subtask items list — below Task History */}
         {task.subtasks && task.subtasks.length > 0 && (
-          <div className="rounded-2xl bg-white border border-border/60 shadow-sm overflow-hidden divide-y divide-border/50">
+          <div className="rounded-2xl bg-card border border-border/60 shadow-sm overflow-hidden divide-y divide-border/50">
             {task.subtasks.map((st) => {
               const ringColor = getPriorityHex(st.priority || 'none');
               return (
@@ -1178,7 +1176,7 @@ export const TaskDetailPage = ({
                   <span
                     className={cn(
                       'flex-1 min-w-0 text-[15px] truncate',
-                      st.completed ? 'line-through text-muted-foreground' : 'text-black'
+                      st.completed ? 'line-through text-muted-foreground' : 'text-foreground'
                     )}
                   >
                     {st.text}
@@ -1194,12 +1192,12 @@ export const TaskDetailPage = ({
 
       {/* Task History full-page overlay */}
       {showHistoryPage && (
-        <div className="fixed inset-0 z-[70] bg-[#f8f8f6] flex flex-col overflow-y-auto" style={{ paddingTop: 'var(--safe-top, 0px)' }}>
-          <div className="sticky top-0 z-10 bg-[#f8f8f6]/95 backdrop-blur-sm border-b border-border/40 flex items-center gap-2 px-3 py-3">
+        <div className="fixed inset-0 z-[70] bg-background flex flex-col overflow-y-auto" style={{ paddingTop: 'var(--safe-top, 0px)' }}>
+          <div className="sticky top-0 z-10 bg-background/95 backdrop-blur-sm border-b border-border/40 flex items-center gap-2 px-3 py-3">
             <button
               onClick={() => setShowHistoryPage(false)}
               aria-label="Back to task"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-border/60 shadow-sm hover:bg-muted/40 active:scale-95 transition-all"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-card border border-border/60 shadow-sm hover:bg-muted/40 active:scale-95 transition-all"
             >
               <ChevronLeft className="h-5 w-5" />
               <span className="text-[13px] font-medium">Back</span>
@@ -1207,7 +1205,7 @@ export const TaskDetailPage = ({
             <h2 className="text-lg font-semibold ml-1">{t('taskDetail.taskHistory', 'Task History')}</h2>
           </div>
           <div className="px-4 pb-8 space-y-3">
-            <div className="rounded-2xl bg-white border border-border/60 shadow-sm divide-y divide-border/60">
+            <div className="rounded-2xl bg-card border border-border/60 shadow-sm divide-y divide-border/60">
               <div className="flex items-center justify-between px-4 py-3.5">
                 <span className="text-[13px] text-muted-foreground">{t('taskDetail.created', 'Created')}</span>
                 {isPro ? (
@@ -1332,7 +1330,7 @@ export const TaskDetailPage = ({
           onClick={() => setShowTimeTracker(false)}
         >
           <div
-            className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5 space-y-4"
+            className="w-full sm:max-w-md bg-card rounded-t-2xl sm:rounded-2xl shadow-xl p-5 space-y-4"
             style={{ paddingBottom: 'calc(var(--safe-bottom, 0px) + 20px)' }}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
@@ -1356,7 +1354,7 @@ export const TaskDetailPage = ({
           onClick={() => { setShowTagInput(false); setNewTagName(''); }}
         >
           <div
-            className="w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5 space-y-4"
+            className="w-full sm:max-w-md bg-card rounded-t-2xl sm:rounded-2xl shadow-xl p-5 space-y-4"
             style={{ paddingBottom: 'calc(var(--safe-bottom, 0px) + 20px)' }}
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
@@ -1457,14 +1455,14 @@ export const TaskDetailPage = ({
                 <audio src={previewAttachment.url} controls className="w-full max-w-md" />
               </div>
             ) : previewAttachment.type?.startsWith('text/') ? (
-              <iframe src={previewAttachment.url} className="w-full h-full bg-white" title={previewAttachment.name} />
+              <iframe src={previewAttachment.url} className="w-full h-full bg-card" title={previewAttachment.name} />
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4">
                 <p className="text-white/80 text-sm">{t('tasks.attachments.cannotPreview', 'This file type cannot be previewed in the app.')}</p>
                 <a
                   href={previewAttachment.url}
                   download={previewAttachment.name}
-                  className="px-4 py-2 bg-white text-black rounded-lg text-sm font-medium"
+                  className="px-4 py-2 bg-card text-foreground rounded-lg text-sm font-medium"
                 >
                   {t('tasks.attachments.download', 'Download / Open')}
                 </a>

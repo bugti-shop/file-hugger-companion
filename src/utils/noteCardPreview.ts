@@ -1,12 +1,16 @@
 import { getTextPreviewFromHtml } from '@/utils/contentPreview';
 import type { Note } from '@/types/note';
 
-/** A stable, short preview for both Notes dashboards and Calendar cards. */
+/** Keep original complete sentences, never arbitrary word slices or ellipses. */
 export const getNoteCardPreview = (note: Note): string => {
-  const raw = (note as Note & { __contentPreview?: string }).__contentPreview || note.content || '';
-  const text = getTextPreviewFromHtml(raw, 240).replace(/\.{2,}\s*$/, '').trim();
+  const raw = note.content || (note as Note & { __contentPreview?: string }).__contentPreview || '';
+  const text = getTextPreviewFromHtml(raw.replace(/<\/(?:p|div|li|h[1-6])\s*>/gi, ' '), 4000)
+    .replace(/\.{2,}|…/g, '').trim();
   if (!text) return '';
-  const words = text.split(/\s+/);
-  const hash = Array.from(note.id).reduce((value, char) => ((value * 31 + char.charCodeAt(0)) >>> 0), 0);
-  return words.slice(0, 3 + hash % 3).join(' ');
+  const sentences = text.match(/[^.!?]+[.!?](?:["”’])?/g) ?? [];
+  const short = sentences.map(sentence => sentence.trim()).filter(sentence => sentence.length <= 140);
+  if (short.length) return short.sort((a, b) => a.length - b.length)[0];
+  // Unpunctuated short notes are shown whole, not cut into a fabricated sentence.
+  if (!sentences.length && raw.length < 4000 && text.length <= 140) return text;
+  return '';
 };

@@ -13,6 +13,7 @@ import { logActivity } from '@/utils/activityLogger';
 import { sanitizeDisplayName } from '@/utils/duplicateName';
 import { getTextPreviewFromHtml } from '@/utils/contentPreview';
 import { getNoteCardPreview } from '@/utils/noteCardPreview';
+import { NotePreviewText } from '@/components/notes/NotePreviewText';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   DropdownMenu,
@@ -412,7 +413,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
             <span className="shrink-0">
               {updatedAtDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
-            {contentPreview && !(noteProtection.hasPassword || noteProtection.useBiometric) && <span className="min-w-0 overflow-hidden whitespace-nowrap [text-overflow:clip] text-[13px]">{contentPreview}</span>}
+            {contentPreview && !(noteProtection.hasPassword || noteProtection.useBiometric) && <NotePreviewText text={contentPreview} />}
           </div>
 
           {/* Tags display beneath the date */}
