@@ -799,8 +799,7 @@ export const OnboardingFlow = ({ onComplete }: OnboardingFlowProps) => {
   useEffect(() => {
     (async () => {
       const savedSections = await getSetting<TaskSection[]>('todoSections', []);
-      if (savedSections.length > 0) setOnboardingSections(savedSections);
-      else setOnboardingSections([{ id: 'default', name: 'Tasks', color: '#db252d', isCollapsed: false, order: 0 }]);
+      setOnboardingSections(savedSections.filter(section => section.id !== 'default'));
       const savedFolders = await getSetting<Folder[] | null>('todoFolders', null);
       if (savedFolders) setOnboardingFolders(savedFolders.map((f: any) => ({ ...f, createdAt: new Date(f.createdAt) })));
     })();
