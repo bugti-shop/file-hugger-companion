@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Whiten Notes group outer borders, reduce all strips by 9%, show only complete short previews, fix Task Detail dark surfaces and unify startup/system theme.
+- [x] Whiten Notes group outer borders, reduce all strips by 9%, show only complete short previews, fix Task Detail dark surfaces and unify startup/system theme.
+- [ ] Verify Task Detail and existing Notes visually with a signed-in account; requesting user's preview session unavailable.
 
 - [x] Match Notes and Calendar lower-page backgrounds in light/Obsidian, sync active notes and deletion across both, add Calendar row dividers, vary short previews without ellipses, and follow phone dark mode with Obsidian.
 
