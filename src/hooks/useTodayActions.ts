@@ -511,7 +511,7 @@ export const useTodayActions = (props: UseTodayActionsProps) => {
       id: genId(), completed: false, ...task,
       // Inherit currently-selected folder so tasks added inside a folder appear in that folder's view.
       folderId: task.folderId ?? selectedFolderId ?? undefined,
-      sectionId: task.sectionId || inputSectionId || defaultSectionId || sections[0]?.id,
+      sectionId: resolveTaskSection(sections, task.sectionId, inputSectionId, defaultSectionId),
       dueDate: task.dueDate || new Date(),
       createdAt: now, modifiedAt: now,
       status: task.status || 'not_started',
@@ -552,7 +552,7 @@ export const useTodayActions = (props: UseTodayActionsProps) => {
     const newItems: TodoItem[] = allowedTexts.map((text, idx) => ({
       id: genId(), text, completed: false,
       folderId: targetFolderId,
-      sectionId: sectionId || inputSectionId || sections[0]?.id,
+      sectionId: resolveTaskSection(sections, sectionId, inputSectionId),
       priority, dueDate: dueDate || new Date(), createdAt: now, modifiedAt: now,
     }));
     if (newItems.length === 0) return;
@@ -961,7 +961,7 @@ export const useTodayActions = (props: UseTodayActionsProps) => {
         }
         return item;
       });
-      const newTask: TodoItem = { ...subtask, sectionId: prev.find(i => i.id === parentId)?.sectionId || sections[0]?.id };
+      const newTask: TodoItem = { ...subtask, sectionId: resolveTaskSection(sections, prev.find(i => i.id === parentId)?.sectionId) };
       return [newTask, ...updatedItems];
     });
   }, [sections, setItems]);

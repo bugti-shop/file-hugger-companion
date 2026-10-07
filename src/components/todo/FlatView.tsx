@@ -127,10 +127,10 @@ export const FlatView = ({
   if (useFlatVirtualized) {
     return (
       <div ref={scrollContainerRef}>
-        <div className="bg-background">
-          {renderVirtualSectionHeader
+        <div>
+          {sortedSections.length > 0 && (renderVirtualSectionHeader
             ? renderVirtualSectionHeader(virtualHeaderSection, false, virtualOrderedItems.length)
-            : renderSectionHeader(virtualHeaderSection, false)}
+            : renderSectionHeader(virtualHeaderSection, false))}
           {collapsedViewSections.has(`flat-${virtualHeaderSection.id}`) ? null : (
             <div data-flat-scroll>
               <FlatTaskList
@@ -231,12 +231,11 @@ export const FlatView = ({
     const destIndex = destination.index;
     if (source.droppableId === destination.droppableId && source.index === destination.index) return;
     if (sourceSectionId !== destSectionId) {
-      const actualDestSectionId = destSectionId === 'default' ? sections[0]?.id : destSectionId;
+      const actualDestSectionId = destSectionId === 'unsectioned' ? undefined : destSectionId;
       updateItem(taskId, { sectionId: actualDestSectionId });
     }
     const destSectionTasks = uncompletedItems.filter(item => {
-      const actualDestId = destSectionId === 'default' ? sections[0]?.id : destSectionId;
-      return item.sectionId === actualDestId || (!item.sectionId && actualDestId === sections[0]?.id);
+      return destSectionId === 'unsectioned' ? !sections.some(s => s.id === item.sectionId) : item.sectionId === destSectionId;
     });
     const currentlyOrderedTasks = applyTaskOrder(destSectionTasks, `flat-section-${destSectionId}`);
     const currentOrderIds = currentlyOrderedTasks.map(t => t.id);
@@ -306,14 +305,16 @@ export const FlatView = ({
   return (
     <DragDropContext onDragEnd={handleDragEnd}>
       <div ref={dndRootRef}>
-        {sortedSections.map((section) => {
-          const sectionTasks = uncompletedItems.filter(item => item.sectionId === section.id || (!item.sectionId && section.id === sections[0]?.id));
-          const sectionId = section.id === sections[0]?.id ? 'default' : section.id;
+        {[{ id: 'unsectioned', name: '', color: '', isCollapsed: false, order: -1 }, ...sortedSections].map((section) => {
+          const isUnsectioned = section.id === 'unsectioned';
+          const sectionTasks = uncompletedItems.filter(item => isUnsectioned ? !sections.some(s => s.id === item.sectionId) : item.sectionId === section.id);
+          if (isUnsectioned && sectionTasks.length === 0 && sortedSections.length > 0) return null;
+          const sectionId = section.id;
           const isCollapsed = collapsedViewSections.has(`flat-${section.id}`);
           const orderedTasks = applyTaskOrder(sectionTasks, `flat-section-${sectionId}`);
           return (
             <div key={section.id}>
-              {renderSectionHeader(section, false)}
+              {!isUnsectioned && renderSectionHeader(section, false)}
               {!isCollapsed && (
                 <Droppable droppableId={`flat-section-${sectionId}`}>
                   {(provided, snapshot) => (
