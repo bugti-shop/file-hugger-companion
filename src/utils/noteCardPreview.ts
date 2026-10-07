@@ -11,6 +11,8 @@ export const getNoteCardPreview = (note: Note): string => {
   const short = sentences.map(sentence => sentence.trim()).filter(sentence => sentence.length <= 140);
   if (short.length) return short.sort((a, b) => a.length - b.length)[0];
   // Unpunctuated short notes are shown whole, not cut into a fabricated sentence.
-  if (!sentences.length && raw.length < 4000 && text.length <= 140) return text;
+  const metadata = note as Note & { __contentStub?: boolean; __contentLength?: number };
+  const isTruncated = metadata.__contentStub && (metadata.__contentLength ?? 0) > raw.length;
+  if (!sentences.length && !isTruncated && raw.length < 4000 && text.length <= 140) return text;
   return '';
 };
