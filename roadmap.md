@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Restore Notes body previews; restyle task titles/rings/cards and Inbox header; remove dashboard search; stop automatically creating task sections.
+
 - [x] Whiten Notes group outer borders, reduce all strips by 9%, show only complete short previews, fix Task Detail dark surfaces and unify startup/system theme.
 - [ ] Verify Task Detail and existing Notes visually with a signed-in account; requesting user's preview session unavailable.
 
