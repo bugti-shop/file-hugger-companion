@@ -149,7 +149,7 @@ export const TaskItem = memo(({
                 />
               ) : (
                 <div className="flex items-center gap-2">
-                  <p className={cn("text-sm font-medium truncate transition-all duration-300", item.completed && "text-muted-foreground line-through")}>{item.text}</p>
+                  <p className={cn("task-title truncate transition-all duration-300", item.completed && "text-muted-foreground line-through")}>{item.text}</p>
                 </div>
               )}
 

@@ -56,6 +56,7 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         "notes-bg": "var(--notes-page-bg)",
+        "tasks-bg": "hsl(var(--tasks-page-bg))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",

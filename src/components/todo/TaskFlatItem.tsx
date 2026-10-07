@@ -97,8 +97,8 @@ export const TaskFlatItem = memo(({
   };
 
   return (
-    <div className="relative perf-contain-item">
-      <div className="relative overflow-hidden">
+    <div className="relative perf-contain-item pb-1.5">
+      <div className="relative overflow-hidden rounded-[14px]">
         {/* Swipe action backgrounds */}
         <div className="absolute inset-0 flex">
           <div className="flex items-center justify-start" style={{ opacity: (currentSwipe?.x || 0) > 0 ? 1 : 0 }}>
@@ -144,8 +144,8 @@ export const TaskFlatItem = memo(({
         {/* Main flat item */}
         <div
           className={cn(
-            "flex items-start gap-3 border-b border-border/50 bg-background relative z-10",
-            compactMode ? "py-1.5 px-1.5 gap-2" : "py-2.5 px-2"
+            "task-card flex items-start gap-3 bg-card relative z-10",
+            compactMode ? "py-2 px-3 gap-2" : "py-3 px-3"
           )}
           style={{
             transform: `translateX(${currentSwipe?.x || 0}px)`,
@@ -181,15 +181,16 @@ export const TaskFlatItem = memo(({
               updateItem(item.id, { completed: true });
             }}
             className={cn(
-              TASK_CIRCLE.base, TASK_CIRCLE.marginTop,
+              TASK_CIRCLE.base, 'task-ring mt-0.5',
               compactMode ? TASK_CIRCLE.sizeCompact : TASK_CIRCLE.size,
               item.completed && TASK_CIRCLE.completed,
               pendingCompleteId === item.id && TASK_CIRCLE.pending,
             )}
             style={{
+              '--task-priority-color': getPriorityColor(item.priority || 'none'),
               borderColor: (item.completed || pendingCompleteId === item.id) ? undefined : getPriorityColor(item.priority || 'none'),
-              backgroundColor: pendingCompleteId === item.id ? getPriorityColor(item.priority || 'none') : undefined,
-            }}
+              backgroundColor: pendingCompleteId === item.id ? getPriorityColor(item.priority || 'none') : item.completed ? 'hsl(var(--muted-foreground) / 0.3)' : undefined,
+            } as React.CSSProperties}
           >
             {(item.completed || pendingCompleteId === item.id) && (
               <Check
@@ -231,7 +232,7 @@ export const TaskFlatItem = memo(({
             ) : (
               <div className="flex items-center gap-2">
                 {item.isPinned && <Pin className={cn(compactMode ? "h-3 w-3" : "h-3.5 w-3.5", "text-warning fill-warning flex-shrink-0")} />}
-                <span className={cn(compactMode ? "text-xs" : "text-sm", "transition-all duration-300", (item.completed || pendingCompleteId === item.id) && "text-muted-foreground line-through")}>{item.text}</span>
+                <span className={cn('task-title', compactMode && 'task-title-compact', "min-w-0 truncate transition-all duration-300", (item.completed || pendingCompleteId === item.id) && "text-muted-foreground line-through")}>{item.text}</span>
                 {item.repeatType && item.repeatType !== 'none' && <Repeat className={cn(compactMode ? "h-2.5 w-2.5" : "h-3 w-3", "text-accent-purple flex-shrink-0")} />}
               </div>
             )}

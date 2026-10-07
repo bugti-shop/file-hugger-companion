@@ -23,6 +23,13 @@ body:has(.notes-page-shell),
 body:has(.notes-page-shell) #root {
   background: var(--notes-page-bg);
 }
+html:has(.todo-dashboard-shell),
+body:has(.todo-dashboard-shell),
+body:has(.todo-dashboard-shell) #root { background: hsl(var(--tasks-page-bg)); }
+.todo-dashboard-shell .task-card { background: hsl(var(--task-card-surface)); border: 1px solid hsl(var(--task-card-border)); border-radius: 14px; }
+.task-ring { background: color-mix(in srgb, var(--task-priority-color) 9%, transparent); }
+.task-title { font-size: 16px; line-height: 24px; font-weight: 400; letter-spacing: 0; }
+.task-title-compact { font-size: 15px; line-height: 22px; }
 /* Shared glass navigation capsule for the two dashboard headers. */
 .dashboard-glass-actions {
   display: inline-flex;
@@ -216,6 +223,13 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
     --note-reader-control-surface: 0 0% 100%;
     --note-reader-control-ink: 0 0% 0%;
     --notes-page-bg: #f1f4f9;
+    --tasks-page-bg: 37.5 30.77% 94.9%;
+    --task-card-surface: 0 0% 100%;
+    --task-card-border: 37.5 20% 94%;
+    --priority-high: 0 84% 60%;
+    --priority-medium: 25 95% 53%;
+    --priority-low: 217 91% 60%;
+    --priority-none: 215 20% 65%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -370,6 +384,9 @@ body.flowist-task-dragging [data-flowist-virtual-list="tasks"] {
     --note-reader-control-surface: 0 0% 16%;
     --note-reader-control-ink: 0 0% 100%;
     --notes-page-bg: hsl(var(--background));
+    --tasks-page-bg: var(--background);
+    --task-card-surface: var(--secondary);
+    --task-card-border: var(--border);
     --background: 230 20% 8%;
     --foreground: 0 0% 100%;
     --card: 230 20% 8%;
