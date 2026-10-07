@@ -4,6 +4,7 @@
  */
 import { useCallback, useRef, startTransition } from 'react';
 import { genId } from '@/utils/genId';
+import { resolveTaskSection } from '@/utils/taskSections';
 import { withCopySuffix } from '@/utils/duplicateName';
 import { TodoItem, Folder, Priority, Note, TaskSection } from '@/types/note';
 import { loadNotesFromDB, saveNotesToDB } from '@/utils/noteStorage';
