@@ -85,16 +85,17 @@ export const TaskCompletionCircle = ({
                 onTouchEnd={(e) => e.stopPropagation()}
                 onClick={handleClick}
                 className={cn(
-                  TASK_CIRCLE.base,
+                  TASK_CIRCLE.base, 'task-ring',
                   TASK_CIRCLE.size,
                   completed && TASK_CIRCLE.completed,
                   pendingComplete && TASK_CIRCLE.pending,
                   isBlocked && TASK_CIRCLE.blocked,
                 )}
                 style={{
+                  '--task-priority-color': priorityColor,
                   borderColor: (completed || pendingComplete) ? undefined : priorityColor,
-                  backgroundColor: pendingComplete ? priorityColor : undefined,
-                }}
+                  backgroundColor: pendingComplete ? priorityColor : completed ? 'hsl(var(--muted-foreground) / 0.3)' : undefined,
+                } as React.CSSProperties}
               >
                 {(completed || pendingComplete) && (
                   <CheckIcon

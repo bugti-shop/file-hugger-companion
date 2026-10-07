@@ -60,9 +60,7 @@ import { TodoCalendarFab } from '@/components/todo/TodoCalendarFab';
 
 type ViewMode = 'flat' | 'kanban-status' | 'timeline' | 'progress' | 'priority' | 'history';
 
-const defaultSections: TaskSection[] = [
-  { id: 'default', name: 'Tasks', color: '#db252d', isCollapsed: false, order: 0 }
-];
+const defaultSections: TaskSection[] = [];
 
 const TodoCalendar = () => {
   const { t } = useTranslation();
@@ -240,7 +238,7 @@ const TodoCalendar = () => {
     if (savedFolders.length > 0) setFolders(savedFolders);
 
     const savedSections = await getSetting<TaskSection[]>('todoSections', []);
-    setSections(savedSections.length > 0 ? savedSections : defaultSections);
+    setSections(savedSections.filter(section => section.id !== 'default'));
 
     const savedEvents = await getSetting<CalendarEvent[]>('calendarEvents', []);
     if (savedEvents.length > 0) {

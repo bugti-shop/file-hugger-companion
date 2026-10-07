@@ -12,7 +12,7 @@
  */
 
 // Shared row wrapper classes — single source of truth for both paths.
-export const FLAT_ROW_WRAPPER_CLASS = 'border-b border-border/50 bg-background';
+export const FLAT_ROW_WRAPPER_CLASS = 'bg-transparent';
 
 type RowSignature = {
   height: number;

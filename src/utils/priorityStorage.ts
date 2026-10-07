@@ -12,7 +12,7 @@ export interface CustomPriority {
 export const DEFAULT_PRIORITIES: CustomPriority[] = [
   { id: 'high', name: 'High', color: '#EF4444', order: 0, isDefault: true },
   { id: 'medium', name: 'Medium', color: '#F97316', order: 1, isDefault: true },
-  { id: 'low', name: 'Low', color: '#22C55E', order: 2, isDefault: true },
+  { id: 'low', name: 'Low', color: '#3B82F6', order: 2, isDefault: true },
   { id: 'none', name: 'None', color: '#94a3b8', order: 3, isDefault: true },
 ];
 

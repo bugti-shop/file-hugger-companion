@@ -25,6 +25,7 @@ import { getSmartListFilter } from '@/components/SmartListsDropdown';
 import { isToday, isTomorrow, isThisWeek, isBefore, startOfDay } from 'date-fns';
 import { useStreakChallengeDialog } from '@/components/StreakChallengeDialog';
 import { useStreak } from '@/hooks/useStreak';
+import { getUserTaskSections } from '@/utils/taskSections';
 
 export type ViewMode = 'flat' | 'kanban-status' | 'timeline' | 'progress' | 'priority' | 'history';
 export type SortBy = 'date' | 'priority' | 'name' | 'created';
@@ -47,10 +48,6 @@ const getFallbackFolderId = (folders: Folder[]): string | null => {
   return sorted[0]?.id ?? null;
 };
 
-const getDefaultSections = (t: (key: string) => string): TaskSection[] => [
-  { id: 'default', name: t('grouping.tasks'), color: '#db252d', isCollapsed: false, order: 0 }
-];
-
 const todayRuntimeCache = ((globalThis as any).__flowistTodayRuntimeCache ??= {
   items: null as TodoItem[] | null,
   folders: null as Folder[] | null,
@@ -71,7 +68,7 @@ export const useTodayState = () => {
   // Core data
   const [items, setItems] = useState<TodoItem[]>(() => todayRuntimeCache.items ?? []);
   const [folders, setFolders] = useState<Folder[]>(() => todayRuntimeCache.folders ?? []);
-  const [sections, setSections] = useState<TaskSection[]>(() => todayRuntimeCache.sections ?? getDefaultSections(t));
+  const [sections, setSections] = useState<TaskSection[]>(() => getUserTaskSections(todayRuntimeCache.sections ?? []));
 
   // UI state
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(() =>
@@ -244,7 +241,7 @@ export const useTodayState = () => {
           void setSetting('todoFolders', [inbox]);
         }
         const savedSections = g<TaskSection[]>('todoSections', []);
-        const nextSections = savedSections.length > 0 ? savedSections : getDefaultSections(t);
+        const nextSections = getUserTaskSections(savedSections);
         todayRuntimeCache.sections = nextSections;
         setSections(nextSections);
         setShowCompleted(g<boolean>('todoShowCompleted', true));
@@ -288,7 +285,7 @@ export const useTodayState = () => {
     const handleSectionsFromSync = async () => {
       (window as any).__todaySyncFlag.sectionsFromSync = true;
       const savedSections = await getSetting<TaskSection[]>('todoSections', []);
-      const nextSections = savedSections.length > 0 ? savedSections : getDefaultSections(t);
+      const nextSections = getUserTaskSections(savedSections);
       todayRuntimeCache.sections = nextSections;
       setSections(nextSections);
     };

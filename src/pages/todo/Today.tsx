@@ -178,15 +178,16 @@ const FlatCompletionToggle = ({
       onTouchEnd={(e) => e.stopPropagation()}
       onClick={handleClick}
       className={cn(
-        TASK_CIRCLE.base, TASK_CIRCLE.marginTop,
+        TASK_CIRCLE.base, 'task-ring mt-0.5',
         compactMode ? TASK_CIRCLE.sizeCompact : TASK_CIRCLE.size,
         item.completed && TASK_CIRCLE.completed,
         isPending && TASK_CIRCLE.pending,
       )}
       style={{
+        '--task-priority-color': priorityColor,
         borderColor: (item.completed || isPending) ? undefined : priorityColor,
-        backgroundColor: isPending ? priorityColor : undefined,
-      }}
+        backgroundColor: isPending ? priorityColor : item.completed ? 'hsl(var(--muted-foreground) / 0.3)' : undefined,
+      } as React.CSSProperties}
     >
       {(item.completed || isPending) && (
         <Check
@@ -560,8 +561,8 @@ const Today = () => {
     const isVisuallyPending = pendingVisualCompleteIds.has(item.id) || pendingCompleteId === item.id;
     
     return (
-      <div key={item.id} className="relative">
-        <div className="relative overflow-hidden">
+      <div key={item.id} className="relative pb-1.5">
+        <div className="relative overflow-hidden rounded-[14px]">
           {/* Swipe action backgrounds */}
           <div className="absolute inset-0 flex">
             <div className="flex items-center justify-start" style={{ opacity: (currentSwipe?.x || 0) > 0 ? 1 : 0 }}>
@@ -607,8 +608,8 @@ const Today = () => {
           {/* Main flat item */}
           <div 
             className={cn(
-              "flex items-start gap-3 border-b border-border/50 bg-background relative z-10",
-              compactMode ? "py-1.5 px-1.5 gap-2" : "py-2.5 px-2"
+              "task-card flex items-start gap-3 bg-card relative z-10",
+              compactMode ? "py-2 px-3 gap-2" : "py-3 px-3"
             )}
             style={{ 
               transform: `translateX(${currentSwipe?.x || 0}px)`, 
@@ -663,7 +664,7 @@ const Today = () => {
               ) : (
                 <div className="flex items-center gap-2 min-w-0">
                   {item.isPinned && <Pin className={cn(compactMode ? "h-3 w-3" : "h-3.5 w-3.5", "text-warning fill-warning flex-shrink-0")} />}
-                  <span className={cn(compactMode ? "text-xs" : "text-sm", "min-w-0 truncate transition-all duration-300", (item.completed || isVisuallyPending) && "text-muted-foreground line-through")}>{item.text}</span>
+                  <span className={cn('task-title', compactMode && 'task-title-compact', "min-w-0 truncate transition-all duration-300", (item.completed || isVisuallyPending) && "text-muted-foreground line-through")}>{item.text}</span>
                   {item.repeatType && item.repeatType !== 'none' && <Repeat className={cn(compactMode ? "h-2.5 w-2.5" : "h-3 w-3", "text-accent-purple flex-shrink-0")} />}
                 </div>
               )}
@@ -849,7 +850,7 @@ const Today = () => {
   };
 
   return (
-    <TodoLayout title="Flowist" searchValue={viewModeSearch} onSearchChange={(val) => startTransition(() => setViewModeSearch(val))}>
+    <TodoLayout title="Inbox" inboxDashboard>
       <TodayTourTrigger />
       <main className="pt-0 pb-32">
         <h1 className="sr-only">Flowist — Today's Tasks &amp; Daily Planner</h1>

@@ -481,7 +481,7 @@ export function FlatTaskList({
                 // Source row is dimmed by the hook (opacity) while dragged;
                 // we additionally hide its hit area via the hook's pointer-
                 // events override. Visual styles below stay untouched.
-                backgroundColor: 'hsl(var(--background))',
+                backgroundColor: 'transparent',
                 boxShadow: isBeingDragged
                   ? '0 8px 24px hsl(var(--foreground) / 0.18), inset 0 0 0 2px hsl(var(--primary))'
                   : undefined,
