@@ -20,12 +20,12 @@ export function NotePreviewText({ text, noteId }: { text: string; noteId?: strin
   useLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
-    const measure = () => setFits(element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1);
+    const measure = () => setFits(element.scrollWidth <= element.clientWidth + 1);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     document.fonts?.ready.then(measure);
     return () => observer.disconnect();
   }, [preview]);
-  return <span ref={ref} aria-hidden={!fits} className={`min-w-0 flex-1 max-h-6 overflow-hidden text-[12px] leading-3 ${fits ? '' : 'invisible'}`}>{preview}</span>;
+  return <span ref={ref} aria-hidden={!fits} className={`min-w-0 flex-1 overflow-hidden whitespace-nowrap text-[12px] leading-4 ${fits ? '' : 'invisible'}`}>{preview}</span>;
 }
