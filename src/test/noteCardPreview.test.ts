@@ -15,4 +15,8 @@ describe('complete Notes previews', () => {
   it('shows short unpunctuated notes whole', () => expect(preview('Buy milk')).toBe('Buy milk'));
   it('never returns a partial long sentence', () => expect(preview('Learning '.repeat(80) + 'matters.')).toBe(''));
   it('removes ellipses', () => expect(preview('We can do it...')).not.toMatch(/\.{2,}|…/));
+  it('restores a complete preview from metadata containing more than 240 characters', () => {
+    const content = 'A very long sentence '.repeat(15) + 'ends here. We can do it.';
+    expect(getNoteCardPreview({ ...makeNote(content), __contentStub: true, __contentLength: 5000 })).toBe('We can do it.');
+  });
 });

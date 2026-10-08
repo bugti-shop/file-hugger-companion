@@ -7,12 +7,12 @@ export function NotePreviewText({ text }: { text: string }) {
   useLayoutEffect(() => {
     const element = ref.current;
     if (!element) return;
-    const measure = () => setFits(element.scrollWidth <= element.clientWidth);
+    const measure = () => setFits(element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1);
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(element);
     document.fonts?.ready.then(measure);
     return () => observer.disconnect();
   }, [text]);
-  return <span ref={ref} aria-hidden={!fits} className={`min-w-0 flex-1 overflow-hidden whitespace-nowrap text-[13px] ${fits ? '' : 'invisible'}`}>{text}</span>;
+  return <span ref={ref} aria-hidden={!fits} className={`min-w-0 flex-1 max-h-8 overflow-hidden text-[12px] leading-4 ${fits ? '' : 'invisible'}`}>{text}</span>;
 }

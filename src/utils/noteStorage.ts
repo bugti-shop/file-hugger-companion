@@ -65,14 +65,14 @@ export const isNoteContentStub = (note: Note | null | undefined): boolean => {
 export const makeMetadataNote = (note: any): Note => {
   const hydrated = hydrateNote(note);
   const fullContent = typeof hydrated.content === 'string' ? hydrated.content : '';
-  const preview = (note as any)[CONTENT_PREVIEW_KEY] || getTextPreviewFromHtml(fullContent, 240);
+  const preview = (note as any)[CONTENT_PREVIEW_KEY] || getTextPreviewFromHtml(fullContent, 4000);
   return {
     ...hydrated,
     // Keep the list light: cards/search use this preview, editor loads full text by id.
     content: preview,
     [CONTENT_STUB_FLAG]: true,
     [CONTENT_PREVIEW_KEY]: preview,
-    [CONTENT_LENGTH_KEY]: fullContent.length,
+    [CONTENT_LENGTH_KEY]: (note as any)[CONTENT_LENGTH_KEY] ?? fullContent.length,
   } as Note;
 };
 
