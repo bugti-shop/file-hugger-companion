@@ -14,5 +14,5 @@ export function NotePreviewText({ text }: { text: string }) {
     document.fonts?.ready.then(measure);
     return () => observer.disconnect();
   }, [text]);
-  return <span ref={ref} aria-hidden={!fits} className={`min-w-0 flex-1 max-h-8 overflow-hidden text-[12px] leading-4 ${fits ? '' : 'invisible'}`}>{text}</span>;
+  return <span ref={ref} aria-hidden={!fits} className={`min-w-0 flex-1 max-h-6 overflow-hidden text-[12px] leading-3 ${fits ? '' : 'invisible'}`}>{text}</span>;
 }
