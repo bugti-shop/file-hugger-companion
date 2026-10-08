@@ -7,14 +7,14 @@ export function NotePreviewText({ text, noteId }: { text: string; noteId?: strin
   const [restored, setRestored] = useState('');
   useEffect(() => {
     setRestored('');
-    if (text || !noteId) return;
+    if (!noteId) return;
     let active = true;
     void loadNoteFromDB(noteId).then(note => {
       if (active && note) setRestored(getNoteCardPreview(note));
     }).catch(() => {});
     return () => { active = false; };
   }, [text, noteId]);
-  const preview = text || restored;
+  const preview = restored || text;
   const ref = useRef<HTMLSpanElement>(null);
   const [fits, setFits] = useState(false);
   useLayoutEffect(() => {
