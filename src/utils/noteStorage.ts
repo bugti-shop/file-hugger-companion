@@ -72,7 +72,7 @@ export const makeMetadataNote = (note: any): Note => {
     content: preview,
     [CONTENT_STUB_FLAG]: true,
     [CONTENT_PREVIEW_KEY]: preview,
-    [CONTENT_LENGTH_KEY]: fullContent.length,
+    [CONTENT_LENGTH_KEY]: (note as any)[CONTENT_LENGTH_KEY] ?? fullContent.length,
   } as Note;
 };
 

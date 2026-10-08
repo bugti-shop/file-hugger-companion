@@ -33,13 +33,12 @@ export function TimelineTaskRows({ id, color, tasks, renderTaskItem, renderSubta
     <Droppable droppableId={id}>
       {(provided, snapshot) => (
         <div ref={provided.innerRef} {...provided.droppableProps}
-          className={cn('pb-2 space-y-1', snapshot.isDraggingOver && 'bg-primary/5')}
-          style={{ borderLeft: `3px solid ${color}` }}>
+          className={cn('pb-2', snapshot.isDraggingOver && 'bg-primary/5')}>
           {tasks.slice(0, shown).map((item, index) => (
             <Draggable key={item.id} draggableId={item.id} index={index}>
               {(dragProvided, dragSnapshot) => (
                 <div ref={dragProvided.innerRef} {...dragProvided.draggableProps} {...dragProvided.dragHandleProps}
-                  className={cn('bg-card', dragSnapshot.isDragging && 'shadow-lg ring-2 ring-primary rounded-lg')}>
+                  className={cn(dragSnapshot.isDragging && 'shadow-lg ring-2 ring-primary rounded-lg')}>
                   {renderTaskItem(item)}
                   {renderSubtasksInline(item)}
                 </div>

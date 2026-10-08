@@ -840,7 +840,7 @@ const Notes = () => {
                          day: 'numeric', year: 'numeric'
                       })}
                     </span>
-                     {getNoteCardPreview(note) && <NotePreviewText text={getNoteCardPreview(note)} />}
+                     <NotePreviewText text={getNoteCardPreview(note)} noteId={note.id} />
                      {note.isDeleted && note.deletedAt && (
                       <div className="inline-block px-2 py-1 rounded-full bg-destructive/20 text-xs text-destructive font-medium">
                         {t('notes.daysRemaining', { days: getDaysRemaining(note.deletedAt) })}
