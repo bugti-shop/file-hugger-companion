@@ -413,7 +413,7 @@ const NoteCardInner = memo(({ note, onEdit, onDelete, onArchive, onTogglePin, on
             <span className="shrink-0">
               {updatedAtDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
-            {contentPreview && !(noteProtection.hasPassword || noteProtection.useBiometric) && <NotePreviewText text={contentPreview} />}
+            {!(noteProtection.hasPassword || noteProtection.useBiometric) && <NotePreviewText text={contentPreview} noteId={note.id} />}
           </div>
 
           {/* Tags display beneath the date */}

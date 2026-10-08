@@ -65,7 +65,7 @@ export const isNoteContentStub = (note: Note | null | undefined): boolean => {
 export const makeMetadataNote = (note: any): Note => {
   const hydrated = hydrateNote(note);
   const fullContent = typeof hydrated.content === 'string' ? hydrated.content : '';
-  const preview = (note as any)[CONTENT_PREVIEW_KEY] || getTextPreviewFromHtml(fullContent, 4000);
+  const preview = (note as any)[CONTENT_PREVIEW_KEY] || getTextPreviewFromHtml(fullContent, 240);
   return {
     ...hydrated,
     // Keep the list light: cards/search use this preview, editor loads full text by id.
