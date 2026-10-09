@@ -403,7 +403,7 @@ export function FlatTaskList({
                           data-active={isActive ? 'true' : 'false'}
                           style={{
                             ...dragProvided.draggableProps.style,
-                            backgroundColor: 'hsl(var(--background))',
+                            backgroundColor: 'transparent',
                             boxShadow: snapshot.isDragging
                               ? '0 8px 24px hsl(var(--foreground) / 0.18), inset 0 0 0 2px hsl(var(--primary))'
                               : undefined,

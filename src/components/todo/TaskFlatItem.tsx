@@ -97,7 +97,7 @@ export const TaskFlatItem = memo(({
   };
 
   return (
-    <div className="relative perf-contain-item pb-1.5">
+    <div className="relative perf-contain-item pb-1">
       <div className="relative overflow-hidden rounded-[14px]">
         {/* Swipe action backgrounds */}
         <div className="absolute inset-0 flex">

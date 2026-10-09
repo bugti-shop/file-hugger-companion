@@ -932,49 +932,6 @@ const Today = () => {
                 />
                 </div>
               </HeaderActionsPortal>
-            <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-
-              <DragDropContext onDragEnd={(result: DropResult) => {
-                if (!result.destination) return;
-                const sorted = [...folders].sort((a, b) => (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0));
-                const reordered = Array.from(sorted);
-                const [moved] = reordered.splice(result.source.index, 1);
-                reordered.splice(result.destination.index, 0, moved);
-                handleReorderFolders(reordered);
-              }}>
-                <Droppable droppableId="folder-chips" direction="horizontal">
-                  {(provided) => (
-                    <div ref={provided.innerRef} {...provided.droppableProps} className="flex gap-2">
-                      {[...folders].sort((a, b) => (b.isFavorite ? 1 : 0) - (a.isFavorite ? 1 : 0)).map((folder, index) => {
-                        const isSelected = selectedFolderId === folder.id;
-                        const chipColor = folder.color || '#6b7280';
-                        const chipTint = chipColor.startsWith('#') ? `${chipColor}26` : chipColor;
-                        return (
-                          <Draggable key={folder.id} draggableId={`folder-chip-${folder.id}`} index={index}>
-                            {(dragProvided, snapshot) => (
-                              <button
-                                ref={dragProvided.innerRef} {...dragProvided.draggableProps} {...dragProvided.dragHandleProps}
-                                onClick={() => setSelectedFolderId(folder.id)}
-                                onContextMenu={(e) => { e.preventDefault(); handleToggleFolderFavorite(folder.id); }}
-                                className={cn("flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap flex-shrink-0 text-primary-foreground", snapshot.isDragging && "shadow-lg")}
-                                style={{
-                                  backgroundColor: chipColor,
-                                  ...dragProvided.draggableProps.style,
-                                }}
-                              >
-                                {folder.isFavorite && <Star className="h-3.5 w-3.5 fill-current" />}
-                                <FolderIcon className="h-4 w-4" />{folder.name}
-                              </button>
-                            )}
-                          </Draggable>
-                        );
-                      })}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
-            </div>
           </div>
 
 

@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { FileText, Search, X, Crown, Folder } from 'lucide-react';
+import { FileText, Search, X, Crown } from 'lucide-react';
 import { NotificationCenter } from '@/components/NotificationCenter';
 import { FeatureGuideButton } from '@/components/tours/FeatureGuideModal';
 import { TodoBottomNavigation } from '@/components/TodoBottomNavigation';
@@ -41,9 +41,11 @@ export const TodoLayout = ({ children, title, searchValue, onSearchChange, inbox
         <div className="w-full max-w-6xl xl:max-w-7xl 2xl:max-w-[1400px] mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pt-1.5 pb-1">
           <div className="flex items-center justify-between mb-1.5 sm:mb-2 gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
-              <div className={inboxDashboard ? 'flex items-center gap-2' : 'md:hidden flex items-center gap-2'}>
-                {inboxDashboard ? <Folder className="h-6 w-6 text-foreground" /> : <AppLogo />}
-              </div>
+              {!inboxDashboard && (
+                <div className="md:hidden flex items-center gap-2">
+                  <AppLogo />
+                </div>
+              )}
               <h1 className={inboxDashboard ? 'text-xl font-bold truncate' : 'text-lg sm:text-xl lg:text-2xl font-bold truncate md:hidden'}>{inboxDashboard ? t('folders.inbox', 'Inbox') : title}</h1>
             </div>
             <div className="flex items-center flex-shrink-0">
