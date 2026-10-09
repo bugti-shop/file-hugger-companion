@@ -2,6 +2,8 @@
 
 - [x] Restore Notes body previews; restyle task titles/rings/cards and Inbox header; remove dashboard search; stop automatically creating task sections. Verified saved task reload, 16px title, tinted blue Low ring, #f6f3ee background, empty section list and complete Notes preview; 16 focused tests pass.
 
+- [x] Remove Inbox/Mustafa folder chips and the header folder icon, paint the strip between task cards with the page background instead of white, and tighten the card gap. Verified on desktop (3 cards, 6px gap, gap pixel #f6f3ee, card white) and phone (2 cards, same gap and colours, header "Inbox" with no icon, no pills).
+
 - [x] Whiten Notes group outer borders, reduce all strips by 9%, show only complete short previews, fix Task Detail dark surfaces and unify startup/system theme.
 - [ ] Verify Task Detail and existing Notes visually with a signed-in account; requesting user's preview session unavailable.
 
